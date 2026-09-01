@@ -67,7 +67,7 @@
     padding: 20px;
   }
   #hover-tooltip {
-    position: fixed;
+    position: absolute;
     pointer-events: none;
     background: #1F4E5F;
     color: #fff;
@@ -297,6 +297,7 @@
   function setupHoverTooltip(fieldName, formattedValue) {
     const carSvg = document.getElementById("car-svg");
     const tooltip = document.getElementById("hover-tooltip");
+    const outer = document.getElementById("outer");
     if (!carSvg) return;
 
     if (!fieldName) {
@@ -307,10 +308,26 @@
     }
 
     carSvg.onmousemove = (e) => {
+      const outerRect = outer.getBoundingClientRect();
+
       tooltip.textContent = fieldName + ": " + formattedValue;
-      tooltip.style.left = (e.clientX + 12) + "px";
-      tooltip.style.top = (e.clientY + 12) + "px";
       tooltip.style.display = "block";
+
+      // Position relative to the extension's own frame (not the browser
+      // viewport) — a viz extension's iframe is sized to just the mark
+      // itself, so viewport-relative positioning easily lands outside that
+      // small frame and gets silently clipped. Clamp so it always stays
+      // fully visible within the frame regardless of cursor position.
+      let x = e.clientX - outerRect.left + 12;
+      let y = e.clientY - outerRect.top + 12;
+
+      const tooltipWidth = tooltip.offsetWidth;
+      const tooltipHeight = tooltip.offsetHeight;
+      const maxX = Math.max(0, outerRect.width - tooltipWidth - 4);
+      const maxY = Math.max(0, outerRect.height - tooltipHeight - 4);
+
+      tooltip.style.left = Math.min(x, maxX) + "px";
+      tooltip.style.top = Math.min(y, maxY) + "px";
     };
     carSvg.onmouseleave = () => {
       tooltip.style.display = "none";
