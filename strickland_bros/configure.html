@@ -75,7 +75,8 @@
 </style>
 </head>
 <body>
-<h3>Customize colors &amp; labels</h3>
+<h3>Customize colors, labels &amp; order</h3>
+<p class="hint" style="margin:0 0 8px;">Top row = bottom of the car. Use ▲/▼ to reorder.</p>
 <div id="rows">Loading…</div>
 <div id="btn-row">
   <button id="cancel-btn">Cancel</button>
@@ -99,10 +100,14 @@
     } else {
       const currentHeadlineKey = tableau.extensions.settings.get("headlineKey") || "";
       rowsContainer.innerHTML = categories.map(c => `
-        <div class="row">
+        <div class="row" data-key="${c.key}">
           <div class="row-top">
             <span>${c.label}</span>
-            <input type="color" data-color-key="${c.key}" value="${c.color}">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <button class="move-btn" data-dir="up" title="Move toward bottom of car" style="flex:none;padding:2px 6px;">▲</button>
+              <button class="move-btn" data-dir="down" title="Move toward top of car" style="flex:none;padding:2px 6px;">▼</button>
+              <input type="color" data-color-key="${c.key}" value="${c.color}">
+            </div>
           </div>
           <input type="text" data-label-key="${c.key}" value="${c.labelTemplate || '{name}: {value}'}">
           <div class="hint">Use {name} and {value} as placeholders</div>
@@ -113,6 +118,19 @@
           </label>
         </div>
       `).join("");
+
+      // Reorder by moving the actual row DOM node up/down, so any in-progress
+      // edits to colors/labels in other rows aren't lost by re-rendering.
+      rowsContainer.querySelectorAll(".move-btn").forEach(btn => {
+        btn.onclick = () => {
+          const row = btn.closest(".row");
+          if (btn.dataset.dir === "up" && row.previousElementSibling) {
+            row.parentNode.insertBefore(row, row.previousElementSibling);
+          } else if (btn.dataset.dir === "down" && row.nextElementSibling) {
+            row.parentNode.insertBefore(row.nextElementSibling, row);
+          }
+        };
+      });
     }
 
     document.getElementById("save-btn").onclick = saveAndClose;
@@ -139,9 +157,14 @@
     const checkedHeadline = document.querySelector("input[name='headline-choice']:checked");
     const headlineKey = checkedHeadline ? checkedHeadline.dataset.headlineKey : "";
 
+    // Capture the current on-screen row order (top row = bottom of car).
+    const categoryOrder = Array.from(document.querySelectorAll("#rows .row"))
+      .map(row => row.dataset.key);
+
     tableau.extensions.settings.set("colorMap", JSON.stringify(colorMap));
     tableau.extensions.settings.set("labelTemplates", JSON.stringify(labelTemplateMap));
     tableau.extensions.settings.set("headlineKey", headlineKey);
+    tableau.extensions.settings.set("categoryOrder", JSON.stringify(categoryOrder));
     tableau.extensions.settings.saveAsync().then(() => {
       tableau.extensions.ui.closeDialog("saved");
     });
