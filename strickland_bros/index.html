@@ -300,10 +300,20 @@
     const outer = document.getElementById("outer");
     if (!carSvg) return;
 
+    // --- TEMPORARY DIAGNOSTIC ---
+    // Forces the tooltip permanently visible (not hover-gated) so we can
+    // tell whether the div itself can render inside the extension's frame
+    // at all, before worrying about whether mouse events reach it.
+    // Remove this block once we know the answer.
+    tooltip.textContent = "DIAGNOSTIC: " + (fieldName || "(no field)") + " / " + formattedValue;
+    tooltip.style.display = "block";
+    tooltip.style.left = "4px";
+    tooltip.style.top = "4px";
+    // --- END TEMPORARY DIAGNOSTIC ---
+
     if (!fieldName) {
       carSvg.onmousemove = null;
       carSvg.onmouseleave = null;
-      tooltip.style.display = "none";
       return;
     }
 
