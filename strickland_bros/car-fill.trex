@@ -8,7 +8,15 @@
     <min-api-version>1.1</min-api-version>
 
     <source-location>
-      <url>https://cdn.jsdelivr.net/gh/lauren-short/tableau-repository@main/strickland_bros/index.html</url>
+    <!--
+      Hosted via GitHub Pages. NOTE: jsDelivr deliberately serves all
+      .html files with Content-Type: text/plain (a security measure on
+      their end) — it cannot be used to host this file, even though it
+      works fine for .js libraries. GitHub Pages serves correct
+      content-types and is the right host for this.
+    -->
+    <source-location>
+      <url>https://lauren-short.github.io/tableau-repository/strickland_bros/index.html</url>
     </source-location>
 
     <icon/>
