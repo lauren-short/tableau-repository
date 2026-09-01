@@ -99,52 +99,10 @@
     display: inline-block;
     flex-shrink: 0;
   }
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    font-size: 11px;
-    background: #eee;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 3px 8px;
-    cursor: pointer;
-    color: #444;
-    z-index: 10;
-  }
-  #config-panel {
-    position: absolute;
-    top: 30px;
-    right: 6px;
-    background: #fff;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    padding: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-    z-index: 20;
-    display: none;
-    font-size: 12px;
-    color: #333;
-    min-width: 220px;
-  }
-  #config-panel .row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 6px;
-  }
-  #config-panel button {
-    margin-top: 6px;
-    width: 100%;
-    padding: 4px;
-    cursor: pointer;
-  }
 </style>
 </head>
 <body>
 <div id="outer">
-  <button id="config-toggle">Customize</button>
-  <div id="config-panel"></div>
   <div id="wrap">
     <div id="status">Loading…</div>
   </div>
@@ -173,7 +131,7 @@
   let labelTemplateMap = {};  // categoryKey -> freeform template string, e.g. "{name}: {value} cars"
   let lastCategoryKeys = [];  // [{key, label, color, total}] from the most recent render, for the config panel
 
-  window.onload = tableau.extensions.initializeAsync().then(() => {
+  window.onload = tableau.extensions.initializeAsync({ configure: openConfigureDialog }).then(() => {
     worksheet = tableau.extensions.worksheetContent.worksheet;
 
     loadColorMap();
@@ -182,8 +140,6 @@
       tableau.TableauEventType.SummaryDataChanged,
       updateDataAndRender
     );
-
-    document.getElementById("config-toggle").addEventListener("click", toggleConfigPanel);
 
     updateDataAndRender();
   }).catch(err => {
@@ -220,8 +176,10 @@
   }
 
   function categoryKeyFor(rawValue) {
-    if (rawValue === null || rawValue === undefined || rawValue === "") return BLANK_KEY;
-    return String(rawValue);
+    if (rawValue === null || rawValue === undefined) return BLANK_KEY;
+    const trimmed = String(rawValue).trim();
+    if (trimmed === "" || ["null", "none", "n/a"].includes(trimmed.toLowerCase())) return BLANK_KEY;
+    return trimmed;
   }
 
   function colorForCategory(key, nonBlankIndex) {
@@ -316,7 +274,8 @@
         key,
         label: displayLabelByKey[key],
         color: colorForCategory(key, nonBlankKeys.indexOf(key)),
-        total: totalsByKey[key]
+        total: totalsByKey[key],
+        labelTemplate: labelTemplateMap[key] || DEFAULT_LABEL_TEMPLATE
       }));
 
       drawCar(segments, grandTotal);
@@ -327,7 +286,6 @@
 
       renderLegend();
       setupHoverTooltip(tooltipMeasure, tooltipFormatted !== null ? tooltipFormatted : tooltipVal.toLocaleString());
-      renderConfigPanel();
     } catch (err) {
       document.getElementById("wrap").innerHTML =
         '<div id="status">Error: ' + err.message + '</div>';
@@ -409,45 +367,22 @@
     }).join("");
   }
 
-  function toggleConfigPanel() {
-    const panel = document.getElementById("config-panel");
-    panel.style.display = panel.style.display === "block" ? "none" : "block";
-  }
-
-  function renderConfigPanel() {
-    const panel = document.getElementById("config-panel");
-    if (lastCategoryKeys.length === 0) {
-      panel.innerHTML = '<div>No categories yet.</div>';
-      return;
-    }
-
-    const rows = lastCategoryKeys.map(c => {
-      const currentTemplate = labelTemplateMap[c.key] || DEFAULT_LABEL_TEMPLATE;
-      return `<div class="row" style="flex-direction:column;align-items:stretch;gap:4px;">
-        <div class="row" style="margin-bottom:0;">
-          <span>${c.label}</span>
-          <input type="color" data-color-key="${c.key}" value="${c.color}">
-        </div>
-        <input type="text" data-label-key="${c.key}" value="${currentTemplate}"
-          placeholder="{name}: {value}" style="width:100%;box-sizing:border-box;font-size:11px;padding:3px;">
-      </div>`;
-    }).join("");
-
-    panel.innerHTML = rows +
-      '<div style="font-size:10px;color:#888;margin:4px 0;">Use {name} and {value} as placeholders</div>' +
-      '<button id="save-colors-btn">Save</button>';
-
-    document.getElementById("save-colors-btn").onclick = async () => {
-      panel.querySelectorAll("input[data-color-key]").forEach(input => {
-        colorMap[input.dataset.colorKey] = input.value;
+  // Called when the user clicks "Format Extension" on the Marks card
+  // (added via the <context-menu><configure-context-menu-item/></context-menu>
+  // element in the .trex manifest). Opens configure.html as a modal dialog
+  // where colors and label templates are edited; that page saves directly
+  // to tableau.extensions.settings, so we just reload our local copies and
+  // re-render once it closes.
+  function openConfigureDialog() {
+    const payload = JSON.stringify(lastCategoryKeys);
+    tableau.extensions.ui.displayDialogAsync("./configure.html", payload, { height: 480, width: 420 })
+      .then(() => {
+        loadColorMap();
+        updateDataAndRender();
+      })
+      .catch(() => {
+        // User closed the dialog without saving, or it errored — no action needed.
       });
-      panel.querySelectorAll("input[data-label-key]").forEach(input => {
-        labelTemplateMap[input.dataset.labelKey] = input.value;
-      });
-      await saveConfig();
-      panel.style.display = "none";
-      updateDataAndRender();
-    };
   }
 })();
 </script>
