@@ -4,17 +4,17 @@
   ----------------------------------------------------------
   Runs as a MARK TYPE on the worksheet's Marks card (under Viz Extensions).
 
-  Data model:
-  - "Category" (dimension) — e.g. Net New: "Y" or "" (blank)
-  - "Total" (measure) — e.g. CNTD(VehicleVin), totaled per category value
+  Data model (mirrors Tableau's own shelf vocabulary):
+  - "Color" (dimension) — e.g. Net New: "Y" or "" (blank)
+  - "Size" (measure) — e.g. CNTD(VehicleVin), totaled per color value
 
-  Blank/empty category values become the "remaining" band (drawn at the
-  top of the car). Any non-blank category value gets its own colored band,
+  Blank/empty color values become the "remaining" band (drawn at the
+  top of the car). Any non-blank color value gets its own colored band,
   stacked at the bottom, in descending order of size. This generalizes to
-  more than one non-blank category value if that ever comes up, though the
+  more than one non-blank color value if that ever comes up, though the
   original ask was just Y vs blank.
 
-  Colors are configurable per category value via the "Colors" button drawn
+  Colors are configurable per color value via the "Customize" button drawn
   on the visual itself, saved through tableau.extensions.settings so they
   persist across sessions.
 
@@ -78,7 +78,27 @@
     display: none;
     z-index: 1000;
   }
-  #config-toggle {
+  #legend {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 0 0;
+    font-size: 13px;
+    color: #333;
+  }
+  #legend .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #legend .swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    display: inline-block;
+    flex-shrink: 0;
+  }
     position: absolute;
     top: 6px;
     right: 6px;
@@ -104,7 +124,7 @@
     display: none;
     font-size: 12px;
     color: #333;
-    min-width: 160px;
+    min-width: 220px;
   }
   #config-panel .row {
     display: flex;
@@ -123,11 +143,12 @@
 </head>
 <body>
 <div id="outer">
-  <button id="config-toggle">Colors</button>
+  <button id="config-toggle">Customize</button>
   <div id="config-panel"></div>
   <div id="wrap">
     <div id="status">Loading…</div>
   </div>
+  <div id="legend"></div>
   <div id="hover-tooltip"></div>
 </div>
 
@@ -149,7 +170,8 @@
 
   let worksheet = null;
   let colorMap = {};          // categoryKey -> hex color, persisted via settings
-  let lastCategoryKeys = [];  // [{key, displayLabel}] from the most recent render, for the config panel
+  let labelTemplateMap = {};  // categoryKey -> freeform template string, e.g. "{name}: {value} cars"
+  let lastCategoryKeys = [];  // [{key, label, color, total}] from the most recent render, for the config panel
 
   window.onload = tableau.extensions.initializeAsync().then(() => {
     worksheet = tableau.extensions.worksheetContent.worksheet;
@@ -171,16 +193,30 @@
 
   function loadColorMap() {
     try {
-      const saved = tableau.extensions.settings.get("colorMap");
-      colorMap = saved ? JSON.parse(saved) : {};
+      const savedColors = tableau.extensions.settings.get("colorMap");
+      colorMap = savedColors ? JSON.parse(savedColors) : {};
     } catch (e) {
       colorMap = {};
     }
+    try {
+      const savedLabels = tableau.extensions.settings.get("labelTemplates");
+      labelTemplateMap = savedLabels ? JSON.parse(savedLabels) : {};
+    } catch (e) {
+      labelTemplateMap = {};
+    }
   }
 
-  function saveColorMap() {
+  function saveConfig() {
     tableau.extensions.settings.set("colorMap", JSON.stringify(colorMap));
+    tableau.extensions.settings.set("labelTemplates", JSON.stringify(labelTemplateMap));
     return tableau.extensions.settings.saveAsync();
+  }
+
+  const DEFAULT_LABEL_TEMPLATE = "{name}: {value}";
+
+  function resolveLabel(key, name, value) {
+    const template = labelTemplateMap[key] || DEFAULT_LABEL_TEMPLATE;
+    return template.replace(/\{name\}/g, name).replace(/\{value\}/g, value);
   }
 
   function categoryKeyFor(rawValue) {
@@ -195,15 +231,15 @@
   }
 
   // Reads the Marks card and returns the field name (or null) dropped onto
-  // each encoding tile: category, total, tooltipMeasure, label.
+  // each encoding tile: color, size, tooltipMeasure, label.
   async function getEncodedFields() {
     const visualSpec = await worksheet.getVisualSpecificationAsync();
     const marksCard = visualSpec.marksSpecifications[visualSpec.activeMarksSpecificationIndex];
 
-    const result = { category: null, total: null, tooltipMeasure: null, label: null };
+    const result = { color: null, size: null, tooltipMeasure: null, label: null };
     for (const encoding of marksCard.encodings) {
-      if (encoding.id === "category" && encoding.field) result.category = encoding.field.name;
-      if (encoding.id === "total" && encoding.field) result.total = encoding.field.name;
+      if (encoding.id === "color" && encoding.field) result.color = encoding.field.name;
+      if (encoding.id === "size" && encoding.field) result.size = encoding.field.name;
       if (encoding.id === "tooltipMeasure" && encoding.field) result.tooltipMeasure = encoding.field.name;
       if (encoding.id === "label" && encoding.field) result.label = encoding.field.name;
     }
@@ -212,17 +248,17 @@
 
   async function updateDataAndRender() {
     try {
-      const { category, total, tooltipMeasure, label } = await getEncodedFields();
+      const { color, size, tooltipMeasure, label } = await getEncodedFields();
 
-      if (!category || !total) {
+      if (!color || !size) {
         document.getElementById("wrap").innerHTML =
-          '<div id="status">Drag a dimension onto <b>Category</b> (e.g. Net New) and a measure onto <b>Total</b> (e.g. CNTD(VehicleVin)) on the Marks card.</div>';
+          '<div id="status">Drag a dimension onto <b>Color</b> (e.g. Net New) and a measure onto <b>Size</b> (e.g. CNTD(VehicleVin)) on the Marks card.</div>';
         return;
       }
 
       const data = await worksheet.getSummaryDataAsync();
-      const colIndexCategory = data.columns.findIndex(c => c.fieldName === category);
-      const colIndexTotal = data.columns.findIndex(c => c.fieldName === total);
+      const colIndexCategory = data.columns.findIndex(c => c.fieldName === color);
+      const colIndexTotal = data.columns.findIndex(c => c.fieldName === size);
       const colIndexTooltip = tooltipMeasure ? data.columns.findIndex(c => c.fieldName === tooltipMeasure) : -1;
       const colIndexLabel = label ? data.columns.findIndex(c => c.fieldName === label) : -1;
 
@@ -279,7 +315,8 @@
       lastCategoryKeys = Object.keys(totalsByKey).map((key, i) => ({
         key,
         label: displayLabelByKey[key],
-        color: colorForCategory(key, nonBlankKeys.indexOf(key))
+        color: colorForCategory(key, nonBlankKeys.indexOf(key)),
+        total: totalsByKey[key]
       }));
 
       drawCar(segments, grandTotal);
@@ -288,6 +325,7 @@
         ? labelText
         : highlightedTotal.toLocaleString() + " / " + grandTotal.toLocaleString();
 
+      renderLegend();
       setupHoverTooltip(tooltipMeasure, tooltipFormatted !== null ? tooltipFormatted : tooltipVal.toLocaleString());
       renderConfigPanel();
     } catch (err) {
@@ -363,6 +401,14 @@
       '<div id="pct-label"></div><div id="sub-label"></div>';
   }
 
+  function renderLegend() {
+    const legend = document.getElementById("legend");
+    legend.innerHTML = lastCategoryKeys.map(c => {
+      const text = resolveLabel(c.key, c.label, c.total.toLocaleString());
+      return `<div class="legend-row"><span class="swatch" style="background:${c.color}"></span><span>${text}</span></div>`;
+    }).join("");
+  }
+
   function toggleConfigPanel() {
     const panel = document.getElementById("config-panel");
     panel.style.display = panel.style.display === "block" ? "none" : "block";
@@ -375,20 +421,30 @@
       return;
     }
 
-    const rows = lastCategoryKeys.map(c =>
-      `<div class="row">
-        <span>${c.label}</span>
-        <input type="color" data-key="${c.key}" value="${c.color}">
-      </div>`
-    ).join("");
+    const rows = lastCategoryKeys.map(c => {
+      const currentTemplate = labelTemplateMap[c.key] || DEFAULT_LABEL_TEMPLATE;
+      return `<div class="row" style="flex-direction:column;align-items:stretch;gap:4px;">
+        <div class="row" style="margin-bottom:0;">
+          <span>${c.label}</span>
+          <input type="color" data-color-key="${c.key}" value="${c.color}">
+        </div>
+        <input type="text" data-label-key="${c.key}" value="${currentTemplate}"
+          placeholder="{name}: {value}" style="width:100%;box-sizing:border-box;font-size:11px;padding:3px;">
+      </div>`;
+    }).join("");
 
-    panel.innerHTML = rows + '<button id="save-colors-btn">Save colors</button>';
+    panel.innerHTML = rows +
+      '<div style="font-size:10px;color:#888;margin:4px 0;">Use {name} and {value} as placeholders</div>' +
+      '<button id="save-colors-btn">Save</button>';
 
     document.getElementById("save-colors-btn").onclick = async () => {
-      panel.querySelectorAll("input[type=color]").forEach(input => {
-        colorMap[input.dataset.key] = input.value;
+      panel.querySelectorAll("input[data-color-key]").forEach(input => {
+        colorMap[input.dataset.colorKey] = input.value;
       });
-      await saveColorMap();
+      panel.querySelectorAll("input[data-label-key]").forEach(input => {
+        labelTemplateMap[input.dataset.labelKey] = input.value;
+      });
+      await saveConfig();
       panel.style.display = "none";
       updateDataAndRender();
     };
