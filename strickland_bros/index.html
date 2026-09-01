@@ -1,33 +1,15 @@
 <!DOCTYPE html>
 <!--
-  Car Fill Extension for Tableau
-  --------------------------------
-  A dashboard extension that renders a car icon which fills from the
-  bottom up based on a live percentage pulled from a worksheet in your
-  dashboard (e.g. Existing Vehicle Vin / (Existing Vehicle Vin + New Cars)).
+  Car Fill — Viz Extension
+  -------------------------
+  This runs as a MARK TYPE on the worksheet's Marks card (under Viz
+  Extensions), not as a dashboard object. The user drags one measure onto
+  the "Filled" encoding tile and one onto "Remaining" — this page reads
+  those two encodings and draws the car icon filled to filled/(filled+remaining).
 
-  Unlike the "sprite swap" image approach, this fill is CONTINUOUS —
-  computed directly from your data every time the extension loads or the
-  dashboard filters change. No stepping/rounding.
-
-  SETUP (one-time):
-  1. Host this folder (index.html + car-fill.trex) somewhere with HTTPS
-     — GitHub Pages, S3 + CloudFront, an internal web server, etc.
-  2. In Tableau Cloud: Settings (site-level, requires admin) > Extensions
-     > add this extension's URL to the allowed list (Tableau Cloud
-     sandboxes/allowlists extensions — see note in car-fill.trex).
-  3. In your dashboard: drag an "Extension" object onto the dashboard,
-     point it at the hosted .trex manifest file.
-  4. On first load, the extension will prompt you to pick:
-       - which worksheet holds your two values
-       - which field holds the "filled" measure
-       - which field holds the "total" (or "remaining") measure
-     These choices are saved via tableau.extensions.settings and persist.
-
-  You can swap in any SVG silhouette — the car shape below is defined once
-  in <defs> and reused for both the "empty" and "fill" layers, so editing
-  the <clipPath id="carShape"> content is all you need to change to use a
-  different icon.
+  Unlike the dashboard-extension version, there's no manual "configure"
+  step asking for worksheet/field names — Tableau hands you the fields
+  the user dropped onto the encoding tiles directly.
 -->
 <html>
 <head>
@@ -62,18 +44,6 @@
     color: #5b7a86;
     margin-top: 2px;
   }
-  #configure-btn {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    font-size: 11px;
-    background: #eee;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 2px 6px;
-    cursor: pointer;
-    color: #444;
-  }
   #status {
     font-size: 12px;
     color: #888;
@@ -92,79 +62,66 @@
   const FILL_COLOR = "#4A90C4";
   const EMPTY_COLOR = "#1F4E5F";
 
-  let unregisterHandler = null;
+  // Car silhouette path (car.svg) and its bounding box within the viewBox
+  // below. Computed once from the path data: icon top = 0 (roof), icon
+  // bottom = 3236.76 (bottom of wheels) — the viewBox itself is a bit
+  // taller (3359.66) so there's empty margin under the wheels.
+  const CAR_PATH = "M4628.33,910.33c0-47.59-16.55-111.73-120-111.73h-370.35c-40.19,0-68.43,23.91-87.18,49.6l-323.69-532.91c-34.88-57.43-77.21-110-125.87-156.33h0C3459.52,24.02,3271.32,0,3075.63,0h-1522.51c-195.69,0-383.89,24.02-525.61,158.96h0c-48.66,46.33-90.99,98.9-125.87,156.33l-323.69,532.91c-18.75-25.69-46.98-49.6-87.18-49.6H120.42C16.96,798.6.41,862.74.41,910.33S-.06,1024.74,0,1033.22c.23,28.93,9.52,104.26,99.72,106.77,81.62,2.27,227.81,1.22,300.69.49l-52.85,87.01c-44.44,70.14-82.87,143.9-114.91,220.5h0c-75.44,180.4-114.29,373.99-114.29,569.53v1225.68c0,64.32,52.14,116.45,116.45,116.45h487.41c64.32,0,116.45-52.14,116.45-116.45v-271.95h2951.37v271.95c0,64.32,52.14,116.45,116.45,116.45h487.41c64.32,0,116.45-52.14,116.45-116.45v-418.03h0v-807.65c0-195.54-38.85-389.13-114.29-569.53h0c-32.03-76.6-70.47-150.36-114.91-220.5l-52.85-87.01c72.88.73,219.08,1.77,300.69-.49,90.2-2.51,99.49-77.83,99.72-106.77.07-8.49-.41-73.21-.41-122.89ZM1354.34,1949.24l-154.49,128.73c-50.35,41.96-116.53,65.27-185.24,65.27h-342.8c-59.31,0-117.94-11.97-171.11-35.56-80.67-35.79-163.01-85.58-173.1-128.61-14.12-60.2,10.04-200.19,20.63-225.54,10.59-25.35,35.31-85.55,102.4-72.87,54.44,10.28,657.57,145.74,883.07,196.46,36.34,8.17,48.09,49.25,20.64,72.13ZM689.88,1191.65s-141.24,10.59-45.9-141.24c68.29-108.76,265.21-425.86,371.44-597.03,44.86-72.27,99.56-138.01,163.02-194.65,52.56-46.92,102.18-79.33,221.16-83.99,180.08-7.06,914.77,0,914.77,0,0,0,734.69-7.06,914.77,0,118.98,4.67,168.6,37.08,221.16,83.99,63.46,56.64,118.16,122.38,163.02,194.65,106.23,171.17,303.16,488.27,371.44,597.03,95.34,151.83-45.9,141.24-45.9,141.24H689.88ZM4280.52,1753.53c10.59,25.35,34.76,165.34,20.63,225.54-10.1,43.03-92.44,92.82-173.1,128.61-53.17,23.59-111.8,35.56-171.11,35.56h-342.8c-68.72,0-134.89-23.32-185.24-65.27l-154.49-128.73c-27.45-22.88-15.7-63.96,20.64-72.13,225.51-50.72,828.64-186.18,883.07-196.46,67.09-12.67,91.8,47.53,102.4,72.87Z";
+  const VIEWBOX_W = 4628.75, VIEWBOX_H = 3359.66;
+  const ICON_TOP = 0, ICON_BOTTOM = 3236.76;
 
-  tableau.extensions.initializeAsync({ configure: onConfigure }).then(() => {
-    render();
-    subscribeToActiveDashboard();
+  let worksheet = null;
+
+  window.onload = tableau.extensions.initializeAsync().then(() => {
+    worksheet = tableau.extensions.worksheetContent.worksheet;
+
+    worksheet.addEventListener(
+      tableau.TableauEventType.SummaryDataChanged,
+      updateDataAndRender
+    );
+
+    updateDataAndRender();
   }).catch(err => {
     document.getElementById("wrap").innerHTML =
       '<div id="status">Failed to initialize: ' + err.message + '</div>';
   });
 
-  function subscribeToActiveDashboard() {
-    const dashboard = tableau.extensions.dashboardContent.dashboard;
-    dashboard.worksheets.forEach(ws => {
-      ws.addEventListener(tableau.TableauEventType.SummaryDataChanged, render);
-    });
-  }
+  // Reads the Marks card and returns { filled: fieldName|null, remaining: fieldName|null }
+  // based on which fields the user dropped onto each encoding tile.
+  async function getEncodedFields() {
+    const visualSpec = await worksheet.getVisualSpecificationAsync();
+    const marksCard = visualSpec.marksSpecifications[visualSpec.activeMarksSpecificationIndex];
 
-  async function onConfigure() {
-    const dashboard = tableau.extensions.dashboardContent.dashboard;
-    const worksheetNames = dashboard.worksheets.map(w => w.name);
-
-    // Simple prompt-based config for now — swap for a real popup dialog
-    // (tableau.extensions.ui.displayDialogAsync) if you want a nicer UI.
-    const wsName = window.prompt(
-      "Worksheet name to read data from:\n(" + worksheetNames.join(", ") + ")",
-      tableau.extensions.settings.get("worksheetName") || worksheetNames[0]
-    );
-    if (!wsName) return;
-
-    const worksheet = dashboard.worksheets.find(w => w.name === wsName);
-    if (!worksheet) { alert("Worksheet not found."); return; }
-
-    const data = await worksheet.getSummaryDataAsync();
-    const columnNames = data.columns.map(c => c.fieldName);
-
-    const filledField = window.prompt(
-      "Field holding the FILLED value (e.g. Existing Vehicle Vin):\n(" + columnNames.join(", ") + ")",
-      tableau.extensions.settings.get("filledField") || ""
-    );
-    const totalOrRemainingField = window.prompt(
-      "Field holding the REMAINING/other value (e.g. New Cars):\n(" + columnNames.join(", ") + ")",
-      tableau.extensions.settings.get("remainingField") || ""
-    );
-
-    tableau.extensions.settings.set("worksheetName", wsName);
-    tableau.extensions.settings.set("filledField", filledField || "");
-    tableau.extensions.settings.set("remainingField", totalOrRemainingField || "");
-    await tableau.extensions.settings.saveAsync();
-
-    render();
-  }
-
-  async function render() {
-    const wsName = tableau.extensions.settings.get("worksheetName");
-    const filledField = tableau.extensions.settings.get("filledField");
-    const remainingField = tableau.extensions.settings.get("remainingField");
-
-    if (!wsName || !filledField || !remainingField) {
-      document.getElementById("wrap").innerHTML =
-        '<div id="status">Not configured yet.<br>Click the gear/Configure button (top-right of the extension in Edit mode) to set it up.</div>';
-      return;
+    const result = { filled: null, remaining: null };
+    for (const encoding of marksCard.encodings) {
+      if (encoding.id === "filled" && encoding.field) {
+        result.filled = encoding.field.name;
+      }
+      if (encoding.id === "remaining" && encoding.field) {
+        result.remaining = encoding.field.name;
+      }
     }
+    return result;
+  }
 
+  async function updateDataAndRender() {
     try {
-      const dashboard = tableau.extensions.dashboardContent.dashboard;
-      const worksheet = dashboard.worksheets.find(w => w.name === wsName);
-      if (!worksheet) throw new Error("Worksheet '" + wsName + "' not found");
+      const { filled, remaining } = await getEncodedFields();
+
+      if (!filled || !remaining) {
+        document.getElementById("wrap").innerHTML =
+          '<div id="status">Drag a measure onto the <b>Filled</b> tile and one onto the <b>Remaining</b> tile on the Marks card.</div>';
+        return;
+      }
 
       const data = await worksheet.getSummaryDataAsync();
-      const colIndexFilled = data.columns.findIndex(c => c.fieldName === filledField);
-      const colIndexRemaining = data.columns.findIndex(c => c.fieldName === remainingField);
+      const colIndexFilled = data.columns.findIndex(c => c.fieldName === filled);
+      const colIndexRemaining = data.columns.findIndex(c => c.fieldName === remaining);
+
       if (colIndexFilled === -1 || colIndexRemaining === -1) {
-        throw new Error("Configured fields not found in worksheet data");
+        document.getElementById("wrap").innerHTML =
+          '<div id="status">Could not find the encoded fields in the summary data.</div>';
+        return;
       }
 
       let filledVal = 0, remainingVal = 0;
@@ -185,15 +142,6 @@
         '<div id="status">Error: ' + err.message + '</div>';
     }
   }
-
-  // Car silhouette path (from car.svg), and its bounding box within the
-  // viewBox below — computed once from the path data so the fill line
-  // maps to the icon's real top (roof, y=0) and bottom (wheels, y=3236.76),
-  // not the viewBox edges (viewBox has a little empty margin under the
-  // wheels: height 3359.66 vs icon bottom at 3236.76).
-  const CAR_PATH = "M4628.33,910.33c0-47.59-16.55-111.73-120-111.73h-370.35c-40.19,0-68.43,23.91-87.18,49.6l-323.69-532.91c-34.88-57.43-77.21-110-125.87-156.33h0C3459.52,24.02,3271.32,0,3075.63,0h-1522.51c-195.69,0-383.89,24.02-525.61,158.96h0c-48.66,46.33-90.99,98.9-125.87,156.33l-323.69,532.91c-18.75-25.69-46.98-49.6-87.18-49.6H120.42C16.96,798.6.41,862.74.41,910.33S-.06,1024.74,0,1033.22c.23,28.93,9.52,104.26,99.72,106.77,81.62,2.27,227.81,1.22,300.69.49l-52.85,87.01c-44.44,70.14-82.87,143.9-114.91,220.5h0c-75.44,180.4-114.29,373.99-114.29,569.53v1225.68c0,64.32,52.14,116.45,116.45,116.45h487.41c64.32,0,116.45-52.14,116.45-116.45v-271.95h2951.37v271.95c0,64.32,52.14,116.45,116.45,116.45h487.41c64.32,0,116.45-52.14,116.45-116.45v-418.03h0v-807.65c0-195.54-38.85-389.13-114.29-569.53h0c-32.03-76.6-70.47-150.36-114.91-220.5l-52.85-87.01c72.88.73,219.08,1.77,300.69-.49,90.2-2.51,99.49-77.83,99.72-106.77.07-8.49-.41-73.21-.41-122.89ZM1354.34,1949.24l-154.49,128.73c-50.35,41.96-116.53,65.27-185.24,65.27h-342.8c-59.31,0-117.94-11.97-171.11-35.56-80.67-35.79-163.01-85.58-173.1-128.61-14.12-60.2,10.04-200.19,20.63-225.54,10.59-25.35,35.31-85.55,102.4-72.87,54.44,10.28,657.57,145.74,883.07,196.46,36.34,8.17,48.09,49.25,20.64,72.13ZM689.88,1191.65s-141.24,10.59-45.9-141.24c68.29-108.76,265.21-425.86,371.44-597.03,44.86-72.27,99.56-138.01,163.02-194.65,52.56-46.92,102.18-79.33,221.16-83.99,180.08-7.06,914.77,0,914.77,0,0,0,734.69-7.06,914.77,0,118.98,4.67,168.6,37.08,221.16,83.99,63.46,56.64,118.16,122.38,163.02,194.65,106.23,171.17,303.16,488.27,371.44,597.03,95.34,151.83-45.9,141.24-45.9,141.24H689.88ZM4280.52,1753.53c10.59,25.35,34.76,165.34,20.63,225.54-10.1,43.03-92.44,92.82-173.1,128.61-53.17,23.59-111.8,35.56-171.11,35.56h-342.8c-68.72,0-134.89-23.32-185.24-65.27l-154.49-128.73c-27.45-22.88-15.7-63.96,20.64-72.13,225.51-50.72,828.64-186.18,883.07-196.46,67.09-12.67,91.8,47.53,102.4,72.87Z";
-  const VIEWBOX_W = 4628.75, VIEWBOX_H = 3359.66;
-  const ICON_TOP = 0, ICON_BOTTOM = 3236.76;
 
   function drawCar(pct) {
     pct = Math.max(0, Math.min(1, pct));
