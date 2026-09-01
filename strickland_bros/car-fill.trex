@@ -20,6 +20,10 @@
 
     <icon/>
 
+    <context-menu>
+      <configure-context-menu-item />
+    </context-menu>
+
     <encoding id="color">
       <display-name resource-id="color-name">Color</display-name>
       <data-spec>
@@ -47,7 +51,7 @@
     </encoding>
 
     <encoding id="tooltipMeasure">
-      <display-name resource-id="tooltip-measure-name">Tooltip</display-name>
+      <display-name resource-id="tooltip-measure-name">Tooltip Value</display-name>
       <data-spec>
         <data-type>numeric</data-type>
       </data-spec>
@@ -87,7 +91,7 @@
       <text locale="en_US">The measure to total per category, e.g. CNTD(VehicleVin)</text>
     </resource>
     <resource id="tooltip-measure-name">
-      <text locale="en_US">Tooltip</text>
+      <text locale="en_US">Tooltip Value</text>
     </resource>
     <resource id="tooltip-measure-tooltip">
       <text locale="en_US">A measure to show in a hover tooltip over the car icon</text>
