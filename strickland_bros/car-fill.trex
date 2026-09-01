@@ -3,7 +3,7 @@
   <worksheet-extension id="com.reflexblu.carfillviz" extension-version="2.0.0">
     <default-locale>en_US</default-locale>
     <name resource-id="name"/>
-    <description>Liquid-fill car icon mark type. Drag a dimension onto "Category" (e.g. Net New Y/blank) and a measure onto "Total" (e.g. CNTD(VehicleVin)) to render a car filled by category, with configurable colors per category value.</description>
+    <description>Liquid-fill car icon mark type. Drag a dimension onto "Color" (e.g. Net New Y/blank) and a measure onto "Size" (e.g. CNTD(VehicleVin)) to render a car filled by category, with configurable colors per value.</description>
     <author name="Lauren Short" email="lauren@reflexblu.com" organization="Reflex Blu" website="https://reflexblu.com"/>
     <min-api-version>1.1</min-api-version>
 
@@ -20,8 +20,8 @@
 
     <icon/>
 
-    <encoding id="category">
-      <display-name resource-id="category-name">Category</display-name>
+    <encoding id="color">
+      <display-name resource-id="color-name">Color</display-name>
       <data-spec>
         <data-type>string</data-type>
       </data-spec>
@@ -30,11 +30,11 @@
       </role-spec>
       <fields max-count="1"/>
       <encoding-icon token="color"/>
-      <tooltip resource-id="category-tooltip">Dimension whose values determine the colored segments (e.g. Net New: Y or blank). Blank/empty values become the "remaining" segment; any other value gets its own colored band.</tooltip>
+      <tooltip resource-id="color-tooltip">Dimension whose values determine the colored segments (e.g. Net New: Y or blank). Blank/empty values become the "remaining" segment; any other value gets its own colored band.</tooltip>
     </encoding>
 
-    <encoding id="total">
-      <display-name resource-id="total-name">Total</display-name>
+    <encoding id="size">
+      <display-name resource-id="size-name">Size</display-name>
       <data-spec>
         <data-type>numeric</data-type>
       </data-spec>
@@ -43,7 +43,7 @@
       </role-spec>
       <fields max-count="1"/>
       <encoding-icon token="letter-a"/>
-      <tooltip resource-id="total-tooltip">The measure to total per category (e.g. CNTD(VehicleVin))</tooltip>
+      <tooltip resource-id="size-tooltip">The measure to total per category (e.g. CNTD(VehicleVin))</tooltip>
     </encoding>
 
     <encoding id="tooltipMeasure">
@@ -74,16 +74,16 @@
     <resource id="name">
       <text locale="en_US">Car Fill Gauge</text>
     </resource>
-    <resource id="category-name">
-      <text locale="en_US">Category</text>
+    <resource id="color-name">
+      <text locale="en_US">Color</text>
     </resource>
-    <resource id="category-tooltip">
+    <resource id="color-tooltip">
       <text locale="en_US">Dimension whose values determine the colored segments. Blank values become the remaining segment.</text>
     </resource>
-    <resource id="total-name">
-      <text locale="en_US">Total</text>
+    <resource id="size-name">
+      <text locale="en_US">Size</text>
     </resource>
-    <resource id="total-tooltip">
+    <resource id="size-tooltip">
       <text locale="en_US">The measure to total per category, e.g. CNTD(VehicleVin)</text>
     </resource>
     <resource id="tooltip-measure-name">
