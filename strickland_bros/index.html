@@ -49,7 +49,7 @@
     box-sizing: border-box;
     padding: 8px;
   }
-  #pct-label {
+  #headline-label {
     font-size: 28px;
     font-weight: 700;
     color: #1F4E5F;
@@ -114,22 +114,24 @@
 (function () {
   // ---- Tunable constants ----
   const DEFAULT_PALETTE = ["#4A90C4", "#E8973F", "#7FA92F", "#B5548C", "#4AA8A0"]; // non-blank category colors, in order
-  const EMPTY_COLOR = "#1F4E5F";   // default color for blank/"remaining" band
+  const EMPTY_COLOR = "#1F4E5F";   // base canvas color, only visible if segments don't sum to the full total
   const DIVIDER_COLOR = "#FFFFFF";
   const DIVIDER_THICKNESS = 28;    // viewBox units
-  const PCT_DECIMALS = 0;          // decimal places on the percentage, e.g. 1 -> "18.6%"
-  const PCT_SUFFIX = "";           // text appended after the %, e.g. " filled" -> "19% filled"
+  // (Headline formatting is now fully controlled via the label template
+  // for whichever category is chosen in the configure dialog — see
+  // DEFAULT_LABEL_TEMPLATE and resolveLabel() below.)
 
   // Car silhouette path (car.svg) and its bounding box within the viewBox.
   const CAR_PATH = "M4628.33,910.33c0-47.59-16.55-111.73-120-111.73h-370.35c-40.19,0-68.43,23.91-87.18,49.6l-323.69-532.91c-34.88-57.43-77.21-110-125.87-156.33h0C3459.52,24.02,3271.32,0,3075.63,0h-1522.51c-195.69,0-383.89,24.02-525.61,158.96h0c-48.66,46.33-90.99,98.9-125.87,156.33l-323.69,532.91c-18.75-25.69-46.98-49.6-87.18-49.6H120.42C16.96,798.6.41,862.74.41,910.33S-.06,1024.74,0,1033.22c.23,28.93,9.52,104.26,99.72,106.77,81.62,2.27,227.81,1.22,300.69.49l-52.85,87.01c-44.44,70.14-82.87,143.9-114.91,220.5h0c-75.44,180.4-114.29,373.99-114.29,569.53v1225.68c0,64.32,52.14,116.45,116.45,116.45h487.41c64.32,0,116.45-52.14,116.45-116.45v-271.95h2951.37v271.95c0,64.32,52.14,116.45,116.45,116.45h487.41c64.32,0,116.45-52.14,116.45-116.45v-418.03h0v-807.65c0-195.54-38.85-389.13-114.29-569.53h0c-32.03-76.6-70.47-150.36-114.91-220.5l-52.85-87.01c72.88.73,219.08,1.77,300.69-.49,90.2-2.51,99.49-77.83,99.72-106.77.07-8.49-.41-73.21-.41-122.89ZM1354.34,1949.24l-154.49,128.73c-50.35,41.96-116.53,65.27-185.24,65.27h-342.8c-59.31,0-117.94-11.97-171.11-35.56-80.67-35.79-163.01-85.58-173.1-128.61-14.12-60.2,10.04-200.19,20.63-225.54,10.59-25.35,35.31-85.55,102.4-72.87,54.44,10.28,657.57,145.74,883.07,196.46,36.34,8.17,48.09,49.25,20.64,72.13ZM689.88,1191.65s-141.24,10.59-45.9-141.24c68.29-108.76,265.21-425.86,371.44-597.03,44.86-72.27,99.56-138.01,163.02-194.65,52.56-46.92,102.18-79.33,221.16-83.99,180.08-7.06,914.77,0,914.77,0,0,0,734.69-7.06,914.77,0,118.98,4.67,168.6,37.08,221.16,83.99,63.46,56.64,118.16,122.38,163.02,194.65,106.23,171.17,303.16,488.27,371.44,597.03,95.34,151.83-45.9,141.24-45.9,141.24H689.88ZM4280.52,1753.53c10.59,25.35,34.76,165.34,20.63,225.54-10.1,43.03-92.44,92.82-173.1,128.61-53.17,23.59-111.8,35.56-171.11,35.56h-342.8c-68.72,0-134.89-23.32-185.24-65.27l-154.49-128.73c-27.45-22.88-15.7-63.96,20.64-72.13,225.51-50.72,828.64-186.18,883.07-196.46,67.09-12.67,91.8,47.53,102.4,72.87Z";
   const VIEWBOX_W = 4628.75, VIEWBOX_H = 3359.66;
   const ICON_TOP = 0, ICON_BOTTOM = 3236.76;
-  const BLANK_KEY = "__BLANK__";
+  const NULL_KEY = "__NULL__"; // stable key for a true null/undefined value — not treated as special otherwise
 
   let worksheet = null;
   let colorMap = {};          // categoryKey -> hex color, persisted via settings
   let labelTemplateMap = {};  // categoryKey -> freeform template string, e.g. "{name}: {value} cars"
-  let lastCategoryKeys = [];  // [{key, label, color, total}] from the most recent render, for the config panel
+  let headlineKey = null;     // which category's resolved label is shown as the big headline number
+  let lastCategoryKeys = [];  // [{key, label, color, total, labelTemplate}] from the most recent render
 
   window.onload = tableau.extensions.initializeAsync({ configure: openConfigureDialog }).then(() => {
     worksheet = tableau.extensions.worksheetContent.worksheet;
@@ -160,12 +162,7 @@
     } catch (e) {
       labelTemplateMap = {};
     }
-  }
-
-  function saveConfig() {
-    tableau.extensions.settings.set("colorMap", JSON.stringify(colorMap));
-    tableau.extensions.settings.set("labelTemplates", JSON.stringify(labelTemplateMap));
-    return tableau.extensions.settings.saveAsync();
+    headlineKey = tableau.extensions.settings.get("headlineKey") || null;
   }
 
   const DEFAULT_LABEL_TEMPLATE = "{name}: {value}";
@@ -175,17 +172,20 @@
     return template.replace(/\{name\}/g, name).replace(/\{value\}/g, value);
   }
 
+  // Every distinct value in the Color field becomes its own segment, with
+  // no assumption about what any particular value means — no field-specific
+  // naming conventions, no "blank means X" logic. A true null/undefined gets
+  // a stable internal key (NULL_KEY) purely so it can be grouped and colored
+  // consistently, but it's configured through the same dialog as every
+  // other value, with no special default treatment.
   function categoryKeyFor(rawValue) {
-    if (rawValue === null || rawValue === undefined) return BLANK_KEY;
-    const trimmed = String(rawValue).trim();
-    if (trimmed === "" || ["null", "none", "n/a"].includes(trimmed.toLowerCase())) return BLANK_KEY;
-    return trimmed;
+    if (rawValue === null || rawValue === undefined) return NULL_KEY;
+    return String(rawValue).trim();
   }
 
-  function colorForCategory(key, nonBlankIndex) {
+  function colorForCategory(key, index) {
     if (colorMap[key]) return colorMap[key];
-    if (key === BLANK_KEY) return EMPTY_COLOR;
-    return DEFAULT_PALETTE[nonBlankIndex % DEFAULT_PALETTE.length];
+    return DEFAULT_PALETTE[index % DEFAULT_PALETTE.length];
   }
 
   // Reads the Marks card and returns the field name (or null) dropped onto
@@ -238,7 +238,7 @@
 
         totalsByKey[key] = (totalsByKey[key] || 0) + rowTotal;
         if (!(key in displayLabelByKey)) {
-          displayLabelByKey[key] = key === BLANK_KEY ? "(blank)" : row[colIndexCategory].formattedValue;
+          displayLabelByKey[key] = key === NULL_KEY ? "(no value)" : row[colIndexCategory].formattedValue;
         }
 
         if (colIndexTooltip !== -1) {
@@ -251,38 +251,40 @@
       });
 
       const grandTotal = Object.values(totalsByKey).reduce((a, b) => a + b, 0);
-      const blankTotal = totalsByKey[BLANK_KEY] || 0;
-      const highlightedTotal = grandTotal - blankTotal;
-      const pct = grandTotal > 0 ? highlightedTotal / grandTotal : 0;
 
-      // Build stacking order: non-blank categories (largest first) at the
-      // bottom, blank/remaining band last (drawn at the top).
-      const nonBlankKeys = Object.keys(totalsByKey)
-        .filter(k => k !== BLANK_KEY)
+      // Every distinct value gets stacked, largest at the bottom, purely by
+      // size — no category is treated as special or "default."
+      const sortedKeys = Object.keys(totalsByKey)
         .sort((a, b) => totalsByKey[b] - totalsByKey[a]);
 
-      const segments = nonBlankKeys.map((key, i) => ({
+      const segments = sortedKeys.map((key, i) => ({
         key,
         total: totalsByKey[key],
         color: colorForCategory(key, i)
       }));
-      if (BLANK_KEY in totalsByKey) {
-        segments.push({ key: BLANK_KEY, total: totalsByKey[BLANK_KEY], color: colorForCategory(BLANK_KEY, 0) });
-      }
 
-      lastCategoryKeys = Object.keys(totalsByKey).map((key, i) => ({
+      lastCategoryKeys = sortedKeys.map((key, i) => ({
         key,
         label: displayLabelByKey[key],
-        color: colorForCategory(key, nonBlankKeys.indexOf(key)),
+        color: colorForCategory(key, i),
         total: totalsByKey[key],
         labelTemplate: labelTemplateMap[key] || DEFAULT_LABEL_TEMPLATE
       }));
 
       drawCar(segments, grandTotal);
-      document.getElementById("pct-label").textContent = (pct * 100).toFixed(PCT_DECIMALS) + "%" + PCT_SUFFIX;
-      document.getElementById("sub-label").textContent = labelText !== null
-        ? labelText
-        : highlightedTotal.toLocaleString() + " / " + grandTotal.toLocaleString();
+
+      // Headline text: whichever category was picked as "main number" in
+      // the configure dialog, rendered through that category's own freeform
+      // template. Falls back to the smallest category if none was chosen yet.
+      let headlineEntry = lastCategoryKeys.find(c => c.key === headlineKey);
+      if (!headlineEntry && lastCategoryKeys.length > 0) {
+        headlineEntry = lastCategoryKeys.reduce((a, b) => (a.total <= b.total ? a : b));
+      }
+      document.getElementById("headline-label").textContent = headlineEntry
+        ? resolveLabel(headlineEntry.key, headlineEntry.label, headlineEntry.total.toLocaleString())
+        : grandTotal.toLocaleString() + " total";
+
+      document.getElementById("sub-label").textContent = labelText !== null ? labelText : "";
 
       renderLegend();
       setupHoverTooltip(tooltipMeasure, tooltipFormatted !== null ? tooltipFormatted : tooltipVal.toLocaleString());
@@ -356,7 +358,7 @@
     `;
 
     document.getElementById("wrap").innerHTML = svg +
-      '<div id="pct-label"></div><div id="sub-label"></div>';
+      '<div id="headline-label"></div><div id="sub-label"></div>';
   }
 
   function renderLegend() {
