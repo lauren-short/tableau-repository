@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<manifest manifest-version="0.1" xmlns="http://www.tableau.com/xml/extension_manifest">
+  <dashboard-extension id="com.reflexblu.carfill" extension-version="1.0.0">
+    <default-locale>en_US</default-locale>
+    <name name-key="name.string">Car Fill Gauge</name>
+    <description description-key="description.string">Liquid-fill car icon driven by live worksheet data.</description>
+    <author name="Reflex Blu" email="lauren@reflexblu.com" organization="Reflex Blu" website="https://reflexblu.com" support-email="lauren@reflexblu.com" />
+    <min-api-version>1.8</min-api-version>
+
+    <!--
+      IMPORTANT: update source-location to the actual HTTPS URL where
+      index.html is hosted once you've deployed it (e.g. GitHub Pages:
+      https://<yourusername>.github.io/car-fill-extension/index.html)
+    -->
+    <source-location>
+      <url>https://REPLACE-WITH-YOUR-HOSTED-URL/index.html</url>
+    </source-location>
+
+    <icon>iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAKlJREFUOI3t0j0KwlAQBODZzUsRC7Gw8ApewiN4Ao/gCTyCJ7DwCB7Bwiu8gliIhY39z2Yti5C4mTS+asqBGdgvS0hMKcXhP0AF0AB0AB1AB9ABdAAdQAfQAXQAHUAH0AF0AB1AB9ABdAAdQAfQAXQAHUAH0AF0AB1AB9ABdAAdQAfQAXQAHUAH0AF0AB1AB9ABdAAdQAfQAXQAHUAH0AF0AB1ABzhAB9ABdIA/rjc1E6O0LtwAAAAASUVORK5CYII=</icon>
+
+    <permissions>
+      <full-data-permission>false</full-data-permission>
+    </permissions>
+  </dashboard-extension>
+</manifest>
