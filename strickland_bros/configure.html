@@ -97,6 +97,7 @@
     if (categories.length === 0) {
       rowsContainer.innerHTML = "<p>No category values found yet — add a field to the Color tile first.</p>";
     } else {
+      const currentHeadlineKey = tableau.extensions.settings.get("headlineKey") || "";
       rowsContainer.innerHTML = categories.map(c => `
         <div class="row">
           <div class="row-top">
@@ -105,6 +106,11 @@
           </div>
           <input type="text" data-label-key="${c.key}" value="${c.labelTemplate || '{name}: {value}'}">
           <div class="hint">Use {name} and {value} as placeholders</div>
+          <label class="hint" style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+            <input type="radio" name="headline-choice" data-headline-key="${c.key}"
+              ${c.key === currentHeadlineKey ? "checked" : ""}>
+            Use as the main headline number
+          </label>
         </div>
       `).join("");
     }
@@ -130,8 +136,12 @@
       labelTemplateMap[input.dataset.labelKey] = input.value;
     });
 
+    const checkedHeadline = document.querySelector("input[name='headline-choice']:checked");
+    const headlineKey = checkedHeadline ? checkedHeadline.dataset.headlineKey : "";
+
     tableau.extensions.settings.set("colorMap", JSON.stringify(colorMap));
     tableau.extensions.settings.set("labelTemplates", JSON.stringify(labelTemplateMap));
+    tableau.extensions.settings.set("headlineKey", headlineKey);
     tableau.extensions.settings.saveAsync().then(() => {
       tableau.extensions.ui.closeDialog("saved");
     });
