@@ -8,12 +8,13 @@
     <min-api-version>1.8</min-api-version>
 
     <!--
-      IMPORTANT: update source-location to the actual HTTPS URL where
-      index.html is hosted once you've deployed it (e.g. GitHub Pages:
-      https://<yourusername>.github.io/car-fill-extension/index.html)
+      Served via jsDelivr's GitHub CDN mirror, which sets proper
+      text/html content-type + CORS headers (raw.githubusercontent.com
+      serves text/plain, which browsers won't render/execute as a page).
+      If you move the files, update this URL to match.
     -->
     <source-location>
-      <url>https://REPLACE-WITH-YOUR-HOSTED-URL/index.html</url>
+      <url>https://cdn.jsdelivr.net/gh/lauren-short/tableau-repository@main/strickland_bros/index.html</url>
     </source-location>
 
     <icon>iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAKlJREFUOI3t0j0KwlAQBODZzUsRC7Gw8ApewiN4Ao/gCTyCJ7DwCB7Bwiu8gliIhY39z2Yti5C4mTS+asqBGdgvS0hMKcXhP0AF0AB0AB1AB9ABdAAdQAfQAXQAHUAH0AF0AB1AB9ABdAAdQAfQAXQAHUAH0AF0AB1AB9ABdAAdQAfQAXQAHUAH0AF0AB1AB9ABdAAdQAfQAXQAHUAH0AF0AB1ABzhAB9ABdIA/rjc1E6O0LtwAAAAASUVORK5CYII=</icon>
