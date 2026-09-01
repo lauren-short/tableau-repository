@@ -66,18 +66,6 @@
     text-align: center;
     padding: 20px;
   }
-  #hover-tooltip {
-    position: absolute;
-    pointer-events: none;
-    background: #1F4E5F;
-    color: #fff;
-    font-size: 12px;
-    padding: 6px 10px;
-    border-radius: 4px;
-    white-space: nowrap;
-    display: none;
-    z-index: 1000;
-  }
   #legend {
     display: flex;
     flex-direction: column;
@@ -107,7 +95,6 @@
     <div id="status">Loading…</div>
   </div>
   <div id="legend"></div>
-  <div id="hover-tooltip"></div>
 </div>
 
 <script>
@@ -189,16 +176,17 @@
   }
 
   // Reads the Marks card and returns the field name (or null) dropped onto
-  // each encoding tile: color, size, tooltipMeasure, label.
+  // each encoding tile: color, size, label. Tooltip content itself now
+  // comes from Tableau's native Tooltip shelf via hoverTupleAsync — no
+  // custom tooltip-field encoding needed.
   async function getEncodedFields() {
     const visualSpec = await worksheet.getVisualSpecificationAsync();
     const marksCard = visualSpec.marksSpecifications[visualSpec.activeMarksSpecificationIndex];
 
-    const result = { color: null, size: null, tooltipMeasure: null, label: null };
+    const result = { color: null, size: null, label: null };
     for (const encoding of marksCard.encodings) {
       if (encoding.id === "color" && encoding.field) result.color = encoding.field.name;
       if (encoding.id === "size" && encoding.field) result.size = encoding.field.name;
-      if (encoding.id === "tooltipMeasure" && encoding.field) result.tooltipMeasure = encoding.field.name;
       if (encoding.id === "label" && encoding.field) result.label = encoding.field.name;
     }
     return result;
@@ -206,7 +194,7 @@
 
   async function updateDataAndRender() {
     try {
-      const { color, size, tooltipMeasure, label } = await getEncodedFields();
+      const { color, size, label } = await getEncodedFields();
 
       if (!color || !size) {
         document.getElementById("wrap").innerHTML =
@@ -217,7 +205,6 @@
       const data = await worksheet.getSummaryDataAsync();
       const colIndexCategory = data.columns.findIndex(c => c.fieldName === color);
       const colIndexTotal = data.columns.findIndex(c => c.fieldName === size);
-      const colIndexTooltip = tooltipMeasure ? data.columns.findIndex(c => c.fieldName === tooltipMeasure) : -1;
       const colIndexLabel = label ? data.columns.findIndex(c => c.fieldName === label) : -1;
 
       if (colIndexCategory === -1 || colIndexTotal === -1) {
@@ -229,9 +216,10 @@
       // Aggregate totals per distinct category value.
       const totalsByKey = {};       // key -> summed total
       const displayLabelByKey = {}; // key -> the original display string (e.g. "Y")
-      let tooltipVal = 0, tooltipFormatted = null, labelText = null;
+      const tupleIndexByKey = {};   // key -> row index in data.data, used to trigger the native tooltip on hover
+      let labelText = null;
 
-      data.data.forEach(row => {
+      data.data.forEach((row, i) => {
         const rawCatValue = row[colIndexCategory].value;
         const key = categoryKeyFor(rawCatValue);
         const rowTotal = Number(row[colIndexTotal].value) || 0;
@@ -240,11 +228,10 @@
         if (!(key in displayLabelByKey)) {
           displayLabelByKey[key] = key === NULL_KEY ? "(no value)" : row[colIndexCategory].formattedValue;
         }
-
-        if (colIndexTooltip !== -1) {
-          tooltipVal += Number(row[colIndexTooltip].value) || 0;
-          tooltipFormatted = row[colIndexTooltip].formattedValue;
+        if (!(key in tupleIndexByKey)) {
+          tupleIndexByKey[key] = i;
         }
+
         if (colIndexLabel !== -1 && labelText === null) {
           labelText = row[colIndexLabel].formattedValue;
         }
@@ -260,7 +247,8 @@
       const segments = sortedKeys.map((key, i) => ({
         key,
         total: totalsByKey[key],
-        color: colorForCategory(key, i)
+        color: colorForCategory(key, i),
+        tupleIndex: tupleIndexByKey[key]
       }));
 
       lastCategoryKeys = sortedKeys.map((key, i) => ({
@@ -287,64 +275,37 @@
       document.getElementById("sub-label").textContent = labelText !== null ? labelText : "";
 
       renderLegend();
-      setupHoverTooltip(tooltipMeasure, tooltipFormatted !== null ? tooltipFormatted : tooltipVal.toLocaleString());
+      setupNativeHoverTooltip();
     } catch (err) {
       document.getElementById("wrap").innerHTML =
         '<div id="status">Error: ' + err.message + '</div>';
     }
   }
 
-  function setupHoverTooltip(fieldName, formattedValue) {
+  // Triggers Tableau's own native tooltip UI on hover, using
+  // Worksheet.hoverTupleAsync — the API the built-in Sankey viz extension
+  // itself uses. This shows whatever fields are on the worksheet's normal
+  // built-in Tooltip shelf, exactly like a regular Tableau mark. No custom
+  // tooltip UI of our own is needed.
+  function setupNativeHoverTooltip() {
     const carSvg = document.getElementById("car-svg");
-    const tooltip = document.getElementById("hover-tooltip");
-    const outer = document.getElementById("outer");
-    if (!carSvg) return;
-
-    // --- TEMPORARY DIAGNOSTIC ---
-    // Forces the tooltip permanently visible (not hover-gated) so we can
-    // tell whether the div itself can render inside the extension's frame
-    // at all, before worrying about whether mouse events reach it.
-    // Remove this block once we know the answer.
-    tooltip.textContent = "DIAGNOSTIC: " + (fieldName || "(no field)") + " / " + formattedValue;
-    tooltip.style.display = "block";
-    tooltip.style.left = "4px";
-    tooltip.style.top = "4px";
-    // --- END TEMPORARY DIAGNOSTIC ---
-
-    if (!fieldName) {
-      carSvg.onmousemove = null;
-      carSvg.onmouseleave = null;
-      return;
-    }
+    if (!carSvg || !worksheet || typeof worksheet.hoverTupleAsync !== "function") return;
 
     carSvg.onmousemove = (e) => {
-      const outerRect = outer.getBoundingClientRect();
-
-      tooltip.textContent = fieldName + ": " + formattedValue;
-      tooltip.style.display = "block";
-
-      // Position relative to the extension's own frame (not the browser
-      // viewport) — a viz extension's iframe is sized to just the mark
-      // itself, so viewport-relative positioning easily lands outside that
-      // small frame and gets silently clipped. Clamp so it always stays
-      // fully visible within the frame regardless of cursor position.
-      let x = e.clientX - outerRect.left + 12;
-      let y = e.clientY - outerRect.top + 12;
-
-      const tooltipWidth = tooltip.offsetWidth;
-      const tooltipHeight = tooltip.offsetHeight;
-      const maxX = Math.max(0, outerRect.width - tooltipWidth - 4);
-      const maxY = Math.max(0, outerRect.height - tooltipHeight - 4);
-
-      tooltip.style.left = Math.min(x, maxX) + "px";
-      tooltip.style.top = Math.min(y, maxY) + "px";
+      const target = e.target.closest("[data-tuple-index]");
+      const tupleIndex = target ? Number(target.dataset.tupleIndex) : -1;
+      worksheet.hoverTupleAsync(tupleIndex, {
+        tooltipAnchorPoint: { x: e.pageX, y: e.pageY }
+      }).catch(() => {
+        // Ignore — e.g. fires harmlessly if the mark was removed mid-hover.
+      });
     };
     carSvg.onmouseleave = () => {
-      tooltip.style.display = "none";
+      worksheet.hoverTupleAsync(-1).catch(() => {});
     };
   }
 
-  // segments: array of {key, total, color}, ordered bottom-to-top.
+  // segments: array of {key, total, color, tupleIndex}, ordered bottom-to-top.
   function drawCar(segments, grandTotal) {
     const iconHeight = ICON_BOTTOM - ICON_TOP;
     let cursorY = ICON_BOTTOM;
@@ -359,7 +320,7 @@
     });
 
     let rects = bands.map(b =>
-      `<rect x="0" y="${b.yTop}" width="${VIEWBOX_W}" height="${b.yBottom - b.yTop}" fill="${b.color}"/>`
+      `<rect x="0" y="${b.yTop}" width="${VIEWBOX_W}" height="${b.yBottom - b.yTop}" fill="${b.color}" data-tuple-index="${b.tupleIndex}"/>`
     ).join("");
 
     // Divider lines at each internal boundary between bands.
