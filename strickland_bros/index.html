@@ -118,6 +118,7 @@
   let colorMap = {};          // categoryKey -> hex color, persisted via settings
   let labelTemplateMap = {};  // categoryKey -> freeform template string, e.g. "{name}: {value} cars"
   let headlineKey = null;     // which category's resolved label is shown as the big headline number
+  let categoryOrder = [];     // saved stacking order, bottom-to-top, e.g. ["Y", "__NULL__"]
   let lastCategoryKeys = [];  // [{key, label, color, total, labelTemplate}] from the most recent render
 
   window.onload = tableau.extensions.initializeAsync({ configure: openConfigureDialog }).then(() => {
@@ -150,6 +151,12 @@
       labelTemplateMap = {};
     }
     headlineKey = tableau.extensions.settings.get("headlineKey") || null;
+    try {
+      const savedOrder = tableau.extensions.settings.get("categoryOrder");
+      categoryOrder = savedOrder ? JSON.parse(savedOrder) : [];
+    } catch (e) {
+      categoryOrder = [];
+    }
   }
 
   const DEFAULT_LABEL_TEMPLATE = "{name}: {value}";
@@ -239,10 +246,16 @@
 
       const grandTotal = Object.values(totalsByKey).reduce((a, b) => a + b, 0);
 
-      // Every distinct value gets stacked, largest at the bottom, purely by
-      // size — no category is treated as special or "default."
-      const sortedKeys = Object.keys(totalsByKey)
+      // Stacking order (bottom-to-top): use the manually saved order from
+      // the configure dialog where available. Any category not yet
+      // assigned a position (e.g. a brand-new value in the data) falls
+      // back to size-based ordering and gets appended.
+      const presentKeys = Object.keys(totalsByKey);
+      const orderedExisting = categoryOrder.filter(k => presentKeys.includes(k));
+      const newKeys = presentKeys
+        .filter(k => !categoryOrder.includes(k))
         .sort((a, b) => totalsByKey[b] - totalsByKey[a]);
+      const sortedKeys = [...orderedExisting, ...newKeys];
 
       const segments = sortedKeys.map((key, i) => ({
         key,
