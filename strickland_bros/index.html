@@ -291,9 +291,18 @@
     const carSvg = document.getElementById("car-svg");
     if (!carSvg || !worksheet || typeof worksheet.hoverTupleAsync !== "function") return;
 
+    let lastTupleIndex = null; // avoid re-firing while hovering the same band
+
     carSvg.onmousemove = (e) => {
       const target = e.target.closest("[data-tuple-index]");
       const tupleIndex = target ? Number(target.dataset.tupleIndex) : -1;
+
+      // Skip re-issuing the call while the cursor stays within the same
+      // band — reduces noise and avoids flicker if a stray mousemove
+      // briefly lands on a divider line (which has no tuple index).
+      if (tupleIndex === lastTupleIndex) return;
+      lastTupleIndex = tupleIndex;
+
       worksheet.hoverTupleAsync(tupleIndex, {
         tooltipAnchorPoint: { x: e.pageX, y: e.pageY }
       }).catch(() => {
@@ -301,6 +310,7 @@
       });
     };
     carSvg.onmouseleave = () => {
+      lastTupleIndex = null;
       worksheet.hoverTupleAsync(-1).catch(() => {});
     };
   }
