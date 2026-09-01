@@ -5,7 +5,7 @@
     <name resource-id="name"/>
     <description>Liquid-fill car icon mark type. Drag a dimension onto "Color" (e.g. Net New Y/blank) and a measure onto "Size" (e.g. CNTD(VehicleVin)) to render a car filled by category, with configurable colors per value.</description>
     <author name="Lauren Short" email="lauren@reflexblu.com" organization="Reflex Blu" website="https://reflexblu.com"/>
-    <min-api-version>1.1</min-api-version>
+    <min-api-version>1.10</min-api-version>
 
     <!--
       Hosted via GitHub Pages. NOTE: jsDelivr deliberately serves all
@@ -50,19 +50,6 @@
       <tooltip resource-id="size-tooltip">The measure to total per category (e.g. CNTD(VehicleVin))</tooltip>
     </encoding>
 
-    <encoding id="tooltipMeasure">
-      <display-name resource-id="tooltip-measure-name">Tooltip Value</display-name>
-      <data-spec>
-        <data-type>numeric</data-type>
-      </data-spec>
-      <role-spec>
-        <role-type>continuous-measure</role-type>
-      </role-spec>
-      <fields max-count="1"/>
-      <encoding-icon token="letter-b"/>
-      <tooltip resource-id="tooltip-measure-tooltip">A measure to show in a hover tooltip over the car icon</tooltip>
-    </encoding>
-
     <encoding id="label">
       <display-name resource-id="label-name">Label</display-name>
       <data-spec>
@@ -89,12 +76,6 @@
     </resource>
     <resource id="size-tooltip">
       <text locale="en_US">The measure to total per category, e.g. CNTD(VehicleVin)</text>
-    </resource>
-    <resource id="tooltip-measure-name">
-      <text locale="en_US">Tooltip Value</text>
-    </resource>
-    <resource id="tooltip-measure-tooltip">
-      <text locale="en_US">A measure to show in a hover tooltip over the car icon</text>
     </resource>
     <resource id="label-name">
       <text locale="en_US">Label</text>
