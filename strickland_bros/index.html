@@ -126,6 +126,7 @@
   let colorMap = {};          // categoryKey -> hex color, persisted via settings
   let labelTemplateMap = {};  // categoryKey -> freeform template string, e.g. "{name}: {value} cars"
   let headlineKey = null;     // which category's resolved label is shown as the big headline number
+  let headlineFontSize = 28;  // px — editable via Format Extension
   let categoryOrder = [];     // saved stacking order, bottom-to-top, e.g. ["Y", "__NULL__"]
   let lastCategoryKeys = [];  // [{key, label, color, total, labelTemplate}] from the most recent render
 
@@ -159,6 +160,8 @@
       labelTemplateMap = {};
     }
     headlineKey = tableau.extensions.settings.get("headlineKey") || null;
+    const savedFontSize = tableau.extensions.settings.get("headlineFontSize");
+    headlineFontSize = savedFontSize ? Number(savedFontSize) : 28;
     try {
       const savedOrder = tableau.extensions.settings.get("categoryOrder");
       categoryOrder = savedOrder ? JSON.parse(savedOrder) : [];
@@ -291,9 +294,11 @@
       if (!headlineEntry && lastCategoryKeys.length > 0) {
         headlineEntry = lastCategoryKeys.reduce((a, b) => (a.total <= b.total ? a : b));
       }
-      document.getElementById("headline-label").textContent = headlineEntry
+      const headlineEl = document.getElementById("headline-label");
+      headlineEl.textContent = headlineEntry
         ? resolveLabel(headlineEntry.key, headlineEntry.label, headlineEntry.total.toLocaleString())
         : grandTotal.toLocaleString() + " total";
+      headlineEl.style.fontSize = headlineFontSize + "px";
 
       document.getElementById("sub-label").textContent = labelText !== null ? labelText : "";
 
