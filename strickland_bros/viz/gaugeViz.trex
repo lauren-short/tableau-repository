@@ -10,6 +10,9 @@
       <url>https://lauren-short.github.io/tableau-repository/strickland_bros/viz/index.html</url>
     </source-location>
     <icon>iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAAAqElEQVR4nO3QQRGAMADAsDEfk4kdrDIBu77hkSjo9VrP/Q4O8+uAvzImGBOMCcYEY4IxwZhgTDAmGBOMCcYEY4IxwZhgTDAmGBOMCcYEY4IxwZhgTDAmGBOMCcYEY4IxwZhgTDAmGBOMCcYEY4IxwZhgTDAmGBOMCcYEY4IxwZhgTDAmGBOMCcYEY4IxwZhgTDAmGBOMCcYEY4IxwZhgTDAmGBOMCcaEDRsDArv8JLcDAAAAAElFTkSuQmCC</icon>
+    <context-menu>
+      <configure-context-menu-item />
+    </context-menu>
     <encoding id="color">
       <display-name>Color</display-name>
       <data-spec>
@@ -48,9 +51,6 @@
       </role-spec>
       <encoding-icon token="text" />
     </encoding>
-    <context-menu>
-      <configure-context-menu-item />
-    </context-menu>
   </worksheet-extension>
   <resources>
     <resource id="name">
