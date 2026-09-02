@@ -354,15 +354,22 @@
       if (tupleId === lastTupleId) return;
       lastTupleId = tupleId;
 
-      worksheet.hoverTupleAsync(tupleId, {
-        tooltipAnchorPoint: { x: e.pageX, y: e.pageY }
-      }).catch(() => {});
+      const anchor = { tooltipAnchorPoint: { x: e.pageX, y: e.pageY } };
+
+      // Explicitly clear before setting a new tuple, rather than jumping
+      // directly from one tuple id to a different one — Tableau's tooltip
+      // system appears to require a leave-then-enter transition (confirmed
+      // by testing: whichever tuple is hovered FIRST works, but switching
+      // directly to a different one afterward silently fails).
+      worksheet.hoverTupleAsync(-1).catch(() => {}).then(() => {
+        if (tupleId !== -1) {
+          return worksheet.hoverTupleAsync(tupleId, anchor).catch(() => {});
+        }
+      });
     };
     carSvg.onmouseleave = () => {
       lastTupleId = null;
       debugEl.textContent = "tuple id: (none)"; // --- TEMPORARY DEBUG ---
-      // -1 is not a valid tuple id (real ids start at 1), which clears the
-      // tooltip — matches how Tableau's own Sankey sample clears on leave.
       worksheet.hoverTupleAsync(-1).catch(() => {});
     };
   }
