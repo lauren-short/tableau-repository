@@ -90,12 +90,17 @@ function drawGauge(dataTable, colorFieldId, angleFieldId, sizeFieldId, labelFiel
 
   var segments = dataTable.data.map(function (row, rowIndex) {
     var userColor = marksInfo && marksInfo[rowIndex] ? marksInfo[rowIndex].color : null;
+    var label = row[colorIdx].formattedValue;
+    // Since custom viz-extension encodings don't get Tableau's native color legend,
+    // persisted overrides (set by clicking a wedge below) take priority over any
+    // marksInfo color or the default palette.
+    var savedOverride = tableau.extensions.settings.get("color_" + label);
     return {
-      label: row[colorIdx].formattedValue,
+      label: label,
       value: row[angleIdx].value,
       // Per Tableau's docs: tupleId = totalRowCount - (1-based row number)
       tupleId: totalRowCount - (rowIndex + 1),
-      color: userColor || PALETTE[rowIndex % PALETTE.length]
+      color: savedOverride || userColor || PALETTE[rowIndex % PALETTE.length]
     };
   });
 
@@ -128,10 +133,19 @@ function drawGauge(dataTable, colorFieldId, angleFieldId, sizeFieldId, labelFiel
     el.setAttribute("fill", seg.color);
     el.setAttribute("class", "segment");
     el.addEventListener("mouseenter", function () {
-      worksheet.hoverTupleAsync(seg.tupleId);
+      worksheet.getTooltipTextAsync(seg.tupleId).then(function (tooltipText) {
+        worksheet.hoverTupleAsync(seg.tupleId, true, tooltipText);
+      }).catch(showError);
     });
     el.addEventListener("mouseleave", function () {
       worksheet.leaveMarkNavigationAsync();
+    });
+    el.addEventListener("click", function () {
+      var input = window.prompt("Set a color for \"" + seg.label + "\" (hex, e.g. #1D9E75):", seg.color);
+      if (input) {
+        tableau.extensions.settings.set("color_" + seg.label, input);
+        tableau.extensions.settings.saveAsync().then(render).catch(showError);
+      }
     });
     svg.appendChild(el);
   });
@@ -145,7 +159,7 @@ function drawGauge(dataTable, colorFieldId, angleFieldId, sizeFieldId, labelFiel
   svg.appendChild(bezel);
 
   // Tick marks all the way around, like a real gauge face
-  drawTicks(svg, cx, cy, r - 10, 24, 14);
+  drawTicks(svg, cx, cy, r - 10, 36, 3, 12);
 
   // Needle position: only trust the Size measure if it's actually a 0–1 fraction
   // (e.g. a "% of goal" calc). A raw dollar/count value would blow up the readout,
@@ -155,11 +169,13 @@ function drawGauge(dataTable, colorFieldId, angleFieldId, sizeFieldId, labelFiel
   var needleAngleDeg = startAngle + sweep * needleFraction;
   drawNeedle(svg, cx, cy, needleAngleDeg, r - 30);
 
-  // Digital readout: prefer the Label shelf's formatted value if provided,
-  // otherwise show the needle fraction as a clean whole-number percent
+  // Digital readout: prefer the Label shelf's formatted value, then the Color
+  // field's own name (like the reference gauge's static "OIL TYPE" caption),
+  // falling back to a percentage only if neither is available
+  var colorFieldName = dataTable.columns[colorIdx] ? dataTable.columns[colorIdx].fieldName : null;
   var readoutText = (labelIdx >= 0 && dataTable.data[0])
     ? dataTable.data[0][labelIdx].formattedValue
-    : Math.round(needleFraction * 100) + "%";
+    : (colorFieldName || (Math.round(needleFraction * 100) + "%"));
   drawReadout(svg, cx, cy + 90, readoutText, bezelColor);
 }
 
@@ -189,22 +205,24 @@ function drawNeedle(svg, cx, cy, angleDeg, length) {
   svg.appendChild(hub);
 }
 
-function drawTicks(svg, cx, cy, outerR, count, tickLength) {
+function drawTicks(svg, cx, cy, outerR, minorCount, majorEvery, tickLength) {
   var g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  for (var i = 0; i < count; i++) {
-    var deg = (360 / count) * i - 90;
+  for (var i = 0; i < minorCount; i++) {
+    var isMajor = i % majorEvery === 0;
+    var deg = (360 / minorCount) * i - 90;
     var rad = (deg * Math.PI) / 180;
+    var len = isMajor ? tickLength * 1.6 : tickLength;
     var x1 = cx + outerR * Math.cos(rad);
     var y1 = cy + outerR * Math.sin(rad);
-    var x2 = cx + (outerR - tickLength) * Math.cos(rad);
-    var y2 = cy + (outerR - tickLength) * Math.sin(rad);
+    var x2 = cx + (outerR - len) * Math.cos(rad);
+    var y2 = cy + (outerR - len) * Math.sin(rad);
     var tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
     tick.setAttribute("x1", x1); tick.setAttribute("y1", y1);
     tick.setAttribute("x2", x2); tick.setAttribute("y2", y2);
     tick.setAttribute("stroke", "#12203a");
-    tick.setAttribute("stroke-width", 3);
+    tick.setAttribute("stroke-width", isMajor ? 4 : 2);
     tick.setAttribute("stroke-linecap", "round");
-    tick.setAttribute("opacity", "0.55");
+    tick.setAttribute("opacity", isMajor ? "0.75" : "0.4");
     g.appendChild(tick);
   }
   svg.appendChild(g);
