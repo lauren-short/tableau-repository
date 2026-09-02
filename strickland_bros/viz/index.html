@@ -32,7 +32,7 @@ function showError(err) {
 
 function configure() {
   var payload = JSON.stringify(currentSegments.map(function (s) { return { label: s.label, color: s.color }; }));
-  tableau.extensions.ui.displayDialogAsync("config.html", payload, { height: 420, width: 360 }).then(function (closePayload) {
+  tableau.extensions.ui.displayDialogAsync("config.html", payload, { height: 520, width: 380 }).then(function (closePayload) {
     var updates = JSON.parse(closePayload);
     updates.forEach(function (u) {
       tableau.extensions.settings.set("color_" + u.label, u.color);
