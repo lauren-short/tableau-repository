@@ -127,6 +127,9 @@
   let labelTemplateMap = {};  // categoryKey -> freeform template string, e.g. "{name}: {value} cars"
   let headlineKey = null;     // which category's resolved label is shown as the big headline number
   let headlineFontSize = 28;  // px — editable via Format Extension
+  let headlineFontFamily = "-apple-system, 'Segoe UI', Roboto, Arial, sans-serif";
+  let headlineBold = true;
+  let headlineColor = "#1F4E5F";
   let categoryOrder = [];     // saved stacking order, bottom-to-top, e.g. ["Y", "__NULL__"]
   let lastCategoryKeys = [];  // [{key, label, color, total, labelTemplate}] from the most recent render
 
@@ -162,6 +165,9 @@
     headlineKey = tableau.extensions.settings.get("headlineKey") || null;
     const savedFontSize = tableau.extensions.settings.get("headlineFontSize");
     headlineFontSize = savedFontSize ? Number(savedFontSize) : 28;
+    headlineFontFamily = tableau.extensions.settings.get("headlineFontFamily") || headlineFontFamily;
+    headlineBold = tableau.extensions.settings.get("headlineBold") !== "false"; // default true
+    headlineColor = tableau.extensions.settings.get("headlineColor") || "#1F4E5F";
     try {
       const savedOrder = tableau.extensions.settings.get("categoryOrder");
       categoryOrder = savedOrder ? JSON.parse(savedOrder) : [];
@@ -299,6 +305,9 @@
         ? resolveLabel(headlineEntry.key, headlineEntry.label, headlineEntry.total.toLocaleString())
         : grandTotal.toLocaleString() + " total";
       headlineEl.style.fontSize = headlineFontSize + "px";
+      headlineEl.style.fontFamily = headlineFontFamily;
+      headlineEl.style.fontWeight = headlineBold ? "700" : "400";
+      headlineEl.style.color = headlineColor;
 
       document.getElementById("sub-label").textContent = labelText !== null ? labelText : "";
 
