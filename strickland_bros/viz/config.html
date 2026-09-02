@@ -10,13 +10,29 @@
   .row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
   .row label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .row input[type="text"] { width: 80px; font-size: 12px; padding: 3px; }
+  .row.active label { font-weight: bold; }
   .swatch { width: 20px; height: 20px; border-radius: 4px; border: 1px solid #ccc; flex-shrink: 0; }
   .footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
   button { font-size: 12px; padding: 5px 12px; cursor: pointer; }
+  #paletteBar { margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #ddd; }
+  #paletteSelect { font-size: 12px; padding: 3px; margin-bottom: 6px; width: 100%; }
+  #paletteStrip { display: flex; flex-wrap: wrap; gap: 4px; }
+  #paletteStrip .pswatch { width: 22px; height: 22px; border-radius: 3px; cursor: pointer; border: 1px solid #ccc; }
+  #activeHint { font-size: 11px; color: #666; margin-top: 4px; }
 </style>
 </head>
 <body>
 <h3>Set a color per category</h3>
+<div id="paletteBar">
+  <select id="paletteSelect">
+    <option value="bluewaterlightning">Blue Water Lightning</option>
+    <option value="tableau10">Tableau 10</option>
+    <option value="tableau20">Tableau 20</option>
+    <option value="colorblind10">Color Blind 10</option>
+  </select>
+  <div id="paletteStrip"></div>
+  <div id="activeHint">Click a category below, then click a swatch to apply it.</div>
+</div>
 <div id="rows"></div>
 <div class="footer">
   <button id="cancelBtn">Cancel</button>
@@ -24,6 +40,18 @@
 </div>
 
 <script>
+// Widely-published replicas of Tableau's built-in categorical palettes
+// (sourced from the community ggthemes reference, not pulled live from
+// Tableau itself — close enough for picking, but if exactness against
+// Tableau's own swatches matters, cross-check visually in Tableau Desktop).
+var PALETTES = {
+  bluewaterlightning: ["#051c61","#0b3d91","#1560bd","#2196f3","#29b6f6","#4fc3f7","#80deea","#00e5ff","#26c6da","#b3e5fc","#e0f7fa","#ffffff"],
+  tableau10: ["#4E79A7","#F28E2B","#E15759","#76B7B2","#59A14F","#EDC948","#B07AA1","#FF9DA7","#9C755F","#BAB0AC"],
+  tableau20: ["#4E79A7","#A0CBE8","#F28E2B","#FFBE7D","#59A14F","#8CD17D","#B6992D","#F1CE63","#499894","#86BCB6","#E15759","#FF9D9A","#79706E","#BAB0AC","#D37295","#FABFD2","#B07AA1","#D4A6C8","#9D7660","#D7B5A6"],
+  colorblind10: ["#1170AA","#FC7D0B","#A3ACB9","#57606C","#5FA2CE","#C85200","#7B848F","#A3CCE9","#FFBC79","#C8D0D9"]
+};
+
+var activeIndex = 0;
 var segments = [];
 
 tableau.extensions.initializeDialogAsync().then(function (openPayload) {
@@ -32,6 +60,8 @@ tableau.extensions.initializeDialogAsync().then(function (openPayload) {
   segments.forEach(function (seg, i) {
     var row = document.createElement("div");
     row.className = "row";
+    row.id = "row-" + i;
+    if (i === 0) row.className += " active";
 
     var swatch = document.createElement("div");
     swatch.className = "swatch";
@@ -50,13 +80,48 @@ tableau.extensions.initializeDialogAsync().then(function (openPayload) {
         swatch.style.background = input.value;
       }
     });
+    input.addEventListener("focus", function () { setActiveRow(i); });
+
+    row.addEventListener("click", function (evt) {
+      if (evt.target !== input) setActiveRow(i);
+    });
 
     row.appendChild(swatch);
     row.appendChild(label);
     row.appendChild(input);
     rowsEl.appendChild(row);
   });
+  renderPaletteStrip();
 });
+
+function setActiveRow(i) {
+  var prev = document.getElementById("row-" + activeIndex);
+  if (prev) prev.className = prev.className.replace(" active", "");
+  activeIndex = i;
+  var next = document.getElementById("row-" + activeIndex);
+  if (next) next.className += " active";
+}
+
+function renderPaletteStrip() {
+  var strip = document.getElementById("paletteStrip");
+  var colors = PALETTES[document.getElementById("paletteSelect").value];
+  strip.innerHTML = "";
+  colors.forEach(function (c) {
+    var sw = document.createElement("div");
+    sw.className = "pswatch";
+    sw.style.background = c;
+    sw.title = c;
+    sw.addEventListener("click", function () {
+      var hexInput = document.getElementById("hex-" + activeIndex);
+      var swatchEl = document.getElementById("swatch-" + activeIndex);
+      hexInput.value = c;
+      swatchEl.style.background = c;
+    });
+    strip.appendChild(sw);
+  });
+}
+
+document.getElementById("paletteSelect").addEventListener("change", renderPaletteStrip);
 
 document.getElementById("cancelBtn").addEventListener("click", function () {
   tableau.extensions.ui.closeDialog("[]");
