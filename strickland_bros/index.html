@@ -302,7 +302,19 @@
   // tooltip UI of our own is needed.
   function setupNativeHoverTooltip() {
     const carSvg = document.getElementById("car-svg");
-    if (!carSvg || !worksheet || typeof worksheet.hoverTupleAsync !== "function") return;
+    if (!carSvg || !worksheet) return;
+
+    if (typeof worksheet.hoverTupleAsync !== "function") {
+      // This method is missing from the loaded library — most likely the
+      // self-hosted tableau.extensions.1.latest.min.js predates it being
+      // added, or Tableau's client version doesn't support it yet. Surface
+      // this visibly rather than silently doing nothing on hover.
+      const warn = document.createElement("div");
+      warn.textContent = "Hover tooltip unavailable: hoverTupleAsync not found in the loaded Tableau extensions library.";
+      warn.style.cssText = "position:absolute;bottom:4px;left:4px;right:4px;font-size:10px;color:#a33;background:#fee;padding:3px 6px;border-radius:3px;";
+      document.getElementById("outer").appendChild(warn);
+      return;
+    }
 
     let lastTupleIndex = null; // avoid re-firing while hovering the same band
 
@@ -318,8 +330,8 @@
 
       worksheet.hoverTupleAsync(tupleIndex, {
         tooltipAnchorPoint: { x: e.pageX, y: e.pageY }
-      }).catch(() => {
-        // Ignore — e.g. fires harmlessly if the mark was removed mid-hover.
+      }).catch((err) => {
+        console.error("hoverTupleAsync failed:", err);
       });
     };
     carSvg.onmouseleave = () => {
