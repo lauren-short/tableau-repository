@@ -1,88 +1,421 @@
-<?xml version="1.0" encoding="utf-8"?>
-<manifest manifest-version="0.1" xmlns="http://www.tableau.com/xml/extension_manifest">
-  <worksheet-extension id="com.reflexblu.carfillviz" extension-version="2.0.0">
-    <default-locale>en_US</default-locale>
-    <name resource-id="name"/>
-    <description>Liquid-fill car icon mark type. Drag a dimension onto "Color" (e.g. Net New Y/blank) and a measure onto "Size" (e.g. CNTD(VehicleVin)) to render a car filled by category, with configurable colors per value.</description>
-    <author name="Lauren Short" email="lauren@reflexblu.com" organization="Reflex Blu" website="https://reflexblu.com"/>
-    <min-api-version>1.10</min-api-version>
+<!DOCTYPE html>
+<!--
+  Car Fill — Viz Extension (v2: category-driven segments)
+  ----------------------------------------------------------
+  Runs as a MARK TYPE on the worksheet's Marks card (under Viz Extensions).
 
-    <!--
-      Hosted via GitHub Pages. NOTE: jsDelivr deliberately serves all
-      .html files with Content-Type: text/plain (a security measure on
-      their end) — it cannot be used to host this file, even though it
-      works fine for .js libraries. GitHub Pages serves correct
-      content-types and is the right host for this.
-    -->
-    <source-location>
-      <url>https://lauren-short.github.io/tableau-repository/strickland_bros/index.html</url>
-    </source-location>
+  Data model (mirrors Tableau's own shelf vocabulary):
+  - "Color" (dimension) — e.g. Net New: "Y" or "" (blank)
+  - "Size" (measure) — e.g. CNTD(VehicleVin), totaled per color value
 
-    <icon/>
+  Blank/empty color values become the "remaining" band (drawn at the
+  top of the car). Any non-blank color value gets its own colored band,
+  stacked at the bottom, in descending order of size. This generalizes to
+  more than one non-blank color value if that ever comes up, though the
+  original ask was just Y vs blank.
 
-    <context-menu>
-      <configure-context-menu-item />
-    </context-menu>
+  Colors are configurable per color value via the "Customize" button drawn
+  on the visual itself, saved through tableau.extensions.settings so they
+  persist across sessions.
 
-    <encoding id="color">
-      <display-name resource-id="color-name">Color</display-name>
-      <data-spec>
-        <data-type>string</data-type>
-      </data-spec>
-      <role-spec>
-        <role-type>discrete-dimension</role-type>
-      </role-spec>
-      <fields max-count="1"/>
-      <encoding-icon token="color"/>
-      <tooltip resource-id="color-tooltip">Dimension whose values determine the colored segments (e.g. Net New: Y or blank). Blank/empty values become the "remaining" segment; any other value gets its own colored band.</tooltip>
-    </encoding>
+  Optional "Tooltip" and "Label" tiles behave the same as before: Tooltip
+  shows a hover tooltip with a chosen measure; Label overrides the default
+  subtitle text with a calculated field's value.
+-->
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Car Fill</title>
+<script src="./tableau.extensions.1.latest.min.js"></script>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    overflow: hidden;
+  }
+  #outer {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    box-sizing: border-box;
+  }
+  .car-svg-responsive {
+    width: min(70%, 300px);
+    height: auto;
+    display: block;
+  }
+  #wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 8px;
+    text-align: center;
+  }
+  #headline-label {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1F4E5F;
+    margin-top: 6px;
+  }
+  #sub-label {
+    font-size: 13px;
+    color: #5b7a86;
+    margin-top: 2px;
+  }
+  #status {
+    font-size: 12px;
+    color: #888;
+    text-align: center;
+    padding: 20px;
+  }
+  #legend {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 0 0;
+    font-size: 13px;
+    color: #333;
+  }
+  #legend .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #legend .swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+<div id="outer">
+  <div id="wrap">
+    <div id="status">Loading…</div>
+  </div>
+  <div id="legend"></div>
+</div>
 
-    <encoding id="size">
-      <display-name resource-id="size-name">Size</display-name>
-      <data-spec>
-        <data-type>numeric</data-type>
-      </data-spec>
-      <role-spec>
-        <role-type>continuous-measure</role-type>
-      </role-spec>
-      <fields max-count="1"/>
-      <encoding-icon token="letter-a"/>
-      <tooltip resource-id="size-tooltip">The measure to total per category (e.g. CNTD(VehicleVin))</tooltip>
-    </encoding>
+<script>
+(function () {
+  // ---- Tunable constants ----
+  const DEFAULT_PALETTE = ["#4A90C4", "#E8973F", "#7FA92F", "#B5548C", "#4AA8A0"]; // non-blank category colors, in order
+  const EMPTY_COLOR = "#E8E8E8";   // neutral fallback, only visible if segments don't sum to the full total
+  const DIVIDER_COLOR = "#FFFFFF";
+  const DIVIDER_THICKNESS = 28;    // viewBox units
+  // (Headline formatting is now fully controlled via the label template
+  // for whichever category is chosen in the configure dialog — see
+  // DEFAULT_LABEL_TEMPLATE and resolveLabel() below.)
 
-    <encoding id="label">
-      <display-name resource-id="label-name">Label</display-name>
-      <data-spec>
-        <data-type>string</data-type>
-      </data-spec>
-      <fields max-count="1"/>
-      <encoding-icon token="letter-c"/>
-      <tooltip resource-id="label-tooltip">Optional: a text/calculated field to use as the subtitle under the percentage, instead of the default "highlighted / total" text</tooltip>
-    </encoding>
+  // Car silhouette path (car.svg) and its bounding box within the viewBox.
+  const CAR_PATH = "M4628.33,910.33c0-47.59-16.55-111.73-120-111.73h-370.35c-40.19,0-68.43,23.91-87.18,49.6l-323.69-532.91c-34.88-57.43-77.21-110-125.87-156.33h0C3459.52,24.02,3271.32,0,3075.63,0h-1522.51c-195.69,0-383.89,24.02-525.61,158.96h0c-48.66,46.33-90.99,98.9-125.87,156.33l-323.69,532.91c-18.75-25.69-46.98-49.6-87.18-49.6H120.42C16.96,798.6.41,862.74.41,910.33S-.06,1024.74,0,1033.22c.23,28.93,9.52,104.26,99.72,106.77,81.62,2.27,227.81,1.22,300.69.49l-52.85,87.01c-44.44,70.14-82.87,143.9-114.91,220.5h0c-75.44,180.4-114.29,373.99-114.29,569.53v1225.68c0,64.32,52.14,116.45,116.45,116.45h487.41c64.32,0,116.45-52.14,116.45-116.45v-271.95h2951.37v271.95c0,64.32,52.14,116.45,116.45,116.45h487.41c64.32,0,116.45-52.14,116.45-116.45v-418.03h0v-807.65c0-195.54-38.85-389.13-114.29-569.53h0c-32.03-76.6-70.47-150.36-114.91-220.5l-52.85-87.01c72.88.73,219.08,1.77,300.69-.49,90.2-2.51,99.49-77.83,99.72-106.77.07-8.49-.41-73.21-.41-122.89ZM1354.34,1949.24l-154.49,128.73c-50.35,41.96-116.53,65.27-185.24,65.27h-342.8c-59.31,0-117.94-11.97-171.11-35.56-80.67-35.79-163.01-85.58-173.1-128.61-14.12-60.2,10.04-200.19,20.63-225.54,10.59-25.35,35.31-85.55,102.4-72.87,54.44,10.28,657.57,145.74,883.07,196.46,36.34,8.17,48.09,49.25,20.64,72.13ZM689.88,1191.65s-141.24,10.59-45.9-141.24c68.29-108.76,265.21-425.86,371.44-597.03,44.86-72.27,99.56-138.01,163.02-194.65,52.56-46.92,102.18-79.33,221.16-83.99,180.08-7.06,914.77,0,914.77,0,0,0,734.69-7.06,914.77,0,118.98,4.67,168.6,37.08,221.16,83.99,63.46,56.64,118.16,122.38,163.02,194.65,106.23,171.17,303.16,488.27,371.44,597.03,95.34,151.83-45.9,141.24-45.9,141.24H689.88ZM4280.52,1753.53c10.59,25.35,34.76,165.34,20.63,225.54-10.1,43.03-92.44,92.82-173.1,128.61-53.17,23.59-111.8,35.56-171.11,35.56h-342.8c-68.72,0-134.89-23.32-185.24-65.27l-154.49-128.73c-27.45-22.88-15.7-63.96,20.64-72.13,225.51-50.72,828.64-186.18,883.07-196.46,67.09-12.67,91.8,47.53,102.4,72.87Z";
+  const VIEWBOX_W = 4628.75, VIEWBOX_H = 3359.66;
+  const ICON_TOP = 0, ICON_BOTTOM = 3236.76;
+  const NULL_KEY = "__NULL__"; // stable key for a true null/undefined value — not treated as special otherwise
 
-  </worksheet-extension>
+  let worksheet = null;
+  let colorMap = {};          // categoryKey -> hex color, persisted via settings
+  let labelTemplateMap = {};  // categoryKey -> freeform template string, e.g. "{name}: {value} cars"
+  let headlineKey = null;     // which category's resolved label is shown as the big headline number
+  let categoryOrder = [];     // saved stacking order, bottom-to-top, e.g. ["Y", "__NULL__"]
+  let lastCategoryKeys = [];  // [{key, label, color, total, labelTemplate}] from the most recent render
 
-  <resources>
-    <resource id="name">
-      <text locale="en_US">Car Fill Gauge</text>
-    </resource>
-    <resource id="color-name">
-      <text locale="en_US">Color</text>
-    </resource>
-    <resource id="color-tooltip">
-      <text locale="en_US">Dimension whose values determine the colored segments. Blank values become the remaining segment.</text>
-    </resource>
-    <resource id="size-name">
-      <text locale="en_US">Size</text>
-    </resource>
-    <resource id="size-tooltip">
-      <text locale="en_US">The measure to total per category, e.g. CNTD(VehicleVin)</text>
-    </resource>
-    <resource id="label-name">
-      <text locale="en_US">Label</text>
-    </resource>
-    <resource id="label-tooltip">
-      <text locale="en_US">Optional text or calculated field shown as the subtitle instead of the default highlighted/total text</text>
-    </resource>
-  </resources>
-</manifest>
+  window.onload = tableau.extensions.initializeAsync({ configure: openConfigureDialog }).then(() => {
+    worksheet = tableau.extensions.worksheetContent.worksheet;
+
+    loadColorMap();
+
+    worksheet.addEventListener(
+      tableau.TableauEventType.SummaryDataChanged,
+      updateDataAndRender
+    );
+
+    updateDataAndRender();
+  }).catch(err => {
+    document.getElementById("wrap").innerHTML =
+      '<div id="status">Failed to initialize: ' + err.message + '</div>';
+  });
+
+  function loadColorMap() {
+    try {
+      const savedColors = tableau.extensions.settings.get("colorMap");
+      colorMap = savedColors ? JSON.parse(savedColors) : {};
+    } catch (e) {
+      colorMap = {};
+    }
+    try {
+      const savedLabels = tableau.extensions.settings.get("labelTemplates");
+      labelTemplateMap = savedLabels ? JSON.parse(savedLabels) : {};
+    } catch (e) {
+      labelTemplateMap = {};
+    }
+    headlineKey = tableau.extensions.settings.get("headlineKey") || null;
+    try {
+      const savedOrder = tableau.extensions.settings.get("categoryOrder");
+      categoryOrder = savedOrder ? JSON.parse(savedOrder) : [];
+    } catch (e) {
+      categoryOrder = [];
+    }
+  }
+
+  const DEFAULT_LABEL_TEMPLATE = "{name}: {value}";
+
+  function resolveLabel(key, name, value) {
+    const template = labelTemplateMap[key] || DEFAULT_LABEL_TEMPLATE;
+    return template.replace(/\{name\}/g, name).replace(/\{value\}/g, value);
+  }
+
+  // Every distinct value in the Color field becomes its own segment, with
+  // no assumption about what any particular value means — no field-specific
+  // naming conventions, no "blank means X" logic. A true null/undefined gets
+  // a stable internal key (NULL_KEY) purely so it can be grouped and colored
+  // consistently, but it's configured through the same dialog as every
+  // other value, with no special default treatment.
+  function categoryKeyFor(rawValue) {
+    if (rawValue === null || rawValue === undefined) return NULL_KEY;
+    return String(rawValue).trim();
+  }
+
+  function colorForCategory(key, index) {
+    if (colorMap[key]) return colorMap[key];
+    return DEFAULT_PALETTE[index % DEFAULT_PALETTE.length];
+  }
+
+  // Reads the Marks card and returns the field name (or null) dropped onto
+  // each encoding tile: color, size, label.
+  async function getEncodedFields() {
+    const visualSpec = await worksheet.getVisualSpecificationAsync();
+    const marksCard = visualSpec.marksSpecifications[visualSpec.activeMarksSpecificationIndex];
+
+    const result = { color: null, size: null, label: null };
+    for (const encoding of marksCard.encodings) {
+      if (encoding.id === "color" && encoding.field) result.color = encoding.field.name;
+      if (encoding.id === "size" && encoding.field) result.size = encoding.field.name;
+      if (encoding.id === "label" && encoding.field) result.label = encoding.field.name;
+    }
+    return result;
+  }
+
+  async function updateDataAndRender() {
+    try {
+      const { color, size, label } = await getEncodedFields();
+
+      if (!color || !size) {
+        document.getElementById("wrap").innerHTML =
+          '<div id="status">Drag a dimension onto <b>Color</b> (e.g. Net New) and a measure onto <b>Size</b> (e.g. CNTD(VehicleVin)) on the Marks card.</div>';
+        return;
+      }
+
+      const data = await worksheet.getSummaryDataAsync();
+      const colIndexCategory = data.columns.findIndex(c => c.fieldName === color);
+      const colIndexTotal = data.columns.findIndex(c => c.fieldName === size);
+      const colIndexLabel = label ? data.columns.findIndex(c => c.fieldName === label) : -1;
+
+      if (colIndexCategory === -1 || colIndexTotal === -1) {
+        document.getElementById("wrap").innerHTML =
+          '<div id="status">Could not find the encoded fields in the summary data.</div>';
+        return;
+      }
+
+      // Aggregate totals per distinct category value.
+      const totalsByKey = {};       // key -> summed total
+      const displayLabelByKey = {}; // key -> the original display string (e.g. "Y")
+      const tupleIdByKey = {};      // key -> Tableau tuple id for the native hover tooltip
+      let labelText = null;
+
+      data.data.forEach((row, i) => {
+        const rawCatValue = row[colIndexCategory].value;
+        const key = categoryKeyFor(rawCatValue);
+        const rowTotal = Number(row[colIndexTotal].value) || 0;
+
+        totalsByKey[key] = (totalsByKey[key] || 0) + rowTotal;
+        if (!(key in displayLabelByKey)) {
+          displayLabelByKey[key] = key === NULL_KEY ? "(no value)" : row[colIndexCategory].formattedValue;
+        }
+        if (!(key in tupleIdByKey)) {
+          // Tuple ids are 1-based (confirmed against Tableau's own Sankey
+          // viz extension sample: `row.tupleId = i + 1`), not the raw
+          // 0-based row array index. This was the actual bug behind the
+          // "only works for one color" symptom.
+          tupleIdByKey[key] = i + 1;
+        }
+
+        if (colIndexLabel !== -1 && labelText === null) {
+          labelText = row[colIndexLabel].formattedValue;
+        }
+      });
+
+      const grandTotal = Object.values(totalsByKey).reduce((a, b) => a + b, 0);
+
+      // Stacking order (bottom-to-top): use the manually saved order from
+      // the configure dialog where available. Any category not yet
+      // assigned a position (e.g. a brand-new value in the data) falls
+      // back to size-based ordering and gets appended.
+      const presentKeys = Object.keys(totalsByKey);
+      const orderedExisting = categoryOrder.filter(k => presentKeys.includes(k));
+      const newKeys = presentKeys
+        .filter(k => !categoryOrder.includes(k))
+        .sort((a, b) => totalsByKey[b] - totalsByKey[a]);
+      const sortedKeys = [...orderedExisting, ...newKeys];
+
+      const segments = sortedKeys.map((key, i) => ({
+        key,
+        total: totalsByKey[key],
+        color: colorForCategory(key, i),
+        tupleId: tupleIdByKey[key]
+      }));
+
+      lastCategoryKeys = sortedKeys.map((key, i) => ({
+        key,
+        label: displayLabelByKey[key],
+        color: colorForCategory(key, i),
+        total: totalsByKey[key],
+        labelTemplate: labelTemplateMap[key] || DEFAULT_LABEL_TEMPLATE
+      }));
+
+      drawCar(segments, grandTotal);
+
+      // Headline text: whichever category was picked as "main number" in
+      // the configure dialog, rendered through that category's own freeform
+      // template. Falls back to the smallest category if none was chosen yet.
+      let headlineEntry = lastCategoryKeys.find(c => c.key === headlineKey);
+      if (!headlineEntry && lastCategoryKeys.length > 0) {
+        headlineEntry = lastCategoryKeys.reduce((a, b) => (a.total <= b.total ? a : b));
+      }
+      document.getElementById("headline-label").textContent = headlineEntry
+        ? resolveLabel(headlineEntry.key, headlineEntry.label, headlineEntry.total.toLocaleString())
+        : grandTotal.toLocaleString() + " total";
+
+      document.getElementById("sub-label").textContent = labelText !== null ? labelText : "";
+
+      renderLegend();
+      setupNativeHoverTooltip();
+    } catch (err) {
+      document.getElementById("wrap").innerHTML =
+        '<div id="status">Error: ' + err.message + '</div>';
+    }
+  }
+
+  // Custom hover tooltip, driven entirely by our own data mapping (not
+  // Tableau's internal tuple/mark system, whose id semantics we couldn't
+  // reliably confirm — see conversation history). Each rendered band
+  // carries its own resolved hover text as a data attribute, so this is
+  // deterministic and correct per band regardless of how many categories
+  // there are.
+  // Triggers Tableau's own native tooltip via Worksheet.hoverTupleAsync —
+  // confirmed against Tableau's own Sankey viz extension sample source.
+  // Tuple ids are 1-based (row index + 1); this shows whatever fields are
+  // on the worksheet's normal built-in Tooltip shelf, editable the
+  // standard Tableau way (double-click > insert fields).
+  function setupNativeHoverTooltip() {
+    const carSvg = document.getElementById("car-svg");
+    if (!carSvg || !worksheet || typeof worksheet.hoverTupleAsync !== "function") return;
+
+    let lastTupleId = null;
+
+    carSvg.onmousemove = (e) => {
+      const target = e.target.closest("[data-tuple-id]");
+      const tupleId = target ? Number(target.dataset.tupleId) : -1;
+
+      if (tupleId === lastTupleId) return;
+      lastTupleId = tupleId;
+
+      worksheet.hoverTupleAsync(tupleId, {
+        tooltipAnchorPoint: { x: e.pageX, y: e.pageY }
+      }).catch(() => {});
+    };
+    carSvg.onmouseleave = () => {
+      lastTupleId = null;
+      // -1 is not a valid tuple id (real ids start at 1), which clears the
+      // tooltip — matches how Tableau's own Sankey sample clears on leave.
+      worksheet.hoverTupleAsync(-1).catch(() => {});
+    };
+  }
+
+  // segments: array of {key, total, color, tupleId}, ordered bottom-to-top.
+  function drawCar(segments, grandTotal) {
+    const iconHeight = ICON_BOTTOM - ICON_TOP;
+    const OVERDRAW = 40; // viewBox units — extends the bottom-most and top-most bands slightly past the icon's true edges so no rounding gap ever exposes the fallback color underneath
+    let cursorY = ICON_BOTTOM + OVERDRAW;
+
+    const bands = segments.map((seg, i) => {
+      const proportion = grandTotal > 0 ? seg.total / grandTotal : 0;
+      let bandHeight = iconHeight * proportion;
+      if (i === 0) bandHeight += OVERDRAW; // bottom-most band: extend downward past the wheels
+      const yTop = cursorY - bandHeight;
+      const band = { ...seg, yTop, yBottom: cursorY };
+      cursorY = yTop;
+      return band;
+    });
+    if (bands.length > 0) {
+      bands[bands.length - 1].yTop -= OVERDRAW; // top-most band: extend upward past the roofline
+    }
+
+    let rects = bands.map(b =>
+      `<rect x="0" y="${b.yTop}" width="${VIEWBOX_W}" height="${b.yBottom - b.yTop}" fill="${b.color}" data-tuple-id="${b.tupleId}"/>`
+    ).join("");
+
+    // Divider lines at each internal boundary between bands.
+    let dividers = "";
+    for (let i = 0; i < bands.length - 1; i++) {
+      const boundaryY = bands[i].yTop;
+      dividers += `<rect x="0" y="${boundaryY - DIVIDER_THICKNESS / 2}" width="${VIEWBOX_W}" height="${DIVIDER_THICKNESS}" fill="${DIVIDER_COLOR}"/>`;
+    }
+
+    const svg = `
+      <svg id="car-svg" class="car-svg-responsive" viewBox="0 0 ${VIEWBOX_W} ${VIEWBOX_H}" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <clipPath id="carShape">
+            <path d="${CAR_PATH}"/>
+          </clipPath>
+        </defs>
+        <g clip-path="url(#carShape)">
+          <rect x="0" y="0" width="${VIEWBOX_W}" height="${VIEWBOX_H}" fill="${EMPTY_COLOR}"/>
+          ${rects}
+          ${dividers}
+        </g>
+      </svg>
+    `;
+
+    document.getElementById("wrap").innerHTML = svg +
+      '<div id="headline-label"></div><div id="sub-label"></div>';
+  }
+
+  function renderLegend() {
+    const legend = document.getElementById("legend");
+    legend.innerHTML = lastCategoryKeys.map(c => {
+      const text = resolveLabel(c.key, c.label, c.total.toLocaleString());
+      return `<div class="legend-row"><span class="swatch" style="background:${c.color}"></span><span>${text}</span></div>`;
+    }).join("");
+  }
+
+  // Called when the user clicks "Format Extension" on the Marks card
+  // (added via the <context-menu><configure-context-menu-item/></context-menu>
+  // element in the .trex manifest). Opens configure.html as a modal dialog
+  // where colors and label templates are edited; that page saves directly
+  // to tableau.extensions.settings, so we just reload our local copies and
+  // re-render once it closes.
+  function openConfigureDialog() {
+    const payload = JSON.stringify(lastCategoryKeys);
+    tableau.extensions.ui.displayDialogAsync("./configure.html", payload, { height: 480, width: 420 })
+      .then(() => {
+        loadColorMap();
+        updateDataAndRender();
+      })
+      .catch(() => {
+        // User closed the dialog without saving, or it errored — no action needed.
+      });
+  }
+})();
+</script>
+</body>
+</html>
