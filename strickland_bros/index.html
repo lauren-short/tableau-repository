@@ -274,7 +274,7 @@
         key,
         total: totalsByKey[key],
         color: colorForCategory(key, i),
-        hoverText: hoverTextByKey[key] || null
+        hoverText: hoverTextByKey[key] || resolveLabel(key, displayLabelByKey[key], totalsByKey[key].toLocaleString())
       }));
 
       lastCategoryKeys = sortedKeys.map((key, i) => ({
@@ -301,7 +301,7 @@
       document.getElementById("sub-label").textContent = labelText !== null ? labelText : "";
 
       renderLegend();
-      setupCustomHoverTooltip(hoverInfo);
+      setupCustomHoverTooltip();
     } catch (err) {
       document.getElementById("wrap").innerHTML =
         '<div id="status">Error: ' + err.message + '</div>';
@@ -314,18 +314,11 @@
   // carries its own resolved hover text as a data attribute, so this is
   // deterministic and correct per band regardless of how many categories
   // there are.
-  function setupCustomHoverTooltip(hoverInfoFieldName) {
+  function setupCustomHoverTooltip() {
     const carSvg = document.getElementById("car-svg");
     const tooltip = document.getElementById("hover-tooltip");
     const outer = document.getElementById("outer");
     if (!carSvg) return;
-
-    if (!hoverInfoFieldName) {
-      carSvg.onmousemove = null;
-      carSvg.onmouseleave = null;
-      tooltip.style.display = "none";
-      return;
-    }
 
     carSvg.onmousemove = (e) => {
       const target = e.target.closest("[data-hover-text]");
@@ -335,7 +328,7 @@
       }
 
       const outerRect = outer.getBoundingClientRect();
-      tooltip.textContent = hoverInfoFieldName + ": " + target.dataset.hoverText;
+      tooltip.textContent = target.dataset.hoverText;
       tooltip.style.display = "block";
 
       let x = e.clientX - outerRect.left + 12;
@@ -353,16 +346,21 @@
   // segments: array of {key, total, color, hoverText}, ordered bottom-to-top.
   function drawCar(segments, grandTotal) {
     const iconHeight = ICON_BOTTOM - ICON_TOP;
-    let cursorY = ICON_BOTTOM;
+    const OVERDRAW = 40; // viewBox units — extends the bottom-most and top-most bands slightly past the icon's true edges so no rounding gap ever exposes the fallback color underneath
+    let cursorY = ICON_BOTTOM + OVERDRAW;
 
-    const bands = segments.map(seg => {
+    const bands = segments.map((seg, i) => {
       const proportion = grandTotal > 0 ? seg.total / grandTotal : 0;
-      const bandHeight = iconHeight * proportion;
+      let bandHeight = iconHeight * proportion;
+      if (i === 0) bandHeight += OVERDRAW; // bottom-most band: extend downward past the wheels
       const yTop = cursorY - bandHeight;
       const band = { ...seg, yTop, yBottom: cursorY };
       cursorY = yTop;
       return band;
     });
+    if (bands.length > 0) {
+      bands[bands.length - 1].yTop -= OVERDRAW; // top-most band: extend upward past the roofline
+    }
 
     let rects = bands.map(b =>
       `<rect x="0" y="${b.yTop}" width="${VIEWBOX_W}" height="${b.yBottom - b.yTop}" fill="${b.color}" data-hover-text="${b.hoverText != null ? String(b.hoverText).replace(/"/g, '&quot;') : ''}"/>`
