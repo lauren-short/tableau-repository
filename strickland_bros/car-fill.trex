@@ -59,6 +59,13 @@
       <encoding-icon token="letter-c"/>
       <tooltip resource-id="label-tooltip">Optional: a text/calculated field to use as the subtitle under the percentage, instead of the default "highlighted / total" text</tooltip>
     </encoding>
+
+    <encoding id="hoverInfo">
+      <display-name resource-id="hover-info-name">Hover Info</display-name>
+      <fields max-count="1"/>
+      <encoding-icon token="letter-b"/>
+      <tooltip resource-id="hover-info-tooltip">Any field shown in a custom popup when hovering a colored band. Not the same as the built-in Tooltip tile below — use this one.</tooltip>
+    </encoding>
   </worksheet-extension>
 
   <resources>
@@ -82,6 +89,12 @@
     </resource>
     <resource id="label-tooltip">
       <text locale="en_US">Optional text or calculated field shown as the subtitle instead of the default highlighted/total text</text>
+    </resource>
+    <resource id="hover-info-name">
+      <text locale="en_US">Hover Info</text>
+    </resource>
+    <resource id="hover-info-tooltip">
+      <text locale="en_US">Any field shown in a custom popup on hover — separate from the built-in Tooltip tile</text>
     </resource>
   </resources>
 </manifest>
