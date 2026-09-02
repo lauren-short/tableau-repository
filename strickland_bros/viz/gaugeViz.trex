@@ -9,15 +9,26 @@
     <source-location>
       <url>https://lauren-short.github.io/tableau-repository/strickland_bros/viz/index.html</url>
     </source-location>
-    <encoding id="level" data-type="string" encoding-type="dimension">
-      <display-name>
-        <text locale="en_US">Level</text>
-      </display-name>
+    <icon>iVBORw0KGgoAAAANSUhEUgAAAEYAAABGCAYAAABxLuKEAAAAqElEQVR4nO3QQRGAMADAsDEfk4kdrDIBu77hkSjo9VrP/Q4O8+uAvzImGBOMCcYEY4IxwZhgTDAmGBOMCcYEY4IxwZhgTDAmGBOMCcYEY4IxwZhgTDAmGBOMCcYEY4IxwZhgTDAmGBOMCcYEY4IxwZhgTDAmGBOMCcYEY4IxwZhgTDAmGBOMCcYEY4IxwZhgTDAmGBOMCcYEY4IxwZhgTDAmGBOMCcaEDRsDArv8JLcDAAAAAElFTkSuQmCC</icon>
+    <encoding id="level">
+      <display-name>Level</display-name>
+      <data-spec>
+        <data-type>string</data-type>
+      </data-spec>
+      <role-spec>
+        <role-type>discrete-dimension</role-type>
+      </role-spec>
+      <encoding-icon token="level" />
     </encoding>
-    <encoding id="angle" data-type="number" encoding-type="measure">
-      <display-name>
-        <text locale="en_US">Angle</text>
-      </display-name>
+    <encoding id="angle">
+      <display-name>Angle</display-name>
+      <data-spec>
+        <data-type>numeric</data-type>
+      </data-spec>
+      <role-spec>
+        <role-type>continuous-measure</role-type>
+      </role-spec>
+      <encoding-icon token="level-radial" />
     </encoding>
   </worksheet-extension>
   <resources>
