@@ -316,9 +316,16 @@
   // Tuple ids are 1-based (row index + 1); this shows whatever fields are
   // on the worksheet's normal built-in Tooltip shelf, editable the
   // standard Tableau way (double-click > insert fields).
+  let hoverWarmedUp = false; // fire one throwaway call before the user's first real hover, in case the API needs a "cold start" nudge
+
   function setupNativeHoverTooltip() {
     const carSvg = document.getElementById("car-svg");
     if (!carSvg || !worksheet || typeof worksheet.hoverTupleAsync !== "function") return;
+
+    if (!hoverWarmedUp) {
+      hoverWarmedUp = true;
+      worksheet.hoverTupleAsync(-1).catch(() => {});
+    }
 
     let lastTupleId = null;
 
