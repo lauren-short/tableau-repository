@@ -38,18 +38,29 @@ tableau.extensions.initializeAsync().then(function () {
 function render() {
   worksheet.getVisualSpecificationAsync().then(function (visualSpec) {
     var marksSpec = visualSpec.marksSpecifications[visualSpec.activeMarksSpecificationIndex];
-    if (!marksSpec) return;
+    if (!marksSpec) { showError("No active marksSpecification found."); return; }
 
-    // Map our custom encoding ids (declared in the .trex) to the fields dropped on them
+    // Map our custom encoding ids (declared in the .trex) to the fields dropped on them.
+    // NOTE: reading both `.id` and `.fieldId` defensively — the exact property name
+    // on FieldInstance wasn't something I could verify with certainty, and guessing
+    // wrong here would silently break everything below with no visible error.
+    function getFieldId(enc) {
+      if (!enc.field) return null;
+      return enc.field.id || enc.field.fieldId || null;
+    }
     var colorFieldId = null, angleFieldId = null, sizeFieldId = null, labelFieldId = null;
     marksSpec.encodings.forEach(function (enc) {
-      if (enc.id === "color" && enc.field) colorFieldId = enc.field.id;
-      if (enc.id === "angle" && enc.field) angleFieldId = enc.field.id;
-      if (enc.id === "size" && enc.field) sizeFieldId = enc.field.id;
-      if (enc.id === "label" && enc.field) labelFieldId = enc.field.id;
+      console.log("Encoding on marks card:", enc.id, enc.field);
+      if (enc.id === "color") colorFieldId = getFieldId(enc) || colorFieldId;
+      if (enc.id === "angle") angleFieldId = getFieldId(enc) || angleFieldId;
+      if (enc.id === "size") sizeFieldId = getFieldId(enc) || sizeFieldId;
+      if (enc.id === "label") labelFieldId = getFieldId(enc) || labelFieldId;
     });
     // Color and Angle are required, same as a native Pie mark needs a dimension and a measure
-    if (!colorFieldId || !angleFieldId) return;
+    if (!colorFieldId || !angleFieldId) {
+      showError("Color or Angle field id not resolved — check console log above for the real Encoding.field shape.");
+      return;
+    }
 
     // No pageRowCount/options needed — default reads all columns currently on the view
     worksheet.getSummaryDataReaderAsync().then(function (reader) {
