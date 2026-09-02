@@ -61,10 +61,10 @@
     </encoding>
 
     <encoding id="hoverInfo">
-      <display-name resource-id="hover-info-name">Hover Info</display-name>
+      <display-name resource-id="hover-info-name">Hover Info (optional)</display-name>
       <fields max-count="1"/>
       <encoding-icon token="letter-b"/>
-      <tooltip resource-id="hover-info-tooltip">Any field shown in a custom popup when hovering a colored band. Not the same as the built-in Tooltip tile below — use this one.</tooltip>
+      <tooltip resource-id="hover-info-tooltip">Optional override. By default, hovering a band shows its auto-generated "name: value" text (editable via Format Extension). Drop a field here only if you want completely different hover text instead.</tooltip>
     </encoding>
   </worksheet-extension>
 
