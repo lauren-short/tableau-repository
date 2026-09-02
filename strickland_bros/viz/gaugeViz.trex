@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<manifest manifest-version="0.1" xmlns="http://www.tableau.com/xml/extension_manifest">
+  <worksheet-extension id="com.reflexblu.extensions.gaugeviz" extension-version="0.1.0">
+    <default-locale>en_US</default-locale>
+    <resources>
+      <resource id="Resources.Name">
+        <text locale="en_US">Gauge Chart</text>
+      </resource>
+      <resource id="Resources.Description">
+        <text locale="en_US">Odometer-style gauge with colored segments and a needle, native tooltips included.</text>
+      </resource>
+    </resources>
+    <source-location>
+      <!-- Point this at wherever you host the files, e.g. your GitHub Pages repo -->
+      <url>https://lauren-short.github.io/tableau-repository/strickland_bros/viz/index.html</url>
+    </source-location>
+    <encodings>
+      <encoding id="level" data-type="string" encoding-type="dimension">
+        <display-name>
+          <text locale="en_US">Level</text>
+        </display-name>
+      </encoding>
+      <encoding id="angle" data-type="number" encoding-type="measure">
+        <display-name>
+          <text locale="en_US">Angle</text>
+        </display-name>
+      </encoding>
+    </encodings>
+  </worksheet-extension>
+</manifest>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Gauge Viz Extension</title>
+<script src="tableau.extensions.1.latest.min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; font-family: sans-serif; }
+  #gaugeWrap { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+  .segment { cursor: pointer; }
+  .segment:hover { opacity: 0.85; }
+  .digital { fill: #ffb020; font-family: monospace; font-weight: 700; letter-spacing: 2px; }
+</style>
+</head>
+<body>
+<div id="gaugeWrap"><svg id="gauge" width="360" height="320" viewBox="0 0 360 320"></svg></div>
+<div id="error" style="color:#c0392b; font-family:sans-serif; font-size:12px; padding:8px; display:none;"></div>
+
+<script>
+// ---- Palette for up to 6 categories (falls back to gray beyond that) ----
+var PALETTE = ["#1D9E75", "#BA7517", "#D85A30", "#378ADD", "#993556", "#888780"];
+
+var worksheet;
+
+function showError(err) {
+  var el = document.getElementById("error");
+  el.style.display = "block";
+  el.textContent = "Gauge extension error: " + (err && err.message ? err.message : err);
+  console.error(err);
+}
+
+tableau.extensions.initializeAsync().then(function () {
+  worksheet = tableau.extensions.worksheetContent.worksheet;
+  render();
+  worksheet.addEventListener(tableau.TableauEventType.SummaryDataChanged, render);
+}).catch(showError);
+
+function render() {
+  worksheet.getVisualSpecificationAsync().then(function (visualSpec) {
+    var marksSpec = visualSpec.marksSpecifications[0];
+    if (!marksSpec) return;
+
+    // Map our custom encoding ids (declared in the .trex) to the fields dropped on them
+    var levelFieldId = null, angleFieldId = null;
+    marksSpec.encodings.forEach(function (enc) {
+      if (enc.id === "level") levelFieldId = enc.field.id;
+      if (enc.id === "angle") angleFieldId = enc.field.id;
+    });
+    if (!levelFieldId || !angleFieldId) return; // nothing dropped on the shelves yet
+
+    worksheet.getSummaryDataReaderAsync(marksSpec.fields).then(function (reader) {
+      var pageCount = reader.pageCount;
+      var rows = [];
+      var pagePromises = [];
+      for (var p = 0; p < pageCount; p++) {
+        pagePromises.push(reader.getPageAsync(p).then(function (page) {
+          rows = rows.concat(page.data);
+        }));
+      }
+      Promise.all(pagePromises).then(function () {
+        reader.releaseAsync();
+        // VERIFY: tupleId location assumed below in drawGauge() — log a sample row
+        // in the browser console (right-click the extension zone > Inspect) and
+        // confirm the shape matches before trusting hover tooltips.
+        console.log("Sample summary data row:", rows[0]);
+        drawGauge(rows, marksSpec.fields, levelFieldId, angleFieldId);
+      }).catch(showError);
+    }).catch(showError);
+  }).catch(showError);
+}
+
+function drawGauge(rows, fields, levelFieldId, angleFieldId) {
+  var levelIdx = fields.findIndex(function (f) { return f.id === levelFieldId; });
+  var angleIdx = fields.findIndex(function (f) { return f.id === angleFieldId; });
+
+  var segments = rows.map(function (row) {
+    return {
+      label: row[levelIdx].formattedValue,
+      value: row[angleIdx].value,
+      tupleId: row[levelIdx].tupleId
+    };
+  });
+
+  var total = segments.reduce(function (sum, s) { return sum + s.value; }, 0) || 1;
+
+  var svg = document.getElementById("gauge");
+  svg.innerHTML = "";
+
+  var cx = 180, cy = 180, r = 130, strokeW = 55;
+  var startAngle = -180; // gauge sweeps a half-circle, like a speedometer
+  var sweep = 180;
+  var cumulative = 0;
+
+  segments.forEach(function (seg, i) {
+    var frac = seg.value / total;
+    var a0 = startAngle + sweep * cumulative;
+    var a1 = startAngle + sweep * (cumulative + frac);
+    cumulative += frac;
+
+    var path = describeArc(cx, cy, r, a0, a1);
+    var el = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    el.setAttribute("d", path);
+    el.setAttribute("fill", "none");
+    el.setAttribute("stroke", PALETTE[i % PALETTE.length]);
+    el.setAttribute("stroke-width", strokeW);
+    el.setAttribute("class", "segment");
+    el.addEventListener("mouseenter", function () {
+      worksheet.hoverTupleAsync(seg.tupleId);
+    });
+    el.addEventListener("mouseleave", function () {
+      worksheet.hoverTupleAsync(-1);
+    });
+    svg.appendChild(el);
+  });
+
+  // Needle at the overall cumulative position (last mark's midpoint, adjust as needed)
+  var needleAngleDeg = startAngle + sweep * 0.6; // placeholder: swap for a measured KPI value
+  drawNeedle(svg, cx, cy, needleAngleDeg, r - strokeW / 2 - 10);
+
+  // Digital readout
+  drawReadout(svg, cx, cy + 70, Math.round((cumulative) * 100) + "%");
+}
+
+function drawNeedle(svg, cx, cy, angleDeg, length) {
+  var rad = (angleDeg * Math.PI) / 180;
+  var x2 = cx + length * Math.cos(rad);
+  var y2 = cy + length * Math.sin(rad);
+  var line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("x1", cx); line.setAttribute("y1", cy);
+  line.setAttribute("x2", x2); line.setAttribute("y2", y2);
+  line.setAttribute("stroke", "#12203a");
+  line.setAttribute("stroke-width", 5);
+  line.setAttribute("stroke-linecap", "round");
+  svg.appendChild(line);
+
+  var hub = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  hub.setAttribute("cx", cx); hub.setAttribute("cy", cy); hub.setAttribute("r", 10);
+  hub.setAttribute("fill", "#12203a");
+  svg.appendChild(hub);
+}
+
+function drawReadout(svg, cx, cy, text) {
+  var bezel = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  bezel.setAttribute("x", cx - 65); bezel.setAttribute("y", cy - 25);
+  bezel.setAttribute("width", 130); bezel.setAttribute("height", 50);
+  bezel.setAttribute("rx", 8); bezel.setAttribute("fill", "#1a1a1a");
+  svg.appendChild(bezel);
+
+  var screen = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  screen.setAttribute("x", cx - 57); screen.setAttribute("y", cy - 18);
+  screen.setAttribute("width", 114); screen.setAttribute("height", 36);
+  screen.setAttribute("rx", 4); screen.setAttribute("fill", "#241300");
+  svg.appendChild(screen);
+
+  var label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  label.setAttribute("x", cx); label.setAttribute("y", cy);
+  label.setAttribute("text-anchor", "middle");
+  label.setAttribute("dominant-baseline", "central");
+  label.setAttribute("font-size", "20");
+  label.setAttribute("class", "digital");
+  label.textContent = text;
+  svg.appendChild(label);
+}
+
+function describeArc(cx, cy, r, startDeg, endDeg) {
+  var start = polarToCartesian(cx, cy, r, startDeg);
+  var end = polarToCartesian(cx, cy, r, endDeg);
+  var largeArcFlag = endDeg - startDeg <= 180 ? 0 : 1;
+  return ["M", start.x, start.y, "A", r, r, 0, largeArcFlag, 1, end.x, end.y].join(" ");
+}
+
+function polarToCartesian(cx, cy, r, deg) {
+  var rad = (deg * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+</script>
+</body>
+</html>
