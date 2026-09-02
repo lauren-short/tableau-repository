@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Gauge Chart — Format Colors</title>
+<script src="tableau.extensions.1.latest.min.js"></script>
+<style>
+  body { font-family: sans-serif; margin: 12px; font-size: 13px; }
+  h3 { margin: 0 0 10px 0; font-size: 14px; }
+  .row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .row label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row input[type="text"] { width: 80px; font-size: 12px; padding: 3px; }
+  .swatch { width: 20px; height: 20px; border-radius: 4px; border: 1px solid #ccc; flex-shrink: 0; }
+  .footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+  button { font-size: 12px; padding: 5px 12px; cursor: pointer; }
+</style>
+</head>
+<body>
+<h3>Set a color per category</h3>
+<div id="rows"></div>
+<div class="footer">
+  <button id="cancelBtn">Cancel</button>
+  <button id="saveBtn">Save</button>
+</div>
+
+<script>
+var segments = [];
+
+tableau.extensions.initializeDialogAsync().then(function (openPayload) {
+  segments = JSON.parse(openPayload || "[]");
+  var rowsEl = document.getElementById("rows");
+  segments.forEach(function (seg, i) {
+    var row = document.createElement("div");
+    row.className = "row";
+
+    var swatch = document.createElement("div");
+    swatch.className = "swatch";
+    swatch.style.background = seg.color;
+    swatch.id = "swatch-" + i;
+
+    var label = document.createElement("label");
+    label.textContent = seg.label;
+
+    var input = document.createElement("input");
+    input.type = "text";
+    input.value = seg.color;
+    input.id = "hex-" + i;
+    input.addEventListener("input", function () {
+      if (/^#[0-9a-fA-F]{6}$/.test(input.value)) {
+        swatch.style.background = input.value;
+      }
+    });
+
+    row.appendChild(swatch);
+    row.appendChild(label);
+    row.appendChild(input);
+    rowsEl.appendChild(row);
+  });
+});
+
+document.getElementById("cancelBtn").addEventListener("click", function () {
+  tableau.extensions.ui.closeDialog("[]");
+});
+
+document.getElementById("saveBtn").addEventListener("click", function () {
+  var updates = segments.map(function (seg, i) {
+    var hex = document.getElementById("hex-" + i).value;
+    return { label: seg.label, color: /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : seg.color };
+  });
+  tableau.extensions.ui.closeDialog(JSON.stringify(updates));
+});
+</script>
+</body>
+</html>
