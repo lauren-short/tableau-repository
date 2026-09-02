@@ -9,12 +9,12 @@
   #gaugeWrap { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
   .segment { cursor: pointer; }
   .segment:hover { opacity: 0.85; }
-  .digital { fill: #ffffff; font-family: monospace; font-weight: 700; letter-spacing: 2px; }
 </style>
 </head>
 <body>
 <div id="gaugeWrap"><svg id="gauge" width="400" height="400" viewBox="0 0 400 400"></svg></div>
-<div id="tooltip" style="position:fixed; display:none; pointer-events:none; background:#12203a; color:#fff; font-family:sans-serif; font-size:12px; padding:6px 10px; border-radius:6px; z-index:1000;"></div>
+<div id="tooltip" style="position:fixed; display:none; pointer-events:none; background:#051c61; color:#fff; font-family:sans-serif; font-size:12px; padding:6px 10px; border-radius:6px; z-index:1000;"></div>
+<input type="color" id="colorPicker" style="position:fixed; opacity:0; width:1px; height:1px; pointer-events:none;" />
 <div id="error" style="color:#c0392b; font-family:sans-serif; font-size:12px; padding:8px; display:none;"></div>
 
 <script>
@@ -112,7 +112,7 @@ function drawGauge(dataTable, colorFieldId, angleFieldId, sizeFieldId, labelFiel
   svg.innerHTML = "";
 
   var cx = 200, cy = 200, r = 150;
-  var bezelColor = "#12203a";
+  var bezelColor = "#051c61";
   var startAngle = -90; // 12 o'clock
   var sweep = 360;      // full circle, like the reference gauge
   var cumulative = 0;
@@ -144,11 +144,15 @@ function drawGauge(dataTable, colorFieldId, angleFieldId, sizeFieldId, labelFiel
       hideTooltip();
     });
     el.addEventListener("click", function () {
-      var input = window.prompt("Set a color for \"" + seg.label + "\" (hex, e.g. #1D9E75):", seg.color);
-      if (input) {
-        tableau.extensions.settings.set("color_" + seg.label, input);
+      var picker = document.getElementById("colorPicker");
+      picker.value = seg.color;
+      picker.oninput = function () {
+        tableau.extensions.settings.set("color_" + seg.label, picker.value);
+      };
+      picker.onchange = function () {
         tableau.extensions.settings.saveAsync().then(render).catch(showError);
-      }
+      };
+      picker.click();
     });
     svg.appendChild(el);
   });
@@ -162,7 +166,7 @@ function drawGauge(dataTable, colorFieldId, angleFieldId, sizeFieldId, labelFiel
   svg.appendChild(bezel);
 
   // Tick marks all the way around, like a real gauge face
-  drawTicks(svg, cx, cy, r - 10, 36, 3, 12);
+  drawTicks(svg, cx, cy, r - 10, 36, 3, 12, bezelColor);
 
   // Needle position: only trust the Size measure if it's actually a 0–1 fraction
   // (e.g. a "% of goal" calc). A raw dollar/count value would blow up the readout,
@@ -170,16 +174,7 @@ function drawGauge(dataTable, colorFieldId, angleFieldId, sizeFieldId, labelFiel
   var rawSizeValue = (sizeIdx >= 0 && dataTable.data[0]) ? dataTable.data[0][sizeIdx].value : null;
   var needleFraction = (rawSizeValue !== null && rawSizeValue >= 0 && rawSizeValue <= 1) ? rawSizeValue : cumulative;
   var needleAngleDeg = startAngle + sweep * needleFraction;
-  drawNeedle(svg, cx, cy, needleAngleDeg, r - 30);
-
-  // Digital readout: prefer the Label shelf's formatted value, then the Color
-  // field's own name (like the reference gauge's static "OIL TYPE" caption),
-  // falling back to a percentage only if neither is available
-  var colorFieldName = dataTable.columns[colorIdx] ? dataTable.columns[colorIdx].fieldName : null;
-  var readoutText = (labelIdx >= 0 && dataTable.data[0])
-    ? dataTable.data[0][labelIdx].formattedValue
-    : (colorFieldName || (Math.round(needleFraction * 100) + "%"));
-  drawReadout(svg, cx, cy + 90, readoutText, bezelColor);
+  drawNeedle(svg, cx, cy, needleAngleDeg, r - 30, bezelColor);
 }
 
 function showTooltip(text) {
@@ -198,7 +193,7 @@ function hideTooltip() {
   document.getElementById("tooltip").style.display = "none";
 }
 
-function drawNeedle(svg, cx, cy, angleDeg, length) {
+function drawNeedle(svg, cx, cy, angleDeg, length, color) {
   var rad = (angleDeg * Math.PI) / 180;
   var tipX = cx + length * Math.cos(rad);
   var tipY = cy + length * Math.sin(rad);
@@ -215,16 +210,16 @@ function drawNeedle(svg, cx, cy, angleDeg, length) {
 
   var needle = document.createElementNS("http://www.w3.org/2000/svg", "path");
   needle.setAttribute("d", ["M", tipX, tipY, "L", leftX, leftY, "L", rightX, rightY, "Z"].join(" "));
-  needle.setAttribute("fill", "#12203a");
+  needle.setAttribute("fill", color);
   svg.appendChild(needle);
 
   var hub = document.createElementNS("http://www.w3.org/2000/svg", "circle");
   hub.setAttribute("cx", cx); hub.setAttribute("cy", cy); hub.setAttribute("r", 14);
-  hub.setAttribute("fill", "#12203a");
+  hub.setAttribute("fill", color);
   svg.appendChild(hub);
 }
 
-function drawTicks(svg, cx, cy, outerR, minorCount, majorEvery, tickLength) {
+function drawTicks(svg, cx, cy, outerR, minorCount, majorEvery, tickLength, color) {
   var g = document.createElementNS("http://www.w3.org/2000/svg", "g");
   for (var i = 0; i < minorCount; i++) {
     var isMajor = i % majorEvery === 0;
@@ -238,38 +233,13 @@ function drawTicks(svg, cx, cy, outerR, minorCount, majorEvery, tickLength) {
     var tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
     tick.setAttribute("x1", x1); tick.setAttribute("y1", y1);
     tick.setAttribute("x2", x2); tick.setAttribute("y2", y2);
-    tick.setAttribute("stroke", "#12203a");
+    tick.setAttribute("stroke", color);
     tick.setAttribute("stroke-width", isMajor ? 4 : 2);
     tick.setAttribute("stroke-linecap", "round");
     tick.setAttribute("opacity", isMajor ? "0.75" : "0.4");
     g.appendChild(tick);
   }
   svg.appendChild(g);
-}
-
-function drawReadout(svg, cx, cy, text, borderColor) {
-  var bezel = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-  bezel.setAttribute("x", cx - 70); bezel.setAttribute("y", cy - 26);
-  bezel.setAttribute("width", 140); bezel.setAttribute("height", 52);
-  bezel.setAttribute("rx", 10); bezel.setAttribute("fill", "#12203a");
-  bezel.setAttribute("stroke", borderColor || "#12203a");
-  bezel.setAttribute("stroke-width", 3);
-  svg.appendChild(bezel);
-
-  var screen = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-  screen.setAttribute("x", cx - 60); screen.setAttribute("y", cy - 18);
-  screen.setAttribute("width", 120); screen.setAttribute("height", 36);
-  screen.setAttribute("rx", 4); screen.setAttribute("fill", "#0b1526");
-  svg.appendChild(screen);
-
-  var label = document.createElementNS("http://www.w3.org/2000/svg", "text");
-  label.setAttribute("x", cx); label.setAttribute("y", cy);
-  label.setAttribute("text-anchor", "middle");
-  label.setAttribute("dominant-baseline", "central");
-  label.setAttribute("font-size", "20");
-  label.setAttribute("class", "digital");
-  label.textContent = text;
-  svg.appendChild(label);
 }
 
 function describeWedge(cx, cy, r, startDeg, endDeg) {
