@@ -1,3 +1,6 @@
+
+
+Configure · HTML
 <!DOCTYPE html>
 <!--
   Configure dialog for the Car Fill viz extension.
@@ -82,18 +85,18 @@
   <button id="cancel-btn">Cancel</button>
   <button id="save-btn">Save</button>
 </div>
-
+ 
 <script>
 (function () {
   let categories = [];
-
+ 
   tableau.extensions.initializeDialogAsync().then((openPayload) => {
     try {
       categories = JSON.parse(openPayload) || [];
     } catch (e) {
       categories = [];
     }
-
+ 
     const rowsContainer = document.getElementById("rows");
     if (categories.length === 0) {
       rowsContainer.innerHTML = "<p>No category values found yet — add a field to the Color tile first.</p>";
@@ -118,7 +121,7 @@
           </label>
         </div>
       `).join("");
-
+ 
       // Reorder by moving the actual row DOM node up/down, so any in-progress
       // edits to colors/labels in other rows aren't lost by re-rendering.
       rowsContainer.querySelectorAll(".move-btn").forEach(btn => {
@@ -132,7 +135,7 @@
         };
       });
     }
-
+ 
     document.getElementById("save-btn").onclick = saveAndClose;
     document.getElementById("cancel-btn").onclick = () => {
       tableau.extensions.ui.closeDialog("cancelled");
@@ -140,27 +143,27 @@
   }).catch(err => {
     document.getElementById("rows").innerHTML = "Failed to load: " + err.message;
   });
-
+ 
   function saveAndClose() {
     const colorMapRaw = tableau.extensions.settings.get("colorMap");
     const labelMapRaw = tableau.extensions.settings.get("labelTemplates");
     const colorMap = colorMapRaw ? JSON.parse(colorMapRaw) : {};
     const labelTemplateMap = labelMapRaw ? JSON.parse(labelMapRaw) : {};
-
+ 
     document.querySelectorAll("input[data-color-key]").forEach(input => {
       colorMap[input.dataset.colorKey] = input.value;
     });
     document.querySelectorAll("input[data-label-key]").forEach(input => {
       labelTemplateMap[input.dataset.labelKey] = input.value;
     });
-
+ 
     const checkedHeadline = document.querySelector("input[name='headline-choice']:checked");
     const headlineKey = checkedHeadline ? checkedHeadline.dataset.headlineKey : "";
-
+ 
     // Capture the current on-screen row order (top row = bottom of car).
     const categoryOrder = Array.from(document.querySelectorAll("#rows .row"))
       .map(row => row.dataset.key);
-
+ 
     tableau.extensions.settings.set("colorMap", JSON.stringify(colorMap));
     tableau.extensions.settings.set("labelTemplates", JSON.stringify(labelTemplateMap));
     tableau.extensions.settings.set("headlineKey", headlineKey);
@@ -173,3 +176,6 @@
 </script>
 </body>
 </html>
+ 
+
+
