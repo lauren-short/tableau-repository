@@ -14,14 +14,6 @@
 <body>
 <div id="gaugeWrap"><svg id="gauge" width="400" height="400" viewBox="0 0 400 400"></svg></div>
 <div id="tooltip" style="position:fixed; display:none; pointer-events:none; background:#051c61; color:#fff; font-family:sans-serif; font-size:12px; padding:6px 10px; border-radius:6px; z-index:1000;"></div>
-<div id="colorPanel" style="position:fixed; display:none; background:#fff; border:2px solid #051c61; border-radius:8px; padding:10px; z-index:1001; box-shadow:0 4px 12px rgba(0,0,0,0.3); font-family:sans-serif;">
-  <div id="swatchGrid" style="display:grid; grid-template-columns:repeat(6, 24px); gap:6px; margin-bottom:8px;"></div>
-  <div style="display:flex; gap:6px; align-items:center;">
-    <input id="hexInput" type="text" placeholder="#RRGGBB" style="width:80px; font-size:12px; padding:4px;" />
-    <button id="applyColorBtn" style="font-size:12px; padding:4px 8px; cursor:pointer;">Apply</button>
-    <button id="cancelColorBtn" style="font-size:12px; padding:4px 8px; cursor:pointer;">Cancel</button>
-  </div>
-</div>
 <div id="error" style="color:#c0392b; font-family:sans-serif; font-size:12px; padding:8px; display:none;"></div>
 
 <script>
@@ -29,6 +21,7 @@
 var PALETTE = ["#1D9E75", "#BA7517", "#D85A30", "#378ADD", "#993556", "#888780"];
 
 var worksheet;
+var currentSegments = []; // populated on each render, used by configure()
 
 function showError(err) {
   var el = document.getElementById("error");
@@ -37,7 +30,21 @@ function showError(err) {
   console.error(err);
 }
 
-tableau.extensions.initializeAsync().then(function () {
+function configure() {
+  var payload = JSON.stringify(currentSegments.map(function (s) { return { label: s.label, color: s.color }; }));
+  tableau.extensions.ui.displayDialogAsync("config.html", payload, { height: 420, width: 360 }).then(function (closePayload) {
+    var updates = JSON.parse(closePayload);
+    updates.forEach(function (u) {
+      tableau.extensions.settings.set("color_" + u.label, u.color);
+    });
+    return tableau.extensions.settings.saveAsync();
+  }).then(render).catch(function (err) {
+    // errorCode "10004" / Cancelled is expected when the user closes without saving
+    if (!err || err.errorCode !== tableau.ErrorCodes.DialogClosedByUser) showError(err);
+  });
+}
+
+tableau.extensions.initializeAsync({ configure: configure }).then(function () {
   worksheet = tableau.extensions.worksheetContent.worksheet;
   render();
   worksheet.addEventListener(tableau.TableauEventType.SummaryDataChanged, render);
@@ -114,6 +121,7 @@ function drawGauge(dataTable, colorFieldId, angleFieldId, sizeFieldId, labelFiel
   });
 
   var total = segments.reduce(function (sum, s) { return sum + s.value; }, 0) || 1;
+  currentSegments = segments; // for the Format Extension dialog to read on open
 
   var svg = document.getElementById("gauge");
   svg.innerHTML = "";
@@ -150,9 +158,6 @@ function drawGauge(dataTable, colorFieldId, angleFieldId, sizeFieldId, labelFiel
     el.addEventListener("mouseleave", function () {
       hideTooltip();
     });
-    el.addEventListener("click", function (evt) {
-      openColorPanel(evt.clientX, evt.clientY, seg.label, seg.color);
-    });
     svg.appendChild(el);
   });
 
@@ -174,49 +179,6 @@ function drawGauge(dataTable, colorFieldId, angleFieldId, sizeFieldId, labelFiel
   var needleFraction = (rawSizeValue !== null && rawSizeValue >= 0 && rawSizeValue <= 1) ? rawSizeValue : cumulative;
   var needleAngleDeg = startAngle + sweep * needleFraction;
   drawNeedle(svg, cx, cy, needleAngleDeg, r - 30, bezelColor);
-}
-
-function openColorPanel(x, y, segLabel, currentColor) {
-  var panel = document.getElementById("colorPanel");
-  var grid = document.getElementById("swatchGrid");
-  var hexInput = document.getElementById("hexInput");
-
-  grid.innerHTML = "";
-  PALETTE.concat(["#051c61", "#bfe0f5", "#e6b800", "#7d3c98", "#16a085", "#c0392b"]).forEach(function (c) {
-    var sw = document.createElement("div");
-    sw.style.width = "24px";
-    sw.style.height = "24px";
-    sw.style.borderRadius = "4px";
-    sw.style.cursor = "pointer";
-    sw.style.background = c;
-    sw.style.border = (c.toLowerCase() === currentColor.toLowerCase()) ? "2px solid #000" : "1px solid #ccc";
-    sw.addEventListener("click", function () {
-      applyColor(segLabel, c);
-    });
-    grid.appendChild(sw);
-  });
-
-  hexInput.value = currentColor;
-  panel.style.left = x + "px";
-  panel.style.top = y + "px";
-  panel.style.display = "block";
-
-  document.getElementById("applyColorBtn").onclick = function () {
-    applyColor(segLabel, hexInput.value);
-  };
-  document.getElementById("cancelColorBtn").onclick = function () {
-    panel.style.display = "none";
-  };
-}
-
-function applyColor(segLabel, hex) {
-  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) {
-    showError("\"" + hex + "\" isn't a valid hex color (need format #RRGGBB).");
-    return;
-  }
-  document.getElementById("colorPanel").style.display = "none";
-  tableau.extensions.settings.set("color_" + segLabel, hex);
-  tableau.extensions.settings.saveAsync().then(render).catch(showError);
 }
 
 function showTooltip(text) {
