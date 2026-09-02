@@ -37,47 +37,51 @@ tableau.extensions.initializeAsync().then(function () {
 
 function render() {
   worksheet.getVisualSpecificationAsync().then(function (visualSpec) {
-    var marksSpec = visualSpec.marksSpecifications[0];
+    var marksSpec = visualSpec.marksSpecifications[visualSpec.activeMarksSpecificationIndex];
     if (!marksSpec) return;
 
     // Map our custom encoding ids (declared in the .trex) to the fields dropped on them
-    var levelFieldId = null, angleFieldId = null;
+    var colorFieldId = null, angleFieldId = null, sizeFieldId = null, labelFieldId = null;
     marksSpec.encodings.forEach(function (enc) {
-      if (enc.id === "level") levelFieldId = enc.field.id;
-      if (enc.id === "angle") angleFieldId = enc.field.id;
+      if (enc.id === "color" && enc.field) colorFieldId = enc.field.id;
+      if (enc.id === "angle" && enc.field) angleFieldId = enc.field.id;
+      if (enc.id === "size" && enc.field) sizeFieldId = enc.field.id;
+      if (enc.id === "label" && enc.field) labelFieldId = enc.field.id;
     });
-    if (!levelFieldId || !angleFieldId) return; // nothing dropped on the shelves yet
+    // Color and Angle are required, same as a native Pie mark needs a dimension and a measure
+    if (!colorFieldId || !angleFieldId) return;
 
-    worksheet.getSummaryDataReaderAsync(marksSpec.fields).then(function (reader) {
-      var pageCount = reader.pageCount;
-      var rows = [];
-      var pagePromises = [];
-      for (var p = 0; p < pageCount; p++) {
-        pagePromises.push(reader.getPageAsync(p).then(function (page) {
-          rows = rows.concat(page.data);
-        }));
-      }
-      Promise.all(pagePromises).then(function () {
+    // No pageRowCount/options needed — default reads all columns currently on the view
+    worksheet.getSummaryDataReaderAsync().then(function (reader) {
+      return reader.getAllPagesAsync().then(function (dataTable) {
         reader.releaseAsync();
-        // VERIFY: tupleId location assumed below in drawGauge() — log a sample row
-        // in the browser console (right-click the extension zone > Inspect) and
-        // confirm the shape matches before trusting hover tooltips.
-        console.log("Sample summary data row:", rows[0]);
-        drawGauge(rows, marksSpec.fields, levelFieldId, angleFieldId);
-      }).catch(showError);
+        console.log("Full summary DataTable:", dataTable);
+        drawGauge(dataTable, colorFieldId, angleFieldId, sizeFieldId, labelFieldId);
+      });
     }).catch(showError);
   }).catch(showError);
 }
 
-function drawGauge(rows, fields, levelFieldId, angleFieldId) {
-  var levelIdx = fields.findIndex(function (f) { return f.id === levelFieldId; });
-  var angleIdx = fields.findIndex(function (f) { return f.id === angleFieldId; });
+function drawGauge(dataTable, colorFieldId, angleFieldId, sizeFieldId, labelFieldId) {
+  var colorIdx = dataTable.columns.findIndex(function (c) { return c.fieldId === colorFieldId; });
+  var angleIdx = dataTable.columns.findIndex(function (c) { return c.fieldId === angleFieldId; });
+  var sizeIdx = sizeFieldId ? dataTable.columns.findIndex(function (c) { return c.fieldId === sizeFieldId; }) : -1;
+  var labelIdx = labelFieldId ? dataTable.columns.findIndex(function (c) { return c.fieldId === labelFieldId; }) : -1;
+  var totalRowCount = dataTable.totalRowCount;
+  // VERIFY: dataTable.marksInfo should line up 1:1 with dataTable.data when a
+  // field is dropped on the Color shelf and the user has customized the legend
+  // (double-click a swatch in Tableau → pick a color, same as a native pie chart).
+  // Log dataTable in the console to confirm marksInfo is actually populated.
+  var marksInfo = dataTable.marksInfo;
 
-  var segments = rows.map(function (row) {
+  var segments = dataTable.data.map(function (row, rowIndex) {
+    var userColor = marksInfo && marksInfo[rowIndex] ? marksInfo[rowIndex].color : null;
     return {
-      label: row[levelIdx].formattedValue,
+      label: row[colorIdx].formattedValue,
       value: row[angleIdx].value,
-      tupleId: row[levelIdx].tupleId
+      // Per Tableau's docs: tupleId = totalRowCount - (1-based row number)
+      tupleId: totalRowCount - (rowIndex + 1),
+      color: userColor || PALETTE[rowIndex % PALETTE.length]
     };
   });
 
@@ -101,24 +105,31 @@ function drawGauge(rows, fields, levelFieldId, angleFieldId) {
     var el = document.createElementNS("http://www.w3.org/2000/svg", "path");
     el.setAttribute("d", path);
     el.setAttribute("fill", "none");
-    el.setAttribute("stroke", PALETTE[i % PALETTE.length]);
+    el.setAttribute("stroke", seg.color);
     el.setAttribute("stroke-width", strokeW);
     el.setAttribute("class", "segment");
     el.addEventListener("mouseenter", function () {
       worksheet.hoverTupleAsync(seg.tupleId);
     });
     el.addEventListener("mouseleave", function () {
-      worksheet.hoverTupleAsync(-1);
+      worksheet.leaveMarkNavigationAsync();
     });
     svg.appendChild(el);
   });
 
-  // Needle at the overall cumulative position (last mark's midpoint, adjust as needed)
-  var needleAngleDeg = startAngle + sweep * 0.6; // placeholder: swap for a measured KPI value
+  // Needle position: if a Size measure is on the shelf, use its first value as a
+  // 0–1 fraction of the gauge sweep (e.g. drop a "% of goal" calc there).
+  // VERIFY: adjust this normalization to match whatever you actually put on Size —
+  // a raw count vs. an already-computed percentage need different scaling.
+  var needleFraction = (sizeIdx >= 0 && dataTable.data[0]) ? dataTable.data[0][sizeIdx].value : cumulative;
+  var needleAngleDeg = startAngle + sweep * needleFraction;
   drawNeedle(svg, cx, cy, needleAngleDeg, r - strokeW / 2 - 10);
 
-  // Digital readout
-  drawReadout(svg, cx, cy + 70, Math.round((cumulative) * 100) + "%");
+  // Digital readout: prefer the Label shelf's formatted value if provided
+  var readoutText = (labelIdx >= 0 && dataTable.data[0])
+    ? dataTable.data[0][labelIdx].formattedValue
+    : Math.round(needleFraction * 100) + "%";
+  drawReadout(svg, cx, cy + 70, readoutText);
 }
 
 function drawNeedle(svg, cx, cy, angleDeg, length) {
