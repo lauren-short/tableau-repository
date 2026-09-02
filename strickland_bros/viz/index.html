@@ -14,6 +14,7 @@
 </head>
 <body>
 <div id="gaugeWrap"><svg id="gauge" width="400" height="400" viewBox="0 0 400 400"></svg></div>
+<div id="tooltip" style="position:fixed; display:none; pointer-events:none; background:#12203a; color:#fff; font-family:sans-serif; font-size:12px; padding:6px 10px; border-radius:6px; z-index:1000;"></div>
 <div id="error" style="color:#c0392b; font-family:sans-serif; font-size:12px; padding:8px; display:none;"></div>
 
 <script>
@@ -98,6 +99,7 @@ function drawGauge(dataTable, colorFieldId, angleFieldId, sizeFieldId, labelFiel
     return {
       label: label,
       value: row[angleIdx].value,
+      formattedValue: row[angleIdx].formattedValue,
       // Per Tableau's docs: tupleId = totalRowCount - (1-based row number)
       tupleId: totalRowCount - (rowIndex + 1),
       color: savedOverride || userColor || PALETTE[rowIndex % PALETTE.length]
@@ -133,12 +135,13 @@ function drawGauge(dataTable, colorFieldId, angleFieldId, sizeFieldId, labelFiel
     el.setAttribute("fill", seg.color);
     el.setAttribute("class", "segment");
     el.addEventListener("mouseenter", function () {
-      worksheet.getTooltipTextAsync(seg.tupleId).then(function (tooltipText) {
-        worksheet.hoverTupleAsync(seg.tupleId, true, tooltipText);
-      }).catch(showError);
+      showTooltip(seg.label + ": " + seg.formattedValue);
+    });
+    el.addEventListener("mousemove", function (evt) {
+      moveTooltip(evt.clientX, evt.clientY);
     });
     el.addEventListener("mouseleave", function () {
-      worksheet.leaveMarkNavigationAsync();
+      hideTooltip();
     });
     el.addEventListener("click", function () {
       var input = window.prompt("Set a color for \"" + seg.label + "\" (hex, e.g. #1D9E75):", seg.color);
@@ -177,6 +180,22 @@ function drawGauge(dataTable, colorFieldId, angleFieldId, sizeFieldId, labelFiel
     ? dataTable.data[0][labelIdx].formattedValue
     : (colorFieldName || (Math.round(needleFraction * 100) + "%"));
   drawReadout(svg, cx, cy + 90, readoutText, bezelColor);
+}
+
+function showTooltip(text) {
+  var el = document.getElementById("tooltip");
+  el.textContent = text;
+  el.style.display = "block";
+}
+
+function moveTooltip(x, y) {
+  var el = document.getElementById("tooltip");
+  el.style.left = (x + 12) + "px";
+  el.style.top = (y + 12) + "px";
+}
+
+function hideTooltip() {
+  document.getElementById("tooltip").style.display = "none";
 }
 
 function drawNeedle(svg, cx, cy, angleDeg, length) {
