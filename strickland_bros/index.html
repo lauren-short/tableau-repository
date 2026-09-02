@@ -322,9 +322,27 @@
 
     let lastTupleId = null;
 
+    // --- TEMPORARY DEBUG READOUT ---
+    // Shows the tuple id our code computes for whatever band is under the
+    // cursor, separate from whether Tableau's native tooltip actually
+    // appears. Lets us tell apart "our id assignment is wrong" (same/absent
+    // number regardless of band) from "Tableau isn't responding to a
+    // correctly-varying id" (numbers change correctly per band, still no
+    // tooltip). Remove once diagnosed.
+    let debugEl = document.getElementById("debug-tuple-readout");
+    if (!debugEl) {
+      debugEl = document.createElement("div");
+      debugEl.id = "debug-tuple-readout";
+      debugEl.style.cssText = "position:absolute;top:2px;left:2px;font-size:10px;color:#a33;background:#fee;padding:2px 5px;border-radius:3px;z-index:2000;";
+      document.getElementById("outer").appendChild(debugEl);
+    }
+    // --- END TEMPORARY DEBUG READOUT SETUP ---
+
     carSvg.onmousemove = (e) => {
       const target = e.target.closest("[data-tuple-id]");
       const tupleId = target ? Number(target.dataset.tupleId) : -1;
+
+      debugEl.textContent = "tuple id: " + tupleId; // --- TEMPORARY DEBUG ---
 
       if (tupleId === lastTupleId) return;
       lastTupleId = tupleId;
@@ -335,6 +353,7 @@
     };
     carSvg.onmouseleave = () => {
       lastTupleId = null;
+      debugEl.textContent = "tuple id: (none)"; // --- TEMPORARY DEBUG ---
       // -1 is not a valid tuple id (real ids start at 1), which clears the
       // tooltip — matches how Tableau's own Sankey sample clears on leave.
       worksheet.hoverTupleAsync(-1).catch(() => {});
