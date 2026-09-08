@@ -6,14 +6,21 @@
 <script src="tableau.extensions.1.latest.min.js"></script>
 <style>
   html, body { margin: 0; padding: 0; background: transparent; font-family: sans-serif; height: 100%; width: 100%; overflow: hidden; }
-  #gaugeWrap { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+  #outer { width: 100%; height: 100%; display: flex; flex-direction: column; }
+  #gaugeWrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
   #gauge { width: 100%; height: 100%; }
   .segment { cursor: pointer; }
   .segment:hover { opacity: 0.85; }
+  #legend { flex-shrink: 0; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding: 6px 8px; font-size: 12px; }
+  #legend .legendItem { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+  #legend .legendSwatch { width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; }
 </style>
 </head>
 <body>
-<div id="gaugeWrap"><svg id="gauge" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet"></svg></div>
+<div id="outer">
+  <div id="gaugeWrap"><svg id="gauge" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet"></svg></div>
+  <div id="legend"></div>
+</div>
 <div id="tooltip" style="position:fixed; display:none; pointer-events:none; background:#051c61; color:#fff; font-family:sans-serif; font-size:12px; padding:6px 10px; border-radius:6px; z-index:1000;"></div>
 <div id="error" style="color:#c0392b; font-family:sans-serif; font-size:12px; padding:8px; display:none;"></div>
 
@@ -31,13 +38,32 @@ function showError(err) {
   console.error(err);
 }
 
+function getLegendSettings() {
+  var s = tableau.extensions.settings.getAll();
+  return {
+    visible: s.legendVisible !== "false", // default true
+    position: s.legendPosition || "bottom",
+    fontSize: parseInt(s.legendFontSize || "12", 10),
+    shape: s.legendShape || "square"
+  };
+}
+
 function configure() {
-  var payload = JSON.stringify(currentSegments.map(function (s) { return { label: s.label, color: s.color }; }));
-  tableau.extensions.ui.displayDialogAsync("config.html", payload, { height: 520, width: 380 }).then(function (closePayload) {
-    var updates = JSON.parse(closePayload);
-    updates.forEach(function (u) {
+  var payload = JSON.stringify({
+    segments: currentSegments.map(function (s) { return { label: s.label, color: s.color }; }),
+    legend: getLegendSettings()
+  });
+  tableau.extensions.ui.displayDialogAsync("config.html", payload, { height: 560, width: 380 }).then(function (closePayload) {
+    var result = JSON.parse(closePayload);
+    result.colors.forEach(function (u) {
       tableau.extensions.settings.set("color_" + u.label, u.color);
     });
+    if (result.legend) {
+      tableau.extensions.settings.set("legendVisible", String(result.legend.visible));
+      tableau.extensions.settings.set("legendPosition", result.legend.position);
+      tableau.extensions.settings.set("legendFontSize", String(result.legend.fontSize));
+      tableau.extensions.settings.set("legendShape", result.legend.shape);
+    }
     return tableau.extensions.settings.saveAsync();
   }).then(render).catch(function (err) {
     // errorCode "10004" / Cancelled is expected when the user closes without saving
@@ -123,6 +149,7 @@ function drawGauge(dataTable, colorFieldId, angleFieldId, sizeFieldId, labelFiel
 
   var total = segments.reduce(function (sum, s) { return sum + s.value; }, 0) || 1;
   currentSegments = segments; // for the Format Extension dialog to read on open
+  renderLegend(segments);
 
   var svg = document.getElementById("gauge");
   svg.innerHTML = "";
@@ -196,6 +223,47 @@ function moveTooltip(x, y) {
 
 function hideTooltip() {
   document.getElementById("tooltip").style.display = "none";
+}
+
+function renderLegend(segments) {
+  var legendSettings = getLegendSettings();
+  var outer = document.getElementById("outer");
+  var legend = document.getElementById("legend");
+
+  if (!legendSettings.visible) {
+    legend.style.display = "none";
+    outer.style.flexDirection = "column";
+    return;
+  }
+  legend.style.display = "flex";
+
+  // Position controls the outer flex direction and whether the legend
+  // stacks vertically (left/right) or wraps horizontally (top/bottom)
+  var pos = legendSettings.position;
+  if (pos === "right") { outer.style.flexDirection = "row"; legend.style.flexDirection = "column"; }
+  else if (pos === "left") { outer.style.flexDirection = "row-reverse"; legend.style.flexDirection = "column"; }
+  else if (pos === "top") { outer.style.flexDirection = "column-reverse"; legend.style.flexDirection = "row"; legend.style.flexWrap = "wrap"; }
+  else { outer.style.flexDirection = "column"; legend.style.flexDirection = "row"; legend.style.flexWrap = "wrap"; } // bottom (default)
+
+  legend.style.fontSize = legendSettings.fontSize + "px";
+  legend.innerHTML = "";
+  segments.forEach(function (seg) {
+    var item = document.createElement("div");
+    item.className = "legendItem";
+
+    var sw = document.createElement("div");
+    sw.className = "legendSwatch";
+    sw.style.background = seg.color;
+    sw.style.width = sw.style.height = Math.round(legendSettings.fontSize * 0.9) + "px";
+    sw.style.borderRadius = legendSettings.shape === "circle" ? "50%" : "2px";
+
+    var lbl = document.createElement("span");
+    lbl.textContent = seg.label;
+
+    item.appendChild(sw);
+    item.appendChild(lbl);
+    legend.appendChild(item);
+  });
 }
 
 function drawNeedle(svg, cx, cy, angleDeg, length, color) {
