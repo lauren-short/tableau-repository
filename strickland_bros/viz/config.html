@@ -19,6 +19,10 @@
   #paletteStrip { display: flex; flex-wrap: wrap; gap: 4px; }
   #paletteStrip .pswatch { width: 22px; height: 22px; border-radius: 3px; cursor: pointer; border: 1px solid #ccc; }
   #activeHint { font-size: 11px; color: #666; margin-top: 4px; }
+  #legendSection { margin-top: 14px; padding-top: 10px; border-top: 1px solid #ddd; }
+  #legendSection .lrow { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  #legendSection label { width: 90px; flex-shrink: 0; }
+  #legendSection select, #legendSection input[type="number"] { font-size: 12px; padding: 3px; }
 </style>
 </head>
 <body>
@@ -34,6 +38,35 @@
   <div id="activeHint">Click a category below, then click a swatch to apply it.</div>
 </div>
 <div id="rows"></div>
+
+<div id="legendSection">
+  <h3>Legend</h3>
+  <div class="lrow">
+    <label>Show legend</label>
+    <input type="checkbox" id="legendVisible" />
+  </div>
+  <div class="lrow">
+    <label>Position</label>
+    <select id="legendPosition">
+      <option value="bottom">Bottom</option>
+      <option value="top">Top</option>
+      <option value="right">Right</option>
+      <option value="left">Left</option>
+    </select>
+  </div>
+  <div class="lrow">
+    <label>Font size</label>
+    <input type="number" id="legendFontSize" min="8" max="24" style="width:50px;" />
+  </div>
+  <div class="lrow">
+    <label>Swatch shape</label>
+    <select id="legendShape">
+      <option value="square">Square</option>
+      <option value="circle">Circle</option>
+    </select>
+  </div>
+</div>
+
 <div class="footer">
   <button id="cancelBtn">Cancel</button>
   <button id="saveBtn">Save</button>
@@ -55,7 +88,15 @@ var activeIndex = 0;
 var segments = [];
 
 tableau.extensions.initializeDialogAsync().then(function (openPayload) {
-  segments = JSON.parse(openPayload || "[]");
+  var payload = JSON.parse(openPayload || "{}");
+  segments = payload.segments || [];
+  var legendSettings = payload.legend || { visible: true, position: "bottom", fontSize: 12, shape: "square" };
+
+  document.getElementById("legendVisible").checked = legendSettings.visible;
+  document.getElementById("legendPosition").value = legendSettings.position;
+  document.getElementById("legendFontSize").value = legendSettings.fontSize;
+  document.getElementById("legendShape").value = legendSettings.shape;
+
   var rowsEl = document.getElementById("rows");
   segments.forEach(function (seg, i) {
     var row = document.createElement("div");
@@ -124,7 +165,7 @@ function renderPaletteStrip() {
 document.getElementById("paletteSelect").addEventListener("change", renderPaletteStrip);
 
 document.getElementById("cancelBtn").addEventListener("click", function () {
-  tableau.extensions.ui.closeDialog("[]");
+  tableau.extensions.ui.closeDialog(JSON.stringify({ colors: [], legend: null }));
 });
 
 document.getElementById("saveBtn").addEventListener("click", function () {
@@ -132,7 +173,13 @@ document.getElementById("saveBtn").addEventListener("click", function () {
     var hex = document.getElementById("hex-" + i).value;
     return { label: seg.label, color: /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : seg.color };
   });
-  tableau.extensions.ui.closeDialog(JSON.stringify(updates));
+  var legend = {
+    visible: document.getElementById("legendVisible").checked,
+    position: document.getElementById("legendPosition").value,
+    fontSize: parseInt(document.getElementById("legendFontSize").value, 10) || 12,
+    shape: document.getElementById("legendShape").value
+  };
+  tableau.extensions.ui.closeDialog(JSON.stringify({ colors: updates, legend: legend }));
 });
 </script>
 </body>
