@@ -107,9 +107,55 @@
     <input type="checkbox" id="headline-bold">
   </div>
 
+  <div class="row-top" style="margin-bottom:6px;">
+    <span style="font-weight:400;">Italic</span>
+    <input type="checkbox" id="headline-italic">
+  </div>
+
   <div class="row-top">
     <span style="font-weight:400;">Text color</span>
     <input type="color" id="headline-color">
+  </div>
+</div>
+
+<div class="row" style="border-bottom:1px solid #eee;padding-bottom:10px;margin-bottom:12px;">
+  <div class="row-top">
+    <span>Secondary label</span>
+  </div>
+  <div class="hint" style="margin-bottom:6px;">A second line below the headline (e.g. "Existing Vehicle Vin: 14,424"). Defaults to whichever category isn't the headline unless chosen below on a row.</div>
+
+  <div class="row-top" style="margin-bottom:6px;">
+    <span style="font-weight:400;">Font</span>
+    <select id="secondary-font-family" style="width:150px;">
+      <option value="-apple-system, 'Segoe UI', Roboto, Arial, sans-serif">System default</option>
+      <option value="Arial, sans-serif">Arial</option>
+      <option value="'Helvetica Neue', Helvetica, sans-serif">Helvetica</option>
+      <option value="Georgia, serif">Georgia</option>
+      <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+      <option value="Verdana, sans-serif">Verdana</option>
+      <option value="'Times New Roman', serif">Times New Roman</option>
+      <option value="'Courier New', monospace">Courier New</option>
+    </select>
+  </div>
+
+  <div class="row-top" style="margin-bottom:6px;">
+    <span style="font-weight:400;">Size (px)</span>
+    <input type="number" id="secondary-font-size" min="10" max="72" step="1" style="width:60px;">
+  </div>
+
+  <div class="row-top" style="margin-bottom:6px;">
+    <span style="font-weight:400;">Bold</span>
+    <input type="checkbox" id="secondary-bold">
+  </div>
+
+  <div class="row-top" style="margin-bottom:6px;">
+    <span style="font-weight:400;">Italic</span>
+    <input type="checkbox" id="secondary-italic">
+  </div>
+
+  <div class="row-top">
+    <span style="font-weight:400;">Text color</span>
+    <input type="color" id="secondary-color">
   </div>
 </div>
 
@@ -140,14 +186,25 @@
     const savedBold = tableau.extensions.settings.get("headlineBold");
     document.getElementById("headline-bold").checked = savedBold !== "false"; // default true
 
+    document.getElementById("headline-italic").checked = tableau.extensions.settings.get("headlineItalic") === "true"; // default false
+
     const savedColor = tableau.extensions.settings.get("headlineColor") || "#1F4E5F";
     document.getElementById("headline-color").value = savedColor;
+
+    const savedSecondaryFamily = tableau.extensions.settings.get("secondaryFontFamily");
+    if (savedSecondaryFamily) document.getElementById("secondary-font-family").value = savedSecondaryFamily;
+
+    document.getElementById("secondary-font-size").value = tableau.extensions.settings.get("secondaryFontSize") || "20";
+    document.getElementById("secondary-bold").checked = tableau.extensions.settings.get("secondaryBold") === "true"; // default false
+    document.getElementById("secondary-italic").checked = tableau.extensions.settings.get("secondaryItalic") === "true"; // default false
+    document.getElementById("secondary-color").value = tableau.extensions.settings.get("secondaryColor") || "#1F4E5F";
 
     const rowsContainer = document.getElementById("rows");
     if (categories.length === 0) {
       rowsContainer.innerHTML = "<p>No category values found yet — add a field to the Color tile first.</p>";
     } else {
       const currentHeadlineKey = tableau.extensions.settings.get("headlineKey") || "";
+      const currentSecondaryKey = tableau.extensions.settings.get("secondaryKey") || "";
       rowsContainer.innerHTML = categories.map(c => `
         <div class="row" data-key="${c.key}">
           <div class="row-top">
@@ -164,6 +221,11 @@
             <input type="radio" name="headline-choice" data-headline-key="${c.key}"
               ${c.key === currentHeadlineKey ? "checked" : ""}>
             Use as the main headline number
+          </label>
+          <label class="hint" style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+            <input type="radio" name="secondary-choice" data-secondary-key="${c.key}"
+              ${c.key === currentSecondaryKey ? "checked" : ""}>
+            Use as the secondary label
           </label>
         </div>
       `).join("");
@@ -206,10 +268,20 @@
     const checkedHeadline = document.querySelector("input[name='headline-choice']:checked");
     const headlineKey = checkedHeadline ? checkedHeadline.dataset.headlineKey : "";
 
+    const checkedSecondary = document.querySelector("input[name='secondary-choice']:checked");
+    const secondaryKey = checkedSecondary ? checkedSecondary.dataset.secondaryKey : "";
+
     const headlineFontSize = document.getElementById("headline-font-size").value || "28";
     const headlineFontFamily = document.getElementById("headline-font-family").value;
     const headlineBold = document.getElementById("headline-bold").checked ? "true" : "false";
+    const headlineItalic = document.getElementById("headline-italic").checked ? "true" : "false";
     const headlineColor = document.getElementById("headline-color").value;
+
+    const secondaryFontSize = document.getElementById("secondary-font-size").value || "20";
+    const secondaryFontFamily = document.getElementById("secondary-font-family").value;
+    const secondaryBold = document.getElementById("secondary-bold").checked ? "true" : "false";
+    const secondaryItalic = document.getElementById("secondary-italic").checked ? "true" : "false";
+    const secondaryColor = document.getElementById("secondary-color").value;
 
     // Capture the current on-screen row order (top row = bottom of car).
     const categoryOrder = Array.from(document.querySelectorAll("#rows .row"))
@@ -221,7 +293,14 @@
     tableau.extensions.settings.set("headlineFontSize", headlineFontSize);
     tableau.extensions.settings.set("headlineFontFamily", headlineFontFamily);
     tableau.extensions.settings.set("headlineBold", headlineBold);
+    tableau.extensions.settings.set("headlineItalic", headlineItalic);
     tableau.extensions.settings.set("headlineColor", headlineColor);
+    tableau.extensions.settings.set("secondaryKey", secondaryKey);
+    tableau.extensions.settings.set("secondaryFontSize", secondaryFontSize);
+    tableau.extensions.settings.set("secondaryFontFamily", secondaryFontFamily);
+    tableau.extensions.settings.set("secondaryBold", secondaryBold);
+    tableau.extensions.settings.set("secondaryItalic", secondaryItalic);
+    tableau.extensions.settings.set("secondaryColor", secondaryColor);
     tableau.extensions.settings.set("categoryOrder", JSON.stringify(categoryOrder));
     tableau.extensions.settings.saveAsync().then(() => {
       tableau.extensions.ui.closeDialog("saved");
