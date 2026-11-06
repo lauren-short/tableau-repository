@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Brand Preference Index</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html,body{margin:0;height:100%;background:#fff;font-family:Gotham,"Gotham Book",Montserrat,Arial,Helvetica,sans-serif}
+  #app{display:flex;flex-direction:column;height:100%}
+  #bar{display:none;padding:8px 12px;background:#f3f4f6;border-bottom:1px solid #d6d8dc;font-size:13px}
+  #bar textarea{width:100%;height:64px;font:12px/1.3 Consolas,monospace;box-sizing:border-box}
+  #bar button{margin:6px 6px 0 0;padding:5px 12px;border:1px solid #002855;background:#002855;color:#fff;border-radius:3px;cursor:pointer}
+  #bar button.sec{background:#fff;color:#002855}
+  #msg{padding:6px 12px;color:#b00020;font-size:13px;display:none}
+  #stage{flex:1;min-height:0}
+  #stage svg{width:100%;height:100%;display:block}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="bar">
+    <b>Standalone mode</b> &ndash; paste a table with a header row (tab or comma separated). Columns: <code>segment_id</code>, <code>customer_count</code> (or customer_pct), <code>market_count</code> (or market_pct), optional <code>index</code>.
+    <textarea id="paste" spellcheck="false" placeholder="segment_id,customer_count,market_count"></textarea>
+    <button id="go">Render</button><button class="sec" id="sample">Load SB 7489 sample</button>
+    <button class="sec" id="dlsvg">Download SVG</button><button class="sec" id="dlpng">Download PNG</button>
+  </div>
+  <div id="msg"></div>
+  <div id="stage"></div>
+</div>
+<script>
+/* ======================= CONFIG (edit here) ======================= */
+const CONFIG = {
+  TOP_MAX: 300,        // index value at the very top of the "150+" band (300 = literal 0-300 scale; ~210 spreads the top band like the hand-built slide)
+  ROUND_INDEX: true,   // band + position use the whole-number index, same as the slide labels
+  GAP: 2,              // min px gap between bubbles when auto-placing
+  TITLE: "BRAND PREFERENCE INDEX",
+  SUBTITLE: "PERSONICX NS"
+};
+/* ======================= FIXED DESIGN (never changes per client) ======================= */
+// segment -> [lifestage, affluence, default x (0-100), name]
+const MASTER = {"1": ["E", "W", 80.5, "Elite Earners"], "2": ["E", "W", 11.4, "Fortuned Estates"], "3": ["C", "W", 13.8, "Flourishing Professionals"], "4": ["E", "W", 19.1, "Gilt-Edged Guardians"], "5": ["R", "H", 43.0, "Comfortable Commercials"], "6": ["C", "W", 72.0, "Onward & Upward"], "7": ["R", "UM", 90.5, "Houseproud Connectors"], "8": ["E", "W", 51.9, "Conscientiously Comfortable"], "9": ["C", "W", 72.5, "Prosperous Metropolitans"], "10": ["E", "H", 32.0, "Digitally Kinetic"], "11": ["C", "W", 41.5, "Healthy Investors"], "12": ["E", "H", 4.4, "Well-Funded Families"], "13": ["Y", "H", 15.0, "Ascending Affluents"], "14": ["C", "H", 94.9, "Cultured Parents"], "15": ["R", "UM", 34.5, "Sunset Stability"], "16": ["E", "UM", 39.8, "Moneyed Multi-Gens"], "17": ["C", "H", 91.3, "Receptive Recreationers"], "18": ["E", "H", 86.7, "Energetic Achievers"], "19": ["E", "UM", 68.2, "Country Connections"], "20": ["C", "H", 50.0, "Sporting Metro"], "21": ["C", "UM", 22.7, "Lifelong Learners"], "22": ["C", "UM", 59.1, "Collaborative Custodians"], "23": ["E", "UM", 95.8, "Settled Success"], "24": ["C", "UM", 7.4, "Restless Lessees"], "25": ["C", "UM", 55.1, "Active Guardians"], "26": ["C", "UM", 85.6, "Finding Home"], "27": ["C", "UM", 68.2, "Domestic Voyagers"], "28": ["Y", "UM", 40.5, "Self-Reliant Renters"], "29": ["E", "UM", 76.1, "Nesting Nomads"], "30": ["E", "UM", 22.7, "Pastoral Prosperity"], "31": ["E", "UM", 30.7, "Traditionalist Travelers"], "32": ["E", "UM", 52.3, "Downtown Duos"], "33": ["R", "L", 30.7, "Active Twilight"], "34": ["E", "M", 46.6, "Urban Owners"], "35": ["R", "M", 67.2, "Astute City Elders"], "36": ["R", "L", 50.2, "Golden Guardians"], "37": ["E", "UM", 4.2, "Multimedia Parents"], "38": ["E", "M", 31.1, "Fresh Air Families"], "39": ["E", "M", 13.1, "Settled Couples"], "40": ["R", "M", 9.7, "Rural Pragmatists"], "41": ["E", "M", 83.9, "Countryside Keepers"], "42": ["Y", "M", 74.4, "Rustic Adventurers"], "43": ["R", "M", 44.1, "Heyday Duos"], "44": ["R", "L", 61.9, "Independent Seniors"], "45": ["E", "L", 15.0, "Green City Roots"], "46": ["R", "L", 78.0, "Seasoned Outdoorsfolk"], "47": ["Y", "M", 59.1, "Digital Startups"], "48": ["E", "M", 93.2, "Simply Soloists"], "49": ["E", "M", 55.9, "Singular Fulfillment"], "50": ["R", "L", 43.0, "Communities & Connections"], "51": ["E", "M", 40.3, "Metro Mobility"], "52": ["R", "L", 15.0, "Mature Insights"], "53": ["Y", "M", 48.7, "Tech Country"], "54": ["E", "M", 31.6, "Rural Renters"], "55": ["Y", "M", 67.2, "Two-To-Play"], "56": ["C", "L", 11.2, "Settled Self-Supporters"], "57": ["C", "M", 32.0, "Solo and Switched On"], "58": ["E", "M", 61.9, "Country Convenience"], "59": ["E", "M", 55.9, "In The Now"], "60": ["R", "L", 25.2, "Metro Mature"], "61": ["C", "M", 27.5, "Metro Spirit"], "62": ["C", "M", 48.5, "Freewheeling Explorers"], "63": ["E", "M", 60.8, "Diligent Duos"], "64": ["Y", "M", 18.9, "Balanced Budgeters"], "65": ["C", "L", 70.1, "Modest Midlifers"], "66": ["Y", "M", 78.0, "Single Providers"], "67": ["C", "M", 6.6, "Maturing Singles"], "68": ["E", "L", 63.8, "Lively Balance"], "69": ["Y", "M", 25.2, "Urban Twenties"], "70": ["R", "L", 85.6, "Skillful Strivers"], "71": ["C", "M", 39.0, "Untethered Aspirations"], "72": ["Y", "M", 22.7, "Digital Devotees"]};
+const COLORS = {Y:"#00AEEF", C:"#39B54A", E:"#662D91", R:"#EC008C"};
+const RADIUS = {L:8, M:12.3, UM:16.5, H:20.8, W:24};
+const LABEL_PX = {L:8, M:10, UM:14, H:17, W:21};
+const LIFE = {Y:"Youth", C:"Career Building", E:"Earning Years", R:"Retirement"};
+const AFF  = {L:"Low", M:"Middle", UM:"Upper Middle", H:"High", W:"Wealth"};
+const BAND_FILL = ["#C3CAD2","#ADB6C2","#96A1B1","#808EA0","#697A90"];           // band 1 (bottom) .. 5 (top)
+const BAND_TXT = {
+  5:["Extremely","Brand Receptive","(Index of 150+)"], 4:["Brand Receptive","(Index of 120 - 149)"],
+  3:["Brand Neutral","(Index of 80 - 119)"], 2:["Brand Resistant","(Index of 50 - 79)"],
+  1:["Extremely","Brand Resistant","(Index of 0 - 49)"] };
+const NAVY="#00254F", GREY="#818285", FONT='Gotham,"Gotham Book",Montserrat,Arial,Helvetica,sans-serif';
+// slide geometry (px on a 1508 x 847 canvas)
+const W=1508, H=847, X0=460, X1=932, YT=168, YB=797, PLOT_W=X1-X0, PLOT_H=YB-YT;
+
+/* ======================= LOGIC ======================= */
+const rnd = v => CONFIG.ROUND_INDEX ? Math.round(v) : v;
+function bandOf(idx){ const i=rnd(idx); return i>=150?5:i>=120?4:i>=80?3:i>=50?2:1; }
+function displayY(idx){            // 0..500, five equal 100-unit bands
+  const i=rnd(idx), T=CONFIG.TOP_MAX;
+  if(i>=150) return 400+(Math.min(i,T)-150)/(T-150)*100;
+  if(i>=120) return 300+(i-120)/30*100;
+  if(i>=80)  return 200+(i-80)/40*100;
+  if(i>=50)  return 100+(i-50)/30*100;
+  return Math.max(i,0)/50*100;
+}
+const yPx = d => YB - d/500*PLOT_H;
+
+// Collision-free x: start at each segment's default x, nudge only bubbles that would overlap
+function placeX(items){
+  const n=items.length, y=items.map(o=>o.dy/500*PLOT_H), r=items.map(o=>o.r);
+  const x0=items.map(o=>o.x0/100*PLOT_W), x=x0.slice();
+  const lo=r.map(v=>v+1), hi=r.map(v=>PLOT_W-v-1);
+  const rr=(i,j)=>r[i]+r[j]+CONFIG.GAP, LAMBDA=0.004;
+  for(let pass=0;pass<40;pass++){
+    let moved=false;
+    const crowd=new Array(n).fill(0);
+    for(let i=0;i<n;i++)for(let j=0;j<n;j++){ if(i===j)continue; const d=Math.hypot(x[i]-x[j],y[i]-y[j]); crowd[i]+=Math.max(0,rr(i,j)-d); }
+    const order=[...Array(n).keys()].sort((a,b)=>crowd[b]-crowd[a]);
+    for(const i of order){
+      if(crowd[i]===0 && Math.abs(x[i]-x0[i])<1e-9) continue;
+      let best=x[i], bc=Infinity;
+      for(let c=Math.ceil(lo[i]); c<=Math.floor(hi[i]); c++){
+        let cost=LAMBDA*(c-x0[i])*(c-x0[i]);
+        for(let j=0;j<n;j++){ if(j===i)continue; const o=rr(i,j)-Math.hypot(c-x[j],y[i]-y[j]); if(o>0)cost+=o*o; }
+        if(cost<bc){bc=cost;best=c;}
+      }
+      if(Math.abs(best-x[i])>1e-9){x[i]=best;moved=true;}
+    }
+    if(!moved)break;
+  }
+  return x.map(v=>X0+v);
+}
+
+// rows: [{seg, cust, mkt, idx}]  (cust/mkt may be counts or percents; idx optional override)
+function prepare(rows){
+  const by=new Map();
+  for(const r of rows){
+    const seg=parseInt(String(r.seg).replace(/[^0-9]/g,''),10);
+    if(!(seg in MASTER)) continue;
+    const o=by.get(seg)||{seg,cust:null,mkt:null,idx:null};
+    if(isFinite(r.cust)&&r.cust!==null) o.cust=(o.cust||0)+Number(r.cust);
+    if(isFinite(r.mkt)&&r.mkt!==null)   o.mkt =(o.mkt ||0)+Number(r.mkt);
+    if(isFinite(r.idx)&&r.idx!==null)   o.idx = Number(r.idx);
+    by.set(seg,o);
+  }
+  const list=[...by.values()];
+  const sc=list.reduce((a,o)=>a+(o.cust||0),0), sm=list.reduce((a,o)=>a+(o.mkt||0),0);
+  const haveShare = sc>0 && sm>0;
+  for(const o of list){
+    o.cp = haveShare && o.cust!=null ? o.cust/sc : null;
+    o.mp = haveShare && o.mkt !=null ? o.mkt /sm : null;
+    if(o.idx==null && o.cp!=null && o.mp>0) o.idx=o.cp/o.mp*100;
+  }
+  return {items:list.filter(o=>o.idx!=null && isFinite(o.idx)), haveShare, skipped:list.filter(o=>o.idx==null).length};
+}
+
+/* ======================= RENDER ======================= */
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const T=(x,y,s,o={})=>`<text x="${x}" y="${y}" font-size="${o.size||14}" font-weight="${o.bold?700:400}" fill="${o.fill||'#222'}" text-anchor="${o.anchor||'start'}" dominant-baseline="${o.base||'central'}"${o.rot?` transform="rotate(${o.rot} ${x} ${y})"`:''}>${esc(s)}</text>`;
+const pct=v=>(v*100).toFixed(2)+"%";
+
+function buildSVG(rows){
+  const {items,haveShare,skipped}=prepare(rows);
+  const pts=items.map(o=>{const m=MASTER[o.seg]; return Object.assign(o,{life:m[0],aff:m[1],name:m[3],r:RADIUS[m[1]],x0:m[2],dy:displayY(o.idx),band:bandOf(o.idx)});});
+  const xs=placeX(pts); pts.forEach((p,i)=>{p.x=xs[i]; p.y=yPx(p.dy);});
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" font-family='${FONT}'><rect width="${W}" height="${H}" fill="#fff"/>`;
+  // bands + lines
+  for(let b=5;b>=1;b--) s+=`<rect x="${X0}" y="${yPx(b*100)}" width="${PLOT_W}" height="${PLOT_H/5}" fill="${BAND_FILL[b-1]}"/>`;
+  for(let k=0;k<=5;k++) s+=`<line x1="438" x2="1136" y1="${yPx(k*100)}" y2="${yPx(k*100)}" stroke="${GREY}" stroke-width="2"/>`;
+  s+=`<line x1="${X0}" x2="${X1}" y1="${yPx(250)}" y2="${yPx(250)}" stroke="#fff" stroke-width="2" stroke-dasharray="7 6"/>`;
+  // axis ticks
+  [[500,"300+"],[400,"149"],[300,"119"],[200,"79"],[100,"49"],[0,"0"]].forEach(([v,t])=>{
+    s+=T(430,yPx(v)+(v===500?9:v===0?-9:0),t,{size:11,anchor:"end"});});
+  s+=T(427,yPx(250)-9,"100",{size:12,bold:1,anchor:"end"})+T(427,yPx(250)+6,"Average",{size:10.5,bold:1,anchor:"end"});
+  // title
+  s+=T(104,108,CONFIG.TITLE,{size:61,bold:1,fill:NAVY})+T(110,150,CONFIG.SUBTITLE,{size:21,fill:NAVY});
+  // legend
+  [["Lifestage",183],["Affluence",454]].forEach(([t,y])=>{s+=T(116,y,t,{size:17,bold:1,fill:NAVY})+`<line x1="116" x2="199" y1="${y+13}" y2="${y+13}" stroke="${NAVY}" stroke-width="1.5"/>`;});
+  [["Y",236],["C",288],["E",340],["R",391]].forEach(([k,y])=>{s+=`<circle cx="126" cy="${y}" r="17" fill="${COLORS[k]}"/>`+T(126,y,k,{size:16,bold:1,fill:"#fff",anchor:"middle"})+T(164,y,LIFE[k],{size:14});});
+  [["L",499],["M",547],["UM",603],["H",666],["W",729]].forEach(([k,y])=>{s+=`<circle cx="125" cy="${y}" r="${RADIUS[k]}" fill="#8A8C8F"/>`+T(125,y,k,{size:{L:8,M:11,UM:14,H:18,W:23}[k],bold:1,fill:"#fff",anchor:"middle"})+T(160,y,AFF[k],{size:14});});
+  // likelihood arrow
+  s+=`<defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="${NAVY}"/></marker></defs>`;
+  s+=`<line x1="346" x2="346" y1="345" y2="208" stroke="${NAVY}" stroke-width="3" marker-end="url(#ah)"/><line x1="346" x2="346" y1="640" y2="772" stroke="${NAVY}" stroke-width="3" marker-end="url(#ah)"/>`;
+  s+=T(346,492,"LIKELIHOOD TO RESPOND",{size:15,bold:1,fill:NAVY,anchor:"middle",rot:-90})+T(346,174,"+",{size:34,bold:1,fill:NAVY,anchor:"middle"})+T(346,795,"\u2013",{size:34,bold:1,fill:NAVY,anchor:"middle"});
+  // bubbles (large first so small ones stay on top)
+  [...pts].sort((a,b)=>b.r-a.r).forEach(p=>{
+    const tip=`Segment ${p.seg} \u2013 ${p.name}\nLifestage: ${LIFE[p.life]}\nAffluence: ${AFF[p.aff]}\nIndex: ${p.idx.toFixed(1)}`+(p.cp!=null?`\nCustomer: ${pct(p.cp)}  Market: ${pct(p.mp)}`:"");
+    s+=`<g><title>${esc(tip)}</title><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${p.r}" fill="${COLORS[p.life]}"/>${T(p.x.toFixed(1),p.y.toFixed(1),p.seg,{size:LABEL_PX[p.aff],bold:1,fill:"#fff",anchor:"middle"})}</g>`;});
+  // right panel
+  const st={1:{c:0,m:0},2:{c:0,m:0},3:{c:0,m:0},4:{c:0,m:0},5:{c:0,m:0}};
+  pts.forEach(p=>{if(p.cp!=null){st[p.band].c+=p.cp;st[p.band].m+=p.mp;}});
+  for(let b=1;b<=5;b++){
+    const yc=yPx((b-1)*100+50), lines=BAND_TXT[b], y0=yc-(lines.length-1)*11;
+    lines.forEach((t,k)=>{const sub=t.startsWith("("); s+=T(963,y0+k*22,t,{size:sub?14:16.5,bold:!sub,fill:sub?"#222":NAVY});});
+    s+=`<line x1="1130" x2="1190" y1="${yc-3}" y2="${yc-3}" stroke="${NAVY}" stroke-width="2.5" marker-end="url(#ah)"/>`;
+    [[1271,"c","of Customer","Base"],[1392,"m","of Market","Trade Area"]].forEach(([cx,k,l1,l2])=>{
+      s+=T(cx,yc-14,haveShare?pct(st[b][k]):"\u2013",{size:29,bold:1,fill:NAVY,anchor:"middle"})+T(cx,yc+14,l1,{size:13,fill:"#333",anchor:"middle"})+T(cx,yc+30,l2,{size:13,fill:"#333",anchor:"middle"});});
+  }
+  s+="</svg>";
+  return {svg:s,count:pts.length,skipped,haveShare};
+}
+
+/* ======================= INPUT: Tableau + standalone ======================= */
+const stage=document.getElementById("stage"), msg=document.getElementById("msg");
+function show(rows){
+  const r=buildSVG(rows); stage.innerHTML=r.svg; window.__lastSVG=r.svg;
+  const notes=[]; if(r.count===0) notes.push("No usable rows yet \u2013 need segment + (customer & market) or index.");
+  if(r.count>0&&!r.haveShare) notes.push("Customer/market not supplied \u2013 band percentages hidden.");
+  if(r.skipped) notes.push(r.skipped+" segment(s) had no index and were skipped.");
+  msg.style.display=notes.length?"block":"none"; msg.textContent=notes.join("  ");
+  window.__result=r; return r;
+}
+const num=v=>{ if(v===null||v===undefined||v==="")return null; const n=Number(String(v).replace(/[,%$\s]/g,"")); return isFinite(n)?n:null; };
+
+async function runTableau(){
+  const ws=tableau.extensions.worksheetContent.worksheet;
+  const refresh=async()=>{
+    try{
+      const spec=await ws.getVisualSpecificationAsync();
+      const mc=spec.marksSpecifications[spec.activeMarksSpecificationIndex];
+      const map={}; for(const e of mc.encodings){ if(e.field) map[e.id]=e.field.name; }
+      const reader=await ws.getSummaryDataReaderAsync(); const table=await reader.getAllPagesAsync(); await reader.releaseAsync();
+      const col=id=>map[id]==null?-1:table.columns.findIndex(c=>c.fieldName===map[id]);
+      const ci={seg:col("segment"),cust:col("customer"),mkt:col("market"),idx:col("index")};
+      if(ci.seg<0){ stage.innerHTML='<p style="font:15px Arial;padding:24px;color:#002855">Drag <b>segment id</b> onto <b>Segment</b>, and <b>customer</b> and <b>market</b> counts onto <b>Customer</b> / <b>Market</b> (or an <b>Index</b>) on the Marks card.</p>'; return; }
+      const rows=table.data.map(r=>({seg:r[ci.seg].value, cust:ci.cust>=0?num(r[ci.cust].value):null, mkt:ci.mkt>=0?num(r[ci.mkt].value):null, idx:ci.idx>=0?num(r[ci.idx].value):null}));
+      show(rows);
+    }catch(e){ console.error(e); msg.style.display="block"; msg.textContent="Error: "+e.message; }
+  };
+  ws.addEventListener(tableau.TableauEventType.SummaryDataChanged,refresh);
+  await refresh();
+}
+
+function parseTable(text){
+  const lines=text.trim().split(/\r?\n/).filter(l=>l.trim()); if(lines.length<2) return [];
+  const d=lines[0].includes("\t")?"\t":","; const split=l=>l.split(d).map(c=>c.trim().replace(/^"|"$/g,""));
+  const h=split(lines[0]).map(x=>x.toLowerCase());
+  const f=(re,prefer)=>{ let i=-1; if(prefer) i=h.findIndex(x=>re.test(x)&&prefer.test(x)); return i>=0?i:h.findIndex(x=>re.test(x)); };
+  const ci={seg:f(/^seg/),cust:f(/^cust/,/count|hh|household/),mkt:f(/^mark/,/count|hh|household/),idx:f(/^index$|^idx$/)};
+  if(ci.seg<0) throw new Error("Header row needs a column starting with 'segment'.");
+  return lines.slice(1).map(l=>{const c=split(l); return {seg:c[ci.seg],cust:ci.cust>=0?num(c[ci.cust]):null,mkt:ci.mkt>=0?num(c[ci.mkt]):null,idx:ci.idx>=0?num(c[ci.idx]):null};});
+}
+function runStandalone(){
+  document.getElementById("bar").style.display="block";
+  const go=()=>{ try{ show(parseTable(document.getElementById("paste").value)); }catch(e){ msg.style.display="block"; msg.textContent=e.message; } };
+  document.getElementById("go").onclick=go;
+  document.getElementById("sample").onclick=async()=>{ try{ const t=await (await fetch("SB_7489_sample.csv")).text(); document.getElementById("paste").value=t; go(); }catch(e){ msg.style.display="block"; msg.textContent="Could not load SB_7489_sample.csv (open this page through a web server, not file://)."; } };
+  const dl=(blob,name)=>{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();};
+  document.getElementById("dlsvg").onclick=()=>window.__lastSVG&&dl(new Blob([window.__lastSVG],{type:"image/svg+xml"}),"brand_preference_index.svg");
+  document.getElementById("dlpng").onclick=()=>{ if(!window.__lastSVG)return; const img=new Image(); img.onload=()=>{const c=document.createElement("canvas");c.width=W*2;c.height=H*2;const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);c.toBlob(b=>dl(b,"brand_preference_index.png"));}; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(window.__lastSVG); };
+  stage.innerHTML='<p style="font:15px Arial;padding:24px;color:#002855">Paste data above and click <b>Render</b>.</p>';
+}
+
+function loadScript(src){return new Promise(res=>{const s=document.createElement("script");s.src=src;s.onload=()=>res(true);s.onerror=()=>res(false);document.head.appendChild(s);});}
+(async function boot(){
+  const force=new URLSearchParams(location.search).has("standalone");
+  if(!force && await loadScript("tableau.extensions.1.latest.js") && window.tableau && tableau.extensions){
+    try{
+      await Promise.race([tableau.extensions.initializeAsync(), new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),3000))]);
+      await runTableau(); return;
+    }catch(e){ console.warn("Not running inside Tableau, using standalone mode:",e.message); }
+  }
+  runStandalone();
+})();
+</script>
+</body>
+</html>

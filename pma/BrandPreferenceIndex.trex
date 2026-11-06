@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest manifest-version="0.1" xmlns="http://www.tableau.com/xml/extension_manifest">
+  <worksheet-extension id="com.reflexblu.viz.brandpreferenceindex" extension-version="1.0.0">
+    <default-locale>en_US</default-locale>
+    <name resource-id="name"/>
+    <description>Personicx Brand Preference Index bubble chart. Drop segment, customer and market counts (or an index) and the chart builds itself.</description>
+    <author name="Reflex Blu Data Team" email="data@example.com" organization="Reflex Blu" website="https://example.com"/>
+    <min-api-version>1.11</min-api-version>
+    <source-location>
+      <url>https://lauren-short.github.io/tableau-repository/pma/index.html</url>
+    </source-location>
+    <icon/>
+    <encoding id="segment">
+      <display-name>Segment</display-name>
+      <fields max-count="1"/>
+      <encoding-icon token="level-of-detail"/>
+      <tooltip>Personicx segment number (1-72), as a dimension. Text such as "01" works.</tooltip>
+    </encoding>
+    <encoding id="customer">
+      <display-name>Customer</display-name>
+      <data-spec><data-type>numeric</data-type></data-spec>
+      <role-spec><role-type>continuous-measure</role-type></role-spec>
+      <fields max-count="1"/>
+      <encoding-icon token="letter-c"/>
+      <tooltip>Customer households (or customer % comp) per segment</tooltip>
+    </encoding>
+    <encoding id="market">
+      <display-name>Market</display-name>
+      <data-spec><data-type>numeric</data-type></data-spec>
+      <role-spec><role-type>continuous-measure</role-type></role-spec>
+      <fields max-count="1"/>
+      <encoding-icon token="letter-m"/>
+      <tooltip>Market base households (or market % comp) per segment</tooltip>
+    </encoding>
+    <encoding id="index">
+      <display-name>Index (optional)</display-name>
+      <data-spec><data-type>numeric</data-type></data-spec>
+      <role-spec><role-type>continuous-measure</role-type></role-spec>
+      <fields max-count="1"/>
+      <encoding-icon token="metric"/>
+      <tooltip>Optional. If you already have the index, drop it here. Without Customer and Market the band percentages are hidden.</tooltip>
+    </encoding>
+  </worksheet-extension>
+  <resources>
+    <resource id="name">
+      <text locale="en_US">Brand Preference Index</text>
+    </resource>
+  </resources>
+</manifest>
