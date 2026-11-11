@@ -90,13 +90,13 @@
   .tabbtn:hover{border-color:#c3ccd8;color:var(--ink)} .tabbtn.on{background:var(--navy);border-color:var(--navy);color:#fff}
   .tabbtn .badge{background:rgba(255,255,255,.22);color:inherit;margin:0} .tabbtn:not(.on) .badge{background:#eaf0fa;color:var(--navy)}
   #appendix{display:flex;flex-direction:column;align-items:center;gap:26px;width:100%}
-  .apage{margin:0;width:100%;max-width:1000px}
-  .apage .sheet{aspect-ratio:1100/850;background:#fff;border-radius:6px;box-shadow:0 1px 2px rgba(16,24,40,.06),0 10px 30px rgba(16,24,40,.08)}
+  .apage{margin:0;width:100%;max-width:1240px}
+  .apage .sheet{aspect-ratio:1508/847;background:#fff;border-radius:6px;box-shadow:0 1px 2px rgba(16,24,40,.06),0 10px 30px rgba(16,24,40,.08)}
   .apage svg{width:100%;height:100%;display:block;border-radius:6px}
   .apage figcaption{font-size:12px;color:var(--mut);margin:0 0 8px 2px}
   body.tab-app .segbar{display:none!important}
   @page chart{size:1508px 847px;margin:0}
-  @page app{size:11in 8.5in;margin:0}
+  @page app{size:1508px 847px;margin:0}
   /* options side panel */
   #opts{width:400px;flex:none;position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:auto;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(16,24,40,.10)}
   .ohead{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);font-weight:700;color:var(--navy);position:sticky;top:0;background:#fff;z-index:2;border-radius:16px 16px 0 0}
@@ -131,11 +131,11 @@
     html.tab-app #app,html.tab-app .work,html.tab-app .mainCol,html.tab-app body.standalone #app,html.tab-app body.standalone .work{height:auto!important;min-height:0!important;overflow:visible!important;display:block!important;padding:0!important}
     html.tab-app #stage,html.tab-app .tabs,html.tab-app .segbar{display:none!important}
     html.tab-app #appendix{display:block!important}
-    #appendix .apage{page:app;width:11in;max-width:none;height:8.5in;margin:0;break-after:page}
+    #appendix .apage{page:app;width:1508px;max-width:none;height:847px;margin:0;break-after:page}
     #appendix .apage:last-child{break-after:auto}
     #appendix figcaption{display:none}
-    #appendix .sheet{width:11in;height:8.5in;aspect-ratio:auto;border-radius:0;box-shadow:none}
-    #appendix .apage svg{width:11in;height:8.5in;border-radius:0}
+    #appendix .sheet{width:1508px;height:847px;aspect-ratio:auto;border-radius:0;box-shadow:none}
+    #appendix .apage svg{width:1508px;height:847px;border-radius:0}
   }
 </style>
 </head>
@@ -549,7 +549,9 @@ function buildCompareSVG(rows,o){
 }
 
 /* ======================= APPENDIX (one page per brand-receptivity band) ======================= */
-const AP_W=1100, AP_H=850, AP_FONT="Arial, Helvetica, sans-serif";
+const AP_W=1508, AP_H=847, AP_FONT="Arial, Helvetica, sans-serif";
+const AP_G={titleX:104,titleY:132,titleFs:61,titleMaxW:1070, cTip:[1206,118],cX1:1238,cX2:1458,cY1:72,cY2:164, cTextX:1254,cFs:14,cStep:19,cFirst:97,
+  tX:104,tW:1354,top:192,hdr:40,bottom:806,headFs:11.5,minRow:25,fsList:[12.5,12,11.5,11,10.5,10,9.5,9],pageX:45,pageY:796};
 const AP_BANDS=[
   {b:5,title:"EXTREMELY BRAND RECEPTIVE",name:"Extremely Brand Receptive",range:"Index 150+",   fill:"#1B284C",cell:"#213055",edge:"#1B284C",light:false},
   {b:4,title:"BRAND RECEPTIVE",          name:"Brand Receptive",          range:"Index 120-149",fill:"#254885",cell:"#2E4D89",edge:"#254885",light:false},
@@ -582,52 +584,51 @@ function apCell(r,key){
 function apColumns(items){ return AP_COLS.filter(c=>c.key==="name"||c.key==="idx"||items.some(r=>apCell(r,c.key)!==""));}
 const AP_NUM=["cc","cp","mc","mp","idx","age"];
 function apSizeCols(cols,list,fs){
-  const gap=1.5, usable=992-gap*(cols.length-1);
-  const hmin=c=>Math.max(...c.head.split(" ").map(w=>apMeasure(w,10,true)))+7;
-  const nat=c=>Math.max(...list.map(r=>apMeasure(apCell(r,c.key),fs,false)))+8;
+  const gap=2, usable=AP_G.tW-gap*(cols.length-1);
+  const hmin=c=>Math.max(...c.head.split(" ").map(w=>apMeasure(w,AP_G.headFs,true)))+8;
+  const nat=c=>Math.max(...list.map(r=>apMeasure(apCell(r,c.key),fs,false)))+20;
   let wNum=0, refText=0;
-  const ws=cols.map(c=>{ if(AP_NUM.includes(c.key)){ const w=Math.max(hmin(c),list.length?nat(c):0,28); wNum+=w; return w; } refText+=c.w; return null; });
-  const left=Math.max(usable-wNum,refText*0.6); let x=76;
+  const ws=cols.map(c=>{ if(AP_NUM.includes(c.key)){ const w=Math.max(hmin(c)+6,list.length?nat(c):0,40); wNum+=w; return w; } refText+=c.w; return null; });
+  const left=Math.max(usable-wNum,refText*0.6); let x=AP_G.tX;
   return cols.map((c,i)=>{ const w=ws[i]!=null?ws[i]:c.w/refText*left, o=Object.assign({},c,{x,w}); x+=w+gap; return o; });
 }
 const apPad=c=>c.left?8:6;
 // choose the biggest font that lets the whole band fit on one page (rows only get taller when a cell wraps); otherwise split it over several pages
 function apFit(cols0,list){
-  const TOP=296, BOTTOM=748, avail=BOTTOM-TOP;
-  const probe=fs=>{ const cols=apSizeCols(cols0,list,fs), lh=fs*1.2, hs=list.map(r=>{ let n=1; for(const c of cols){ const k=apWrap(apCell(r,c.key),c.w-apPad(c),fs,false).length; if(k>n) n=k; } return Math.max(21.5,n*lh+9); });
+  const avail=AP_G.bottom-(AP_G.top+AP_G.hdr);
+  const probe=fs=>{ const cols=apSizeCols(cols0,list,fs), lh=fs*1.2, hs=list.map(r=>{ let n=1; for(const c of cols){ const k=apWrap(apCell(r,c.key),c.w-apPad(c),fs,false).length; if(k>n) n=k; } return Math.max(AP_G.minRow,n*lh+10); });
     return {fs,lh,hs,cols,total:hs.reduce((a,b)=>a+b,0)}; };
-  for(const fs of [10.5,10,9.5,9,8.5]){ const t=probe(fs); if(t.total<=avail) return Object.assign(t,{chunks:[{rows:list,hs:t.hs}]}); }
-  const t=probe(9), np=Math.ceil(t.total/avail), target=t.total/np, chunks=[]; let cur={rows:[],hs:[]}, acc=0;
+  for(const fs of AP_G.fsList){ const t=probe(fs); if(t.total<=avail) return Object.assign(t,{chunks:[{rows:list,hs:t.hs}]}); }
+  const t=probe(10), np=Math.ceil(t.total/avail), target=t.total/np, chunks=[]; let cur={rows:[],hs:[]}, acc=0;
   list.forEach((r,i)=>{ const h=t.hs[i];
     if(cur.rows.length&&(acc+h>avail||(acc>=target&&chunks.length<np-1))){ chunks.push(cur); cur={rows:[],hs:[]}; acc=0; }
     cur.rows.push(r); cur.hs.push(h); acc+=h; });
   chunks.push(cur); return Object.assign(t,{chunks});
 }
 function apPageSVG(B,st,cols,rows,lay,pi,np,opts,pageNo){
-  cols=lay.cols||cols;
-  const TXT=B.light?"#231F20":"#FFFFFF", HDR=31, TOP=263, R0=296;
+  cols=lay.cols||cols; const G=AP_G, TXT=B.light?"#231F20":"#FFFFFF", HDR=G.hdr, TOP=G.top, R0=G.top+G.hdr;
   let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${AP_W} ${AP_H}" preserveAspectRatio="xMidYMid meet" font-family="${AP_FONT}"><rect width="${AP_W}" height="${AP_H}" fill="#fff"/>`;
-  let tf=44; const tw=apMeasure(B.title,tf,true); if(tw>790) tf=44*790/tw;
-  s+=`<text x="78" y="205" font-size="${tf.toFixed(1)}" font-weight="700" fill="#23396F">${esc(B.title)}</text>`;
-  if(np>1&&pi>0) s+=`<text x="80" y="242" font-size="14" font-style="italic" fill="#667085">(continued)</text>`;
-  // callout
-  s+=`<polygon points="886,210 916,169 1068,169 1068,253 916,253" fill="${B.fill}"/>`;
+  let tf=G.titleFs; const tw=apMeasure(B.title,tf,true); if(tw>G.titleMaxW) tf=tf*G.titleMaxW/tw;
+  s+=`<text x="${G.titleX}" y="${G.titleY}" font-size="${tf.toFixed(1)}" font-weight="700" fill="#23396F">${esc(B.title)}</text>`;
+  if(np>1&&pi>0) s+=`<text x="${G.titleX+2}" y="${TOP-14}" font-size="16" font-style="italic" fill="#667085">(continued)</text>`;
+  // callout (arrow pointing at the title)
+  s+=`<polygon points="${G.cTip[0]},${G.cTip[1]} ${G.cX1},${G.cY1} ${G.cX2},${G.cY1} ${G.cX2},${G.cY2} ${G.cX1},${G.cY2}" fill="${B.fill}"/>`;
   const L=[[B.name,1],[B.range,0],["% Customer Base: "+(st.c!=null?st.c:"\u2013"),1],["% Market Trade Area: "+(st.m!=null?st.m:"\u2013"),0]];
-  L.forEach(([t,b],i)=>{ s+=`<text x="921" y="${(193+i*13.7).toFixed(1)}" font-size="10.5" font-weight="${b?700:400}" fill="${TXT}">${esc(t)}</text>`; });
+  L.forEach(([t,b],i)=>{ s+=`<text x="${G.cTextX}" y="${G.cFirst+i*G.cStep}" font-size="${G.cFs}" font-weight="${b?700:400}" fill="${TXT}">${esc(t)}</text>`; });
   // header cells
   cols.forEach(c=>{ s+=`<rect x="${c.x.toFixed(1)}" y="${TOP+1}" width="${c.w.toFixed(1)}" height="${HDR}" fill="#fff" stroke="#231F20" stroke-width="1"/>`;
-    const ls=apWrap(c.head,c.w-6,10,true), y0=TOP+1+HDR/2-(ls.length-1)*6;
-    ls.forEach((t,i)=>{ s+=`<text x="${(c.x+c.w/2).toFixed(1)}" y="${(y0+i*12+3.6).toFixed(1)}" font-size="10" font-weight="700" text-anchor="middle" fill="#000">${esc(t)}</text>`; }); });
+    const ls=apWrap(c.head,c.w-6,G.headFs,true), step=G.headFs*1.2, y0=TOP+1+HDR/2-(ls.length-1)*step/2;
+    ls.forEach((t,i)=>{ s+=`<text x="${(c.x+c.w/2).toFixed(1)}" y="${(y0+i*step+G.headFs*0.36).toFixed(1)}" font-size="${G.headFs}" font-weight="700" text-anchor="middle" fill="#000">${esc(t)}</text>`; }); });
   // body (rows are as tall as their tallest cell)
   const rowsA=rows.rows, hs=rows.hs; let y=R0;
-  if(!rowsA.length) s+=`<text x="${AP_W/2}" y="${R0+40}" font-size="14" text-anchor="middle" fill="#667085">No segments fall in this band.</text>`;
+  if(!rowsA.length) s+=`<text x="${AP_W/2}" y="${R0+44}" font-size="16" text-anchor="middle" fill="#667085">No segments fall in this band.</text>`;
   rowsA.forEach((r,i)=>{ const rh=hs[i];
-    cols.forEach(c=>{ s+=`<rect x="${c.x.toFixed(1)}" y="${(y+.5).toFixed(1)}" width="${c.w.toFixed(1)}" height="${(rh-1.5).toFixed(1)}" fill="${B.cell}" stroke="${B.edge}" stroke-width="1"/>`;
+    cols.forEach(c=>{ s+=`<rect x="${c.x.toFixed(1)}" y="${(y+.5).toFixed(1)}" width="${c.w.toFixed(1)}" height="${(rh-2).toFixed(1)}" fill="${B.cell}" stroke="${B.edge}" stroke-width="1"/>`;
       const ls=apWrap(apCell(r,c.key),c.w-apPad(c),lay.fs,false), y0=y+rh/2-(ls.length*lay.lh)/2+lay.lh*0.78;
-      ls.forEach((t,k)=>{ s+=`<text x="${(c.left?c.x+5:c.x+c.w/2).toFixed(1)}" y="${(y0+k*lay.lh).toFixed(1)}" font-size="${lay.fs}" text-anchor="${c.left?"start":"middle"}" fill="${TXT}">${esc(t)}</text>`; }); });
+      ls.forEach((t,k)=>{ s+=`<text x="${(c.left?c.x+6:c.x+c.w/2).toFixed(1)}" y="${(y0+k*lay.lh).toFixed(1)}" font-size="${lay.fs}" text-anchor="${c.left?"start":"middle"}" fill="${TXT}">${esc(t)}</text>`; }); });
     y+=rh; });
-  s+=`<rect x="75.5" y="${TOP}" width="993" height="${(HDR+2+(rowsA.length?y-R0:40)).toFixed(1)}" fill="none" stroke="#231F20" stroke-width="2.5"/>`;
-  if(pageNo!=null) s+=`<text x="40" y="712" font-size="13" fill="#231F20">${pageNo}</text>`;
+  s+=`<rect x="${G.tX-0.5}" y="${TOP}" width="${G.tW+1}" height="${(HDR+2+(rowsA.length?y-R0:48)).toFixed(1)}" fill="none" stroke="#231F20" stroke-width="2.5"/>`;
+  if(pageNo!=null) s+=`<text x="${G.pageX}" y="${G.pageY}" font-size="16" fill="#231F20">${pageNo}</text>`;
   return s+"</svg>";
 }
 // rows: parsed distribution rows (same shape the chart uses). Returns one entry per page, band order top -> bottom.
