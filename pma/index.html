@@ -46,7 +46,7 @@
   .chip.ok{background:var(--okbg);color:var(--ok)} .chip.warn{background:var(--warnbg);color:var(--warn)}
   .chip.tog{border:1px solid var(--line);background:#fff;color:var(--mut);cursor:pointer;font-family:inherit;transition:.15s}
   .chip.tog.on{background:#eaf0fa;color:var(--navy);border-color:#c9d6ea}
-  .chip .dot,#picker .dot{width:9px;height:9px;border-radius:50%;margin-right:6px;display:inline-block;flex:none}
+  .chip .dot,.seglist .dot,.schip .dot{width:9px;height:9px;border-radius:50%;margin-right:6px;display:inline-block;flex:none}
   .opt{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mut);cursor:pointer;margin-left:auto}
   .opt input{accent-color:var(--navy);width:15px;height:15px}
   .subbar{background:#fff;border-bottom:1px solid var(--line)}
@@ -65,6 +65,25 @@
   .drop .ic{width:60px;height:60px;border-radius:16px;background:#eaf0fa;display:grid;place-items:center;margin-bottom:6px}
   .drop h2{margin:0;font-size:20px;color:var(--navy)} .drop p{margin:0;font-size:14px;color:var(--mut);max-width:420px;line-height:1.5} .drop u{color:var(--accent)}
   #stage .hdrhit{fill:transparent;cursor:text} #stage .hdrhit:hover{fill:rgba(255,255,255,.18)}
+  .mainCol{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column}
+  body:not(.standalone) .segbar{display:none}
+  .segbar{display:flex;align-items:flex-start;gap:14px;width:100%;max-width:min(1400px,calc((100vh - 250px) * 1.7778));margin:16px auto 0;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px rgba(16,24,40,.05);position:relative}
+  .seglabel{font-size:12px;font-weight:700;color:var(--navy);white-space:nowrap;padding-top:6px}
+  .segchips{flex:1;display:flex;flex-wrap:wrap;gap:8px;min-width:0;padding-top:1px}
+  .segchips .mut{font-size:12.5px;padding-top:5px}
+  .schip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 4px 0 10px;border-radius:999px;background:#eef3fb;border:1px solid #d5e0f2;font-size:12px;color:var(--navy);max-width:240px}
+  .schip .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mut)}
+  .schip .sx{flex:none;width:22px;height:22px;border-radius:50%;border:0;background:transparent;cursor:pointer;color:var(--mut);font-size:16px;line-height:1;padding:0} .schip .sx:hover{background:#fff;color:var(--bad)}
+  .segpick{position:relative;flex:none}
+  .segmenu{position:absolute;right:0;bottom:calc(100% + 12px);width:460px;max-width:92vw;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 40px rgba(16,24,40,.20);z-index:40;display:flex;flex-direction:column}
+  .segtools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px;border-bottom:1px solid var(--line)}
+  .segtools input,.segtools .seg{flex:1 1 100%;width:100%} .segempty{padding:16px 8px;color:var(--mut);font-size:12.5px;line-height:1.45} .segtools .btn{height:30px;font-size:12px;padding:0 10px}
+  .seglist{max-height:320px;overflow:auto;padding:8px 10px}
+  .seglist label{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:4px 6px;border-radius:6px;cursor:pointer}
+  .seglist label:hover{background:#eef3fb} .seglist label.dis{opacity:.45;cursor:not-allowed} .seglist label[hidden]{display:none}
+  .seglist input{accent-color:var(--navy)}
+  .seglist .m{margin-left:auto;color:var(--mut);white-space:nowrap;padding-left:8px;font-size:12px}
+  .segfoot{padding:10px 14px;border-top:1px solid var(--line);font-size:12px;color:var(--mut)}
   /* options side panel */
   #opts{width:400px;flex:none;position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:auto;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(16,24,40,.10)}
   .ohead{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);font-weight:700;color:var(--navy);position:sticky;top:0;background:#fff;z-index:2;border-radius:16px 16px 0 0}
@@ -82,23 +101,16 @@
   .compare{display:flex;flex-direction:column;gap:18px;padding-top:2px}
   .hint{font-size:12px;color:var(--mut);line-height:1.4}
   #opts textarea{width:100%;height:84px;padding:8px;border:1px solid var(--line);border-radius:9px;font:12px/1.4 Consolas,Menlo,monospace;resize:vertical}
-  #picker{border:1px solid var(--line);border-radius:12px;padding:10px 12px;max-height:260px;overflow:auto;background:#fff}
-  #picker .ptools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px;position:sticky;top:-10px;background:#fff;padding:6px 0;z-index:1}
-  #picker .ptools .btn{height:30px;font-size:12px;padding:0 10px}
-  #picker .ptools input{width:100%}
-  #picker .grid{display:grid;grid-template-columns:1fr;gap:2px}
-  #picker label{display:flex;align-items:center;gap:6px;font-size:12.5px;padding:3px 5px;border-radius:6px;cursor:pointer}
-  #picker label.off{opacity:.38;cursor:not-allowed} #picker label:hover{background:#eef3fb} #picker label[hidden]{display:none}
-  #picker .m{color:var(--mut);margin-left:auto;white-space:nowrap;padding-left:8px;font-size:12px}
   @media (max-width:1180px){
     body.standalone .work{flex-direction:column;align-items:stretch}
     #opts{width:100%;position:static;max-height:none;order:-1}
   }
-  @media (max-width:760px){ .top{flex-wrap:wrap} .controls,.top,.morelink,.meta{padding-left:14px;padding-right:14px} body.standalone .work{padding:14px} .opt{margin-left:0} }
+  @media (max-width:760px){ .segbar{flex-wrap:wrap} .segpick{width:100%} .segpick .btn{width:100%;justify-content:center} .top{flex-wrap:wrap} .controls,.top,.morelink,.meta{padding-left:14px;padding-right:14px} body.standalone .work{padding:14px} .opt{margin-left:0} }
   @media print{
     @page{size:1508px 847px;margin:0}
     html,body{width:1508px;height:847px;overflow:hidden;background:#fff}
-    .chrome,#msg,#opts{display:none!important}
+    .chrome,#msg,#opts,.segbar{display:none!important}
+    .mainCol{display:block}
     #app,.work,#stage,body.standalone #stage,body.standalone .work,body.standalone #app{height:847px;min-height:0;padding:0;background:#fff;display:block;overflow:hidden}
     .card{width:1508px;max-width:none;min-width:0;height:847px;border-radius:0;box-shadow:none}
     .card svg{width:1508px;height:847px;border-radius:0}
@@ -138,7 +150,21 @@
   </div>
   <div id="msg"></div>
   <div class="work">
-    <main id="stage"></main>
+    <div class="mainCol">
+      <main id="stage"></main>
+      <div class="segbar" id="segbar" hidden>
+        <div class="seglabel">Segments on chart <span class="mut" id="segCount"></span></div>
+        <div class="segchips" id="segchips"></div>
+        <div class="segpick">
+          <button class="btn" id="segBtn" type="button" aria-expanded="false" aria-haspopup="true">Edit segments <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M1 3l4 4 4-4z"/></svg></button>
+          <div class="segmenu" id="segmenu" hidden>
+            <div class="segtools"><div class="seg full" id="segscope"><button class="btn on" data-scope="shown" type="button">On this chart <span id="scopeN"></span></button><button class="btn" data-scope="all" type="button">All segments <span id="scopeAll"></span></button></div><input id="segsearch" class="txt" type="text" placeholder="Search by code or name&hellip;"><button class="btn" id="segReset" type="button">Reset to filters</button><button class="btn" id="segClear" type="button">Clear all</button></div>
+            <div class="seglist" id="seglist"></div>
+            <div class="segfoot">Tick a code to show it, untick to remove it (up to 10 fit in the table). &ldquo;On this chart&rdquo; lists only what your filters picked; &ldquo;All segments&rdquo; lets you pick any code.</div>
+          </div>
+        </div>
+      </div>
+    </div>
     <aside id="opts" hidden aria-label="More options">
       <div class="ohead"><span>More options</span><button class="iconbtn" id="optsClose" type="button" aria-label="Close options">&times;</button></div>
       <div class="obody">
@@ -166,7 +192,7 @@
             <div class="seg full" id="viewSeg"><button class="btn on" data-view="move" type="button">Increase / decrease</button><button class="btn" data-view="life" type="button">Lifestage</button></div>
           </div>
           <div class="osec">
-            <label class="field"><span class="lbl">Show</span><select id="preset"><option value="changed">Segments that changed band</option><option value="movers">Biggest movers (up or down)</option><option value="up">Biggest increases</option><option value="down">Biggest decreases</option><option value="custom">Choose segments&hellip;</option></select></label>
+            <label class="field"><span class="lbl">Show</span><select id="preset"><option value="changed">Segments that changed band</option><option value="movers">Biggest movers (up or down)</option><option value="up">Biggest increases</option><option value="down">Biggest decreases</option></select></label>
             <label class="field" title="Index 120 is where Brand Receptive begins. Use this to look only at segments that cross it."><span class="lbl">Crossing 120</span><select id="crossSel"><option value="off">Off (any movement)</option><option value="any">Into or out of 120+</option><option value="in">Moved into 120+</option><option value="out">Moved out of 120+</option></select></label>
             <label class="field"><span class="lbl">Max segments shown <span class="mut">(1&ndash;10)</span></span><input type="number" id="maxn" class="txt" style="width:90px" min="1" max="10" value="8"></label>
           </div>
@@ -177,7 +203,6 @@
               <button class="chip tog on" data-life="Y" type="button"><span class="dot" style="background:#00AEEF"></span>Youth</button><button class="chip tog on" data-life="C" type="button"><span class="dot" style="background:#39B54A"></span>Career Building</button><button class="chip tog on" data-life="E" type="button"><span class="dot" style="background:#662D91"></span>Earning Years</button><button class="chip tog on" data-life="R" type="button"><span class="dot" style="background:#EC008C"></span>Retirement</button>
             </span>
           </div>
-          <div id="picker" hidden></div>
           <div class="osec">
             <div class="lbl">Table headers</div>
             <div class="hint">Click any header on the chart to rename it. The labels above fill in &ldquo;2024 BPI&rdquo; automatically.</div>
@@ -367,7 +392,6 @@ function selectRows(all,o){
   if(o.preset==="changed") r=r.filter(x=>x.pBand!==x.cBand);
   else if(o.preset==="up") r=r.filter(x=>x.delta>0);
   else if(o.preset==="down") r=r.filter(x=>x.delta<0);
-  else if(o.preset==="custom") r=r.filter(x=>o.custom.has(x.seg));
   r.sort(o.preset==="up"?(a,b)=>b.delta-a.delta:o.preset==="down"?(a,b)=>a.delta-b.delta:(a,b)=>(Math.abs(b.delta)-Math.abs(a.delta))||(a.seg-b.seg));
   const total=r.length; return {rows:r.slice(0,o.max).sort((a,b)=>a.seg-b.seg),total};
 }
@@ -609,9 +633,9 @@ function runStandalone(){
   const fileEl=$("file"), status=$("status"), goBtn=$("go"), sel=$("sheet"), wrap=$("sheetwrap"), force=$("force100"), paste=$("paste"), fname_=$("fname");
   const exp=["dlpng","dlsvg","dlpdf"].map($), chipC=$("chipC"), chipM=$("chipM"), adjEl=$("adj");
   const subEl=$("subtitle"), cmpBtn=$("cmpToggle"), panel=$("cmpPanel"), pfile=$("pfile"), pname=$("pname"), psel=$("psheet"), pwrap=$("psheetwrap"),
-        plabel=$("plabel"), clabel=$("clabel"), presetEl=$("preset"), maxEl=$("maxn"), picker=$("picker"), dirChips=$("dirChips"), lifeChips=$("lifeChips");
+        plabel=$("plabel"), clabel=$("clabel"), presetEl=$("preset"), maxEl=$("maxn"), dirChips=$("dirChips"), lifeChips=$("lifeChips");
   const DEFAULT_FILE="Choose distribution file (.xlsx / .csv)", DEFAULT_PREV="Choose previous year's file";
-  const S={cross:"off",compare:false,view:"move",preset:"changed",max:8,dirs:{up:true,down:true},lifes:new Set(LIFE_ORDER),custom:new Set(),prev:null,dirty:{p:false,c:false},all:[],shown:[],pickKey:"",hdr:{move:[null,null,null,null],life:[null,null,null,null]},heads:[],defaults:[]};
+  const S={cross:"off",compare:false,view:"move",preset:"changed",max:8,dirs:{up:true,down:true},lifes:new Set(LIFE_ORDER),excl:new Set(),incl:new Set(),autoSet:new Set(),segScope:"shown",prev:null,dirty:{p:false,c:false},all:[],shown:[],hdr:{move:[null,null,null,null],life:[null,null,null,null]},heads:[],defaults:[]};
   const fail=e=>{ msg.style.display="block"; msg.textContent=e.message; status.textContent=""; };
   const emptyHTML=()=>{ const f=fileEl.files[0];
     return '<label for="file" class="drop"><div class="ic"><svg width="30" height="30" viewBox="0 0 16 16" fill="none" stroke="#002855" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V2M4.5 5.5L8 2l3.5 3.5M2 10v3.5h12V10"/></svg></div>'
@@ -629,34 +653,66 @@ function runStandalone(){
   const drawStandard=i=>{ const t=window.__tables[i]; window.__tag=t.name; status.textContent=describe(t,window.__tables.length); msg.style.display="none"; show(t.rows); };
 
   /* ----- compare chart ----- */
-  const buildPicker=()=>{
-    const key=S.all.length+":"+S.all.reduce((a,x)=>a+x.delta*x.seg+x.cR,0)+":"+S.cross; if(key===S.pickKey) return; S.pickKey=key;
-    const rows=S.all.slice().sort((a,b)=>a.seg-b.seg);
-    picker.innerHTML='<div class="ptools"><input id="psearch" class="txt" style="width:220px" placeholder="Search segments\u2026"><button class="btn" id="pshown" type="button">Select the ones shown</button><button class="btn" id="pclear" type="button">Clear</button><span style="color:var(--mut);font-size:12px">'+rows.length+' segments are in both files</span></div><div class="grid">'
-      +rows.map(r=>'<label class="'+((S.cross==="off"||crosses(r,S.cross))?"":"off")+'" data-t="'+esc((r.seg+" "+r.name).toLowerCase())+'"><input type="checkbox" value="'+r.seg+'"'+(S.custom.has(r.seg)?" checked":"")+((S.cross==="off"||crosses(r,S.cross))?"":" disabled")+'><span class="dot" style="background:'+COLORS[r.life]+'"></span><span>'+String(r.seg).padStart(2,"0")+" "+esc(r.name)+'</span><span class="m">'+r.pR+" \u2192 "+r.cR+" ("+fmtPct(r.pct)+')</span></label>').join("")+'</div>';
+  /* ----- "Segments on chart" bar: chips + dropdown to remove or add codes on top of the automatic selection ----- */
+  const segbar=$("segbar"), chipsEl=$("segchips"), segBtn=$("segBtn"), segMenu=$("segmenu"), segList=$("seglist"), segSearch=$("segsearch");
+  const pad2=n=>String(n).padStart(2,"0");
+  const setSeg=(seg,on)=>{ if(on){ S.excl.delete(seg); if(!S.autoSet.has(seg)) S.incl.add(seg); } else { S.incl.delete(seg); if(S.autoSet.has(seg)) S.excl.add(seg); } };
+  let listKey="";
+  const applySearch=()=>{ const q=segSearch.value.trim().toLowerCase(); qa("#seglist label").forEach(l=>l.hidden=!!q&&!l.dataset.t.includes(q)); };
+  const renderSegBar=()=>{
+    segbar.hidden=false; const by=new Map(S.all.map(r=>[r.seg,r])), full=S.shown.length>=10;
+    $("segCount").textContent="("+S.shown.length+")";
+    chipsEl.innerHTML=S.shown.length?S.shown.map(sg=>{ const r=by.get(sg); return '<span class="schip" title="'+esc(pad2(sg)+" "+r.name+": "+r.pR+" \u2192 "+r.cR)+'"><i class="dot" style="background:'+COLORS[r.life]+'"></i><b>'+pad2(sg)+'</b><span class="nm">'+esc(r.name)+'</span><button class="sx" type="button" data-seg="'+sg+'" aria-label="Remove segment '+sg+' from the chart">&times;</button></span>'; }).join(""):'<span class="mut">No segments on the chart \u2013 use Edit segments to add some.</span>';
+    const onChart=S.all.filter(r=>S.autoSet.has(r.seg)||S.incl.has(r.seg));
+    const cands=(S.segScope==="all"?S.all:onChart).slice().sort((a,b)=>a.seg-b.seg);
+    $("scopeN").textContent="("+onChart.length+")"; $("scopeAll").textContent="("+S.all.length+")";
+    qa("#segscope button").forEach(x=>x.classList.toggle("on",x.dataset.scope===S.segScope));
+    const key=S.segScope+":"+cands.map(r=>r.seg+","+r.pR+","+r.cR).join("|");
+    if(key!==listKey){ listKey=key;
+      segList.innerHTML=cands.length?cands.map(r=>'<label data-t="'+esc((r.seg+" "+r.name).toLowerCase())+'"><input type="checkbox" value="'+r.seg+'"><i class="dot" style="background:'+COLORS[r.life]+'"></i><span>'+pad2(r.seg)+" "+esc(r.name)+'</span><span class="m">'+r.pR+" \u2192 "+r.cR+" ("+fmtPct(r.pct)+')</span></label>').join(""):'<div class="segempty">Nothing matches the current filters, so there is nothing to trim. Switch to <b>All segments</b> to pick codes yourself.</div>';
+      applySearch(); }
+    qa("#seglist label").forEach(l=>{ const cb=l.firstChild, on=S.shown.includes(+cb.value); cb.checked=on; cb.disabled=!on&&full; l.classList.toggle("dis",!on&&full); l.title=(!on&&full)?"Up to 10 segments fit in the table \u2013 remove one first.":""; });
   };
-  const syncChecks=()=>qa('#picker input[type=checkbox]').forEach(cb=>cb.checked=S.custom.has(+cb.value));
+  const setMenu=o=>{ segMenu.hidden=!o; segBtn.setAttribute("aria-expanded",o); if(o){ segSearch.focus(); } };
+  segBtn.onclick=e=>{ e.stopPropagation(); setMenu(segMenu.hidden); };
+  document.addEventListener("click",e=>{ if(!segMenu.hidden&&!e.target.closest(".segpick")) setMenu(false); });
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&!segMenu.hidden) setMenu(false); });
+  chipsEl.addEventListener("click",e=>{ const b=e.target.closest(".sx"); if(b){ setSeg(+b.dataset.seg,false); refresh(); } });
+  segList.addEventListener("change",e=>{ if(e.target.type==="checkbox"){ setSeg(+e.target.value,e.target.checked); refresh(); } });
+  segSearch.addEventListener("input",applySearch);
+  qa("#segscope button").forEach(b=>b.onclick=()=>{ S.segScope=b.dataset.scope; renderSegBar(); });
+  $("segReset").onclick=()=>{ S.excl.clear(); S.incl.clear(); refresh(); };
+  $("segClear").onclick=()=>{ S.shown.slice().forEach(sg=>setSeg(sg,false)); refresh(); };
+
   const drawCompare=t=>{
     const pt=S.prev.tables[+psel.value]||S.prev.tables[0];
     const cmp=compareData(t.rows,pt.rows);
     if(!cmp.rows.length){ fail(new Error("None of the segment numbers match between the two files.")); return; }
-    S.all=cmp.rows; buildPicker();
-    const selr=selectRows(S.all,{view:S.view,preset:S.preset,max:S.max,dirs:S.dirs,lifes:S.lifes,custom:S.custom,cross:S.cross});
-    S.shown=selr.rows.map(r=>r.seg);
-    const r=buildCompareSVG(selr.rows,{view:S.view,prevLabel:plabel.value.trim()||"Previous",curLabel:clabel.value.trim()||"Current",subtitle:window.__subtitle||CONFIG.SUBTITLE,lifes:S.lifes,hdr:S.hdr[S.view],rollup:S.view==="life"?lifeRollup(S.cross!=="off"?S.all.filter(x=>crosses(x,S.cross)):S.all,S.lifes,S.cross!=="off"):null});
+    S.all=cmp.rows;
+    const selr=selectRows(S.all,{view:S.view,preset:S.preset,max:S.max,dirs:S.dirs,lifes:S.lifes,cross:S.cross});
+    S.autoSet=new Set(selr.rows.map(r=>r.seg));
+    let rowsOut=selr.rows.filter(r=>!S.excl.has(r.seg)).concat(S.all.filter(r=>S.incl.has(r.seg)&&!S.autoSet.has(r.seg)));
+    let capped=0; if(rowsOut.length>10){ capped=rowsOut.length-10; rowsOut=rowsOut.slice().sort((a,b)=>(Math.abs(b.delta)-Math.abs(a.delta))||(a.seg-b.seg)).slice(0,10); }
+    rowsOut.sort((a,b)=>a.seg-b.seg); S.shown=rowsOut.map(r=>r.seg);
+    const r=buildCompareSVG(rowsOut,{view:S.view,prevLabel:plabel.value.trim()||"Previous",curLabel:clabel.value.trim()||"Current",subtitle:window.__subtitle||CONFIG.SUBTITLE,lifes:S.lifes,hdr:S.hdr[S.view],rollup:S.view==="life"?lifeRollup(S.cross!=="off"?S.all.filter(x=>crosses(x,S.cross)):S.all,S.lifes,S.cross!=="off"):null});
     S.heads=r.heads; S.defaults=r.defaults; present(r.svg); msg.style.display="none"; chipC.hidden=chipM.hidden=true;
-    window.__tag=t.name+"_compare_"+(S.view==="life"?"lifestage":"movement"); window.__result={count:selr.rows.length,haveShare:true,compare:true,shown:S.shown};
+    window.__tag=t.name+"_compare_"+(S.view==="life"?"lifestage":"movement"); window.__result={count:rowsOut.length,haveShare:true,compare:true,shown:S.shown};
     exp.forEach(b=>b.disabled=false);
     const notes=[];
     if(cmp.unmatched) notes.push(cmp.unmatched+" segment(s) in the current file weren't in the previous file.");
     if(selr.total>selr.rows.length) notes.push("Showing "+selr.rows.length+" of "+selr.total+" matching segments \u2013 raise Max (up to 10) or narrow the filters.");
-    if(!selr.rows.length) notes.push("No segments match the current selection \u2013 try another \u201cShow\u201d option.");
+    const nRem=[...S.excl].filter(x=>S.autoSet.has(x)).length, nAdd=[...S.incl].filter(x=>!S.autoSet.has(x)&&S.all.some(r=>r.seg===x)).length;
+    if(nRem||nAdd) notes.push("Edited by hand: "+nRem+" removed, "+nAdd+" added.");
+    if(capped) notes.push(capped+" segment(s) left off \u2013 the table fits 10.");
+    if(!selr.rows.length&&!rowsOut.length) notes.push("No segments match the current selection \u2013 try another \u201cShow\u201d option or add some with Edit segments.");
     adjEl.textContent=notes.join("  ");
     const nIn=S.all.filter(x=>crosses(x,"in")).length, nOut=S.all.filter(x=>crosses(x,"out")).length;
     status.textContent='Comparing "'+t.name+'" with "'+pt.name+'" \u2013 '+cmp.rows.length+' segments matched.'+(S.cross!=="off"?'  Crossing 120: '+(nIn+nOut)+' segments ('+nIn+' moved in, '+nOut+' moved out).':"");
+    renderSegBar();
   };
   const refresh=()=>{
     if(!window.__tables) return; const i=+sel.value, t=window.__tables[i];
+    segbar.hidden=true;
     if(S.compare&&S.prev) drawCompare(t); else { drawStandard(i); if(S.compare) status.textContent+="  Compare is on \u2013 choose the previous year's file."; }
   };
 
@@ -670,6 +726,7 @@ function runStandalone(){
       sel.innerHTML=window.__tables.map((t,i)=>'<option value="'+i+'">'+esc(t.name)+'</option>').join("");
       wrap.hidden=window.__tables.length<2;
       const keep=window.__tables.findIndex(t=>t.name===prev); sel.value=String(keep>=0?keep:0);
+      S.excl.clear(); S.incl.clear();
       if(!S.dirty.c) clabel.value=yr(f&&f.name)||yr(window.__tables[+sel.value].name)||"";
       refresh();
     }catch(e){ fail(e); }
@@ -687,7 +744,7 @@ function runStandalone(){
   pfile.onchange=async()=>{
     const f=pfile.files[0]; if(!f) return;
     try{
-      const tables=await loadTables(f,""); S.prev={tables,name:f.name};
+      const tables=await loadTables(f,""); S.prev={tables,name:f.name}; S.excl.clear(); S.incl.clear();
       psel.innerHTML=tables.map((t,i)=>'<option value="'+i+'">'+esc(t.name)+'</option>').join(""); pwrap.hidden=tables.length<2;
       const cur=window.__tables&&window.__tables[+sel.value]; const m=cur?tables.findIndex(t=>t.name===cur.name):-1; psel.value=String(m>=0?m:0);
       pname.textContent=f.name; msg.style.display="none";
@@ -698,14 +755,11 @@ function runStandalone(){
   psel.onchange=()=>{ if(!S.dirty.p&&S.prev) plabel.value=yr(S.prev.name)||yr(S.prev.tables[+psel.value].name)||""; refresh(); };
   plabel.oninput=()=>{ S.dirty.p=true; refresh(); }; clabel.oninput=()=>{ S.dirty.c=true; refresh(); };
   qa("#viewSeg button").forEach(b=>b.onclick=()=>{ S.view=b.dataset.view; qa("#viewSeg button").forEach(x=>x.classList.toggle("on",x===b)); dirChips.hidden=S.view!=="move"; lifeChips.hidden=S.view!=="life"; refresh(); });
-  presetEl.onchange=()=>{ S.preset=presetEl.value; picker.hidden=S.preset!=="custom"; if(S.preset==="custom"&&!S.custom.size) S.custom=new Set(S.shown); refresh(); syncChecks(); };
+  presetEl.onchange=()=>{ S.preset=presetEl.value; refresh(); };
   $("crossSel").onchange=()=>{ S.cross=$("crossSel").value; refresh(); };
   maxEl.oninput=()=>{ S.max=Math.max(1,Math.min(10,parseInt(maxEl.value,10)||8)); refresh(); };
   qa("#dirChips .tog").forEach(b=>b.onclick=()=>{ S.dirs[b.dataset.dir]=!S.dirs[b.dataset.dir]; b.classList.toggle("on",S.dirs[b.dataset.dir]); refresh(); });
   qa("#lifeChips .tog").forEach(b=>b.onclick=()=>{ const k=b.dataset.life; S.lifes.has(k)?S.lifes.delete(k):S.lifes.add(k); b.classList.toggle("on",S.lifes.has(k)); refresh(); });
-  picker.addEventListener("change",e=>{ if(e.target.type==="checkbox"){ const v=+e.target.value; e.target.checked?S.custom.add(v):S.custom.delete(v); refresh(); } });
-  picker.addEventListener("input",e=>{ if(e.target.id==="psearch"){ const q=e.target.value.trim().toLowerCase(); qa("#picker label").forEach(l=>l.hidden=!!q&&!l.dataset.t.includes(q)); } });
-  picker.addEventListener("click",e=>{ if(e.target.id==="pclear"){ S.custom.clear(); syncChecks(); refresh(); } if(e.target.id==="pshown"){ S.custom=new Set(S.shown); syncChecks(); refresh(); } });
 
   /* ----- click a table header on the chart to rename it ----- */
   stage.addEventListener("click",e=>{
@@ -725,8 +779,8 @@ function runStandalone(){
     fileEl.value=""; paste.value=""; pfile.value=""; window.__tables=null; window.__tag=null; window.__lastSVG=null; window.__result=null; window.__subtitle=""; subEl.value="";
     sel.innerHTML=""; wrap.hidden=true; psel.innerHTML=""; pwrap.hidden=true; status.textContent=""; adjEl.textContent=""; chipC.hidden=chipM.hidden=true; msg.style.display="none";
     fname_.textContent=DEFAULT_FILE; pname.textContent=DEFAULT_PREV; plabel.value=""; clabel.value="";
-    Object.assign(S,{cross:"off",hdr:{move:[null,null,null,null],life:[null,null,null,null]},compare:false,view:"move",preset:"changed",max:8,prev:null,all:[],shown:[],pickKey:"",custom:new Set(),dirty:{p:false,c:false},dirs:{up:true,down:true},lifes:new Set(LIFE_ORDER)});
-    cmpBtn.classList.remove("on"); cmpBtn.setAttribute("aria-pressed","false"); cmpBtn.setAttribute("aria-checked","false"); $("cmpBadge").hidden=true; panel.hidden=true; picker.hidden=true; picker.innerHTML="";
+    Object.assign(S,{segScope:"shown",cross:"off",hdr:{move:[null,null,null,null],life:[null,null,null,null]},compare:false,view:"move",preset:"changed",max:8,prev:null,all:[],shown:[],excl:new Set(),incl:new Set(),autoSet:new Set(),dirty:{p:false,c:false},dirs:{up:true,down:true},lifes:new Set(LIFE_ORDER)});
+    cmpBtn.classList.remove("on"); cmpBtn.setAttribute("aria-pressed","false"); cmpBtn.setAttribute("aria-checked","false"); $("cmpBadge").hidden=true; panel.hidden=true; segbar.hidden=true; segMenu.hidden=true; chipsEl.innerHTML="";
     qa("#viewSeg button").forEach(x=>x.classList.toggle("on",x.dataset.view==="move")); dirChips.hidden=false; lifeChips.hidden=true; presetEl.value="changed"; maxEl.value=8; $("crossSel").value="off";
     qa("#dirChips .tog,#lifeChips .tog").forEach(x=>x.classList.add("on"));
     exp.forEach(b=>b.disabled=true); ready(); stage.innerHTML=emptyHTML();
