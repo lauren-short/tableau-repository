@@ -122,7 +122,7 @@
   @media print{
     @page{size:1508px 847px;margin:0}
     html,body{width:1508px;height:847px;overflow:hidden;background:#fff}
-    .chrome,#msg,#opts,.segbar{display:none!important}
+    .chrome,#msg,#opts,.segbar,.tabs{display:none!important}
     .mainCol{display:block}
     #app,.work,#stage,body.standalone #stage,body.standalone .work,body.standalone #app{height:847px;min-height:0;padding:0;background:#fff;display:block;overflow:hidden}
     .card{width:1508px;max-width:none;min-width:0;height:847px;border-radius:0;box-shadow:none}
@@ -583,30 +583,48 @@ function apCell(r,key){
 }
 function apColumns(items){ return AP_COLS.filter(c=>c.key==="name"||c.key==="idx"||items.some(r=>apCell(r,c.key)!==""));}
 const AP_NUM=["cc","cp","mc","mp","idx","age"];
-function apSizeCols(cols,list,fs){
+function apSizeCols(cols,list,fs,hf){
   const gap=2, usable=AP_G.tW-gap*(cols.length-1);
-  const hmin=c=>Math.max(...c.head.split(" ").map(w=>apMeasure(w,AP_G.headFs,true)))+8;
-  const nat=c=>Math.max(...list.map(r=>apMeasure(apCell(r,c.key),fs,false)))+20;
-  let wNum=0, refText=0;
-  const ws=cols.map(c=>{ if(AP_NUM.includes(c.key)){ const w=Math.max(hmin(c)+6,list.length?nat(c):0,40); wNum+=w; return w; } refText+=c.w; return null; });
-  const left=Math.max(usable-wNum,refText*0.6); let x=AP_G.tX;
-  return cols.map((c,i)=>{ const w=ws[i]!=null?ws[i]:c.w/refText*left, o=Object.assign({},c,{x,w}); x+=w+gap; return o; });
+  const hmin=c=>Math.max(...c.head.split(" ").map(w=>apMeasure(w,hf||AP_G.headFs,true)))+10;
+  const nat=(c,pad)=>Math.max(...list.map(r=>apMeasure(apCell(r,c.key),fs,false)),0)+pad;
+  let wNum=0, refText=0; const isNum=c=>AP_NUM.includes(c.key);
+  const ws=cols.map(c=>{ if(isNum(c)){ const w=Math.max(hmin(c)+6,list.length?nat(c,20):0,40); wNum+=w; return w; } refText+=c.w; return null; });
+  const left=Math.max(usable-wNum,refText*0.6), tc=cols.filter(c=>!isNum(c));
+  const natT=tc.map(c=>Math.max(nat(c,c.left?20:16),hmin(c))), sumNat=natT.reduce((a,b)=>a+b,0), fits=list.length&&sumNat<=left;
+  let x=AP_G.tX, k=0;
+  return cols.map((c,i)=>{ let w;
+    if(ws[i]!=null) w=ws[i]; else { w=fits?natT[k]+(left-sumNat)*c.w/refText:c.w/refText*left; k++; }
+    const o=Object.assign({},c,{x,w}); x+=w+gap; return o; });
 }
 const apPad=c=>c.left?8:6;
 // choose the biggest font that lets the whole band fit on one page (rows only get taller when a cell wraps); otherwise split it over several pages
 function apFit(cols0,list){
-  const avail=AP_G.bottom-(AP_G.top+AP_G.hdr);
-  const probe=fs=>{ const cols=apSizeCols(cols0,list,fs), lh=fs*1.2, hs=list.map(r=>{ let n=1; for(const c of cols){ const k=apWrap(apCell(r,c.key),c.w-apPad(c),fs,false).length; if(k>n) n=k; } return Math.max(AP_G.minRow,n*lh+10); });
-    return {fs,lh,hs,cols,total:hs.reduce((a,b)=>a+b,0)}; };
-  for(const fs of AP_G.fsList){ const t=probe(fs); if(t.total<=avail) return Object.assign(t,{chunks:[{rows:list,hs:t.hs}]}); }
-  const t=probe(10), np=Math.ceil(t.total/avail), target=t.total/np, chunks=[]; let cur={rows:[],hs:[]}, acc=0;
+  const G=AP_G, avail=G.bottom-(G.top+G.hdr), sum=a=>a.reduce((x,y)=>x+y,0);
+  const mk=(fs,minRow,padY,hf)=>{ const cols=apSizeCols(cols0,list,fs,hf), lh=fs*1.2; let wraps=0;
+    const hs=list.map(r=>{ let n=1; for(const c of cols){ const k=apWrap(apCell(r,c.key),c.w-apPad(c),fs,false).length; if(k>1) wraps++; if(k>n) n=k; } return Math.max(minRow,n*lh+padY); });
+    return {fs,lh,hs,cols,wraps,total:sum(hs)}; };
+  const probe=fs=>mk(fs,G.minRow,10);
+  for(const fs of G.fsList){ const t=probe(fs);
+    if(t.total<=avail){
+      // few rows: a little more text where it causes no new wrapping, and taller rows so the table fills more of the slide
+      if(list.length&&t.total<0.45*avail){
+        const hdr2=46, headFs2=13, avail2=G.bottom-(G.top+hdr2); let best=t;
+        for(const f2 of [14,13.5,13]){ if(f2<=t.fs) break; const u=mk(f2,G.minRow,10,headFs2); if(u.wraps<=t.wraps){ best=u; break; } }
+        if(best===t) best=mk(t.fs,G.minRow,10,headFs2);   // re-measure columns with the larger header text
+        const target=Math.min(avail2*0.55,list.length*58); let hs=best.hs;
+        if(best.total<target){ const k=target/best.total; hs=best.hs.map(h=>Math.min(58,h*k)); }
+        return Object.assign(best,{hs,total:sum(hs),hdr:hdr2,headFs:headFs2,chunks:[{rows:list,hs}]});
+      }
+      return Object.assign(t,{chunks:[{rows:list,hs:t.hs}]});
+    } }
+  const t=probe(11.5), np=Math.ceil(t.total/avail), target=t.total/np, chunks=[]; let cur={rows:[],hs:[]}, acc=0;
   list.forEach((r,i)=>{ const h=t.hs[i];
     if(cur.rows.length&&(acc+h>avail||(acc>=target&&chunks.length<np-1))){ chunks.push(cur); cur={rows:[],hs:[]}; acc=0; }
     cur.rows.push(r); cur.hs.push(h); acc+=h; });
   chunks.push(cur); return Object.assign(t,{chunks});
 }
 function apPageSVG(B,st,cols,rows,lay,pi,np,opts,pageNo){
-  cols=lay.cols||cols; const G=AP_G, TXT=B.light?"#231F20":"#FFFFFF", HDR=G.hdr, TOP=G.top, R0=G.top+G.hdr;
+  cols=lay.cols||cols; const G=AP_G, TXT=B.light?"#231F20":"#FFFFFF", HDR=lay.hdr||G.hdr, HF=lay.headFs||G.headFs, TOP=G.top, R0=G.top+HDR;
   let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${AP_W} ${AP_H}" preserveAspectRatio="xMidYMid meet" font-family="${AP_FONT}"><rect width="${AP_W}" height="${AP_H}" fill="#fff"/>`;
   let tf=G.titleFs; const tw=apMeasure(B.title,tf,true); if(tw>G.titleMaxW) tf=tf*G.titleMaxW/tw;
   s+=`<text x="${G.titleX}" y="${G.titleY}" font-size="${tf.toFixed(1)}" font-weight="700" fill="#23396F">${esc(B.title)}</text>`;
@@ -617,8 +635,8 @@ function apPageSVG(B,st,cols,rows,lay,pi,np,opts,pageNo){
   L.forEach(([t,b],i)=>{ s+=`<text x="${G.cTextX}" y="${G.cFirst+i*G.cStep}" font-size="${G.cFs}" font-weight="${b?700:400}" fill="${TXT}">${esc(t)}</text>`; });
   // header cells
   cols.forEach(c=>{ s+=`<rect x="${c.x.toFixed(1)}" y="${TOP+1}" width="${c.w.toFixed(1)}" height="${HDR}" fill="#fff" stroke="#231F20" stroke-width="1"/>`;
-    const ls=apWrap(c.head,c.w-6,G.headFs,true), step=G.headFs*1.2, y0=TOP+1+HDR/2-(ls.length-1)*step/2;
-    ls.forEach((t,i)=>{ s+=`<text x="${(c.x+c.w/2).toFixed(1)}" y="${(y0+i*step+G.headFs*0.36).toFixed(1)}" font-size="${G.headFs}" font-weight="700" text-anchor="middle" fill="#000">${esc(t)}</text>`; }); });
+    const ls=apWrap(c.head,c.w-6,HF,true), step=HF*1.2, y0=TOP+1+HDR/2-(ls.length-1)*step/2;
+    ls.forEach((t,i)=>{ s+=`<text x="${(c.x+c.w/2).toFixed(1)}" y="${(y0+i*step+HF*0.36).toFixed(1)}" font-size="${HF}" font-weight="700" text-anchor="middle" fill="#000">${esc(t)}</text>`; }); });
   // body (rows are as tall as their tallest cell)
   const rowsA=rows.rows, hs=rows.hs; let y=R0;
   if(!rowsA.length) s+=`<text x="${AP_W/2}" y="${R0+44}" font-size="16" text-anchor="middle" fill="#667085">No segments fall in this band.</text>`;
