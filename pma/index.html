@@ -8,21 +8,43 @@
   html,body{margin:0;height:100%;background:#fff;font-family:Gotham,"Gotham Book",Montserrat,Arial,Helvetica,sans-serif}
   #app{display:flex;flex-direction:column;height:100%}
   #bar{display:none;padding:8px 12px;background:#f3f4f6;border-bottom:1px solid #d6d8dc;font-size:13px}
-  #bar textarea{width:100%;height:64px;font:12px/1.3 Consolas,monospace;box-sizing:border-box}
-  #bar button{margin:6px 6px 0 0;padding:5px 12px;border:1px solid #002855;background:#002855;color:#fff;border-radius:3px;cursor:pointer}
+  #bar .row{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+  #bar .sp{flex:1}
+  #bar .step{display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;border-radius:50%;background:#002855;color:#fff;font-size:12px;font-weight:700}
+  #status{margin-top:5px;color:#1b5e20;font-size:12.5px;min-height:15px}
+  #bar details{margin-top:5px} #bar summary{cursor:pointer;color:#002855;font-size:12px}
+  #bar textarea{width:100%;height:54px;margin-top:5px;font:12px/1.3 Consolas,monospace;box-sizing:border-box}
+  #bar button{margin:0;padding:5px 12px;border:1px solid #002855;background:#002855;color:#fff;border-radius:3px;cursor:pointer}
   #bar button.sec{background:#fff;color:#002855}
   #msg{padding:6px 12px;color:#b00020;font-size:13px;display:none}
   #stage{flex:1;min-height:0}
   #stage svg{width:100%;height:100%;display:block}
+  @media print{
+    #status{display:none}
+    @page{size:1508px 847px;margin:0}
+    html,body{width:1508px;height:847px;overflow:hidden}
+    #bar,#msg{display:none!important}
+    #app,#stage{height:847px}
+    #stage svg{width:1508px;height:847px}
+  }
 </style>
 </head>
 <body>
 <div id="app">
   <div id="bar">
-    <b>Standalone mode</b> &ndash; paste a table with a header row (tab or comma separated). Columns: <code>segment_id</code>, <code>customer_count</code> (or customer_pct), <code>market_count</code> (or market_pct), optional <code>index</code>.
-    <textarea id="paste" spellcheck="false" placeholder="segment_id,customer_count,market_count"></textarea>
-    <button id="go">Render</button><button class="sec" id="sample">Load SB 7489 sample</button>
-    <button class="sec" id="dlsvg">Download SVG</button><button class="sec" id="dlpng">Download PNG</button>
+    <div class="row">
+      <b>Brand Preference Index</b>
+      <span class="step">1</span> Choose your distribution file <input type="file" id="file" accept=".xlsx,.xlsm,.csv,.tsv,.txt">
+      <span class="step">2</span> <button id="go">Render</button>
+      <span id="sheetwrap" style="display:none">Sheet <select id="sheet"></select></span>
+      <span class="sp"></span>
+      <button class="sec" id="dlpng">Download PNG</button><button class="sec" id="dlsvg">Download SVG</button><button class="sec" id="dlpdf" onclick="window.print()">Print / Save as PDF</button>
+    </div>
+    <div id="status"></div>
+    <details><summary>Other options (paste a table, sample data, Tableau background image)</summary>
+      <textarea id="paste" spellcheck="false" placeholder="Paste rows copied from Excel (include the header row)"></textarea>
+      <button class="sec" id="sample">Try SB 7489 sample</button><button class="sec" id="dlbg">Download background PNG (for Tableau)</button>
+    </details>
   </div>
   <div id="msg"></div>
   <div id="stage"></div>
@@ -98,7 +120,8 @@ function prepare(rows){
   for(const r of rows){
     const seg=parseInt(String(r.seg).replace(/[^0-9]/g,''),10);
     if(!(seg in MASTER)) continue;
-    const o=by.get(seg)||{seg,cust:null,mkt:null,idx:null};
+    const o=by.get(seg)||{seg,cust:null,mkt:null,idx:null,name:null};
+    if(r.name) o.name=String(r.name).trim();
     if(isFinite(r.cust)&&r.cust!==null) o.cust=(o.cust||0)+Number(r.cust);
     if(isFinite(r.mkt)&&r.mkt!==null)   o.mkt =(o.mkt ||0)+Number(r.mkt);
     if(isFinite(r.idx)&&r.idx!==null)   o.idx = Number(r.idx);
@@ -120,9 +143,10 @@ const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"
 const T=(x,y,s,o={})=>`<text x="${x}" y="${y}" font-size="${o.size||14}" font-weight="${o.bold?700:400}" fill="${o.fill||'#222'}" text-anchor="${o.anchor||'start'}" dominant-baseline="${o.base||'central'}"${o.rot?` transform="rotate(${o.rot} ${x} ${y})"`:''}>${esc(s)}</text>`;
 const pct=v=>(v*100).toFixed(2)+"%";
 
-function buildSVG(rows){
+function buildSVG(rows,opts){
+  opts=opts||{};
   const {items,haveShare,skipped}=prepare(rows);
-  const pts=items.map(o=>{const m=MASTER[o.seg]; return Object.assign(o,{life:m[0],aff:m[1],name:m[3],r:RADIUS[m[1]],x0:m[2],dy:displayY(o.idx),band:bandOf(o.idx)});});
+  const pts=items.map(o=>{const m=MASTER[o.seg]; return Object.assign(o,{life:m[0],aff:m[1],name:o.name||m[3],r:RADIUS[m[1]],x0:m[2],dy:displayY(o.idx),band:bandOf(o.idx)});});
   const xs=placeX(pts); pts.forEach((p,i)=>{p.x=xs[i]; p.y=yPx(p.dy);});
   let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" font-family='${FONT}'><rect width="${W}" height="${H}" fill="#fff"/>`;
   // bands + lines
@@ -144,7 +168,7 @@ function buildSVG(rows){
   s+=`<line x1="346" x2="346" y1="345" y2="208" stroke="${NAVY}" stroke-width="3" marker-end="url(#ah)"/><line x1="346" x2="346" y1="640" y2="772" stroke="${NAVY}" stroke-width="3" marker-end="url(#ah)"/>`;
   s+=T(346,492,"LIKELIHOOD TO RESPOND",{size:15,bold:1,fill:NAVY,anchor:"middle",rot:-90})+T(346,174,"+",{size:34,bold:1,fill:NAVY,anchor:"middle"})+T(346,795,"\u2013",{size:34,bold:1,fill:NAVY,anchor:"middle"});
   // bubbles (large first so small ones stay on top)
-  [...pts].sort((a,b)=>b.r-a.r).forEach(p=>{
+  if(!opts.staticOnly) [...pts].sort((a,b)=>b.r-a.r).forEach(p=>{
     const tip=`Segment ${p.seg} \u2013 ${p.name}\nLifestage: ${LIFE[p.life]}\nAffluence: ${AFF[p.aff]}\nIndex: ${p.idx.toFixed(1)}`+(p.cp!=null?`\nCustomer: ${pct(p.cp)}  Market: ${pct(p.mp)}`:"");
     s+=`<g><title>${esc(tip)}</title><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${p.r}" fill="${COLORS[p.life]}"/>${T(p.x.toFixed(1),p.y.toFixed(1),p.seg,{size:LABEL_PX[p.aff],bold:1,fill:"#fff",anchor:"middle"})}</g>`;});
   // right panel
@@ -155,13 +179,14 @@ function buildSVG(rows){
     lines.forEach((t,k)=>{const sub=t.startsWith("("); s+=T(963,y0+k*22,t,{size:sub?14:16.5,bold:!sub,fill:sub?"#222":NAVY});});
     s+=`<line x1="1130" x2="1190" y1="${yc-3}" y2="${yc-3}" stroke="${NAVY}" stroke-width="2.5" marker-end="url(#ah)"/>`;
     [[1271,"c","of Customer","Base"],[1392,"m","of Market","Trade Area"]].forEach(([cx,k,l1,l2])=>{
-      s+=T(cx,yc-14,haveShare?pct(st[b][k]):"\u2013",{size:29,bold:1,fill:NAVY,anchor:"middle"})+T(cx,yc+14,l1,{size:13,fill:"#333",anchor:"middle"})+T(cx,yc+30,l2,{size:13,fill:"#333",anchor:"middle"});});
+      s+=(opts.staticOnly?"":T(cx,yc-14,haveShare?pct(st[b][k]):"\u2013",{size:29,bold:1,fill:NAVY,anchor:"middle"}))+T(cx,yc+14,l1,{size:13,fill:"#333",anchor:"middle"})+T(cx,yc+30,l2,{size:13,fill:"#333",anchor:"middle"});});
   }
   s+="</svg>";
   return {svg:s,count:pts.length,skipped,haveShare};
 }
 
 /* ======================= INPUT: Tableau + standalone ======================= */
+window.buildStaticSVG=()=>buildSVG([],{staticOnly:true}).svg;
 const stage=document.getElementById("stage"), msg=document.getElementById("msg");
 function show(rows){
   const r=buildSVG(rows); stage.innerHTML=r.svg; window.__lastSVG=r.svg;
@@ -175,41 +200,164 @@ const num=v=>{ if(v===null||v===undefined||v==="")return null; const n=Number(St
 
 async function runTableau(){
   const ws=tableau.extensions.worksheetContent.worksheet;
+  const PROMPT='<p style="font:15px Arial;padding:24px;color:#002855">Drag <b>segment number</b> onto <b>Segment</b>, and <b>customer</b> and <b>market</b> (counts or % comp) onto <b>Customer</b> / <b>Market</b> &ndash; or an <b>Index</b> &ndash; on the Marks card.</p>';
+  let busy=false, hasChart=false;
+  const prompt=()=>{ hasChart=false; stage.innerHTML=PROMPT; msg.style.display="none"; };
   const refresh=async()=>{
+    if(busy) return; busy=true;
     try{
-      const spec=await ws.getVisualSpecificationAsync();
-      const mc=spec.marksSpecifications[spec.activeMarksSpecificationIndex];
+      // 1) which fields are on which tile? (no data requested until a Segment field exists)
+      let spec; try{ spec=await ws.getVisualSpecificationAsync(); }catch(e){ prompt(); return; }
+      const list=spec&&spec.marksSpecifications||[];
+      const mc=list[spec.activeMarksSpecificationIndex]||list[0];
+      if(!mc||!mc.encodings){ prompt(); return; }
       const map={}; for(const e of mc.encodings){ if(e.field) map[e.id]=e.field.name; }
-      const reader=await ws.getSummaryDataReaderAsync(); const table=await reader.getAllPagesAsync(); await reader.releaseAsync();
+      if(!map.segment){ prompt(); return; }
+      // 2) now read the data
+      let table;
+      try{ const reader=await ws.getSummaryDataReaderAsync(); table=await reader.getAllPagesAsync(); await reader.releaseAsync(); }
+      catch(e){ table=await ws.getSummaryDataAsync(); }
       const col=id=>map[id]==null?-1:table.columns.findIndex(c=>c.fieldName===map[id]);
       const ci={seg:col("segment"),cust:col("customer"),mkt:col("market"),idx:col("index")};
-      if(ci.seg<0){ stage.innerHTML='<p style="font:15px Arial;padding:24px;color:#002855">Drag <b>segment id</b> onto <b>Segment</b>, and <b>customer</b> and <b>market</b> counts onto <b>Customer</b> / <b>Market</b> (or an <b>Index</b>) on the Marks card.</p>'; return; }
+      if(ci.seg<0){ prompt(); return; }
       const rows=table.data.map(r=>({seg:r[ci.seg].value, cust:ci.cust>=0?num(r[ci.cust].value):null, mkt:ci.mkt>=0?num(r[ci.mkt].value):null, idx:ci.idx>=0?num(r[ci.idx].value):null}));
-      show(rows);
-    }catch(e){ console.error(e); msg.style.display="block"; msg.textContent="Error: "+e.message; }
+      show(rows); hasChart=true;
+    }catch(e){ console.error(e); hasChart=false; msg.style.display="block"; msg.textContent="Waiting for data ("+e.message+")"; }
+    finally{ busy=false; }
   };
   ws.addEventListener(tableau.TableauEventType.SummaryDataChanged,refresh);
   await refresh();
+  setInterval(()=>{ if(!hasChart) refresh(); },2000);   // keep checking until fields are dropped on the tiles
 }
 
-function parseTable(text){
-  const lines=text.trim().split(/\r?\n/).filter(l=>l.trim()); if(lines.length<2) return [];
-  const d=lines[0].includes("\t")?"\t":","; const split=l=>l.split(d).map(c=>c.trim().replace(/^"|"$/g,""));
-  const h=split(lines[0]).map(x=>x.toLowerCase());
-  const f=(re,prefer)=>{ let i=-1; if(prefer) i=h.findIndex(x=>re.test(x)&&prefer.test(x)); return i>=0?i:h.findIndex(x=>re.test(x)); };
-  const ci={seg:f(/^seg/),cust:f(/^cust/,/count|hh|household/),mkt:f(/^mark/,/count|hh|household/),idx:f(/^index$|^idx$/)};
-  if(ci.seg<0) throw new Error("Header row needs a column starting with 'segment'.");
-  return lines.slice(1).map(l=>{const c=split(l); return {seg:c[ci.seg],cust:ci.cust>=0?num(c[ci.cust]):null,mkt:ci.mkt>=0?num(c[ci.mkt]):null,idx:ci.idx>=0?num(c[ci.idx]):null};});
+/* ---------- read an .xlsx with no external library (zip + xml) ---------- */
+async function inflateRaw(u8){
+  if(typeof DecompressionStream==="undefined") throw new Error("This browser can't open .xlsx directly - save the sheet as CSV, or use Chrome/Edge/Safari 16.4+/Firefox 113+.");
+  const ds=new DecompressionStream("deflate-raw");
+  return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(ds)).arrayBuffer());
 }
+async function unzip(buf){
+  const dv=new DataView(buf), u8=new Uint8Array(buf); let eocd=-1;
+  for(let i=buf.byteLength-22;i>=Math.max(0,buf.byteLength-65600);i--){ if(dv.getUint32(i,true)===0x06054b50){eocd=i;break;} }
+  if(eocd<0) throw new Error("That doesn't look like an .xlsx file.");
+  const n=dv.getUint16(eocd+10,true); let p=dv.getUint32(eocd+16,true); const files={}, dec=new TextDecoder();
+  for(let k=0;k<n;k++){
+    if(dv.getUint32(p,true)!==0x02014b50) break;
+    const method=dv.getUint16(p+10,true), csize=dv.getUint32(p+20,true), nl=dv.getUint16(p+28,true), el=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), off=dv.getUint32(p+42,true);
+    files[dec.decode(u8.subarray(p+46,p+46+nl))]={method,csize,off}; p+=46+nl+el+cl;
+  }
+  return {async read(name){ const f=files[name]; if(!f) return null; const nl=dv.getUint16(f.off+26,true), el=dv.getUint16(f.off+28,true);
+    const data=u8.subarray(f.off+30+nl+el,f.off+30+nl+el+f.csize); return dec.decode(f.method===0?data:await inflateRaw(data)); }};
+}
+const xml=t=>new DOMParser().parseFromString(t,"text/xml");
+const colNum=ref=>{let n=0; for(const ch of /^[A-Z]+/.exec(ref)[0]) n=n*26+ch.charCodeAt(0)-64; return n-1;};
+async function readXlsx(buf){
+  const z=await unzip(buf);
+  const wb=xml(await z.read("xl/workbook.xml")), rels=xml(await z.read("xl/_rels/workbook.xml.rels"));
+  const target={}; for(const r of rels.getElementsByTagName("Relationship")){ let t=r.getAttribute("Target"); target[r.getAttribute("Id")]=t.startsWith("/")?t.slice(1):"xl/"+t; }
+  const ss=[]; const sst=await z.read("xl/sharedStrings.xml");
+  if(sst) for(const si of xml(sst).getElementsByTagName("si")) ss.push([...si.getElementsByTagName("t")].map(t=>t.textContent).join(""));
+  const sheets=[];
+  for(const sh of wb.getElementsByTagName("sheet")){
+    const rid=sh.getAttribute("r:id")||sh.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships","id");
+    const txt=await z.read(target[rid]); if(!txt) continue;
+    const grid=[];
+    for(const c of xml(txt).getElementsByTagName("c")){
+      const ref=c.getAttribute("r"); if(!ref) continue; const t=c.getAttribute("t"); const v=c.getElementsByTagName("v")[0];
+      let val=null;
+      if(t==="inlineStr") val=[...c.getElementsByTagName("t")].map(x=>x.textContent).join("");
+      else if(v){ val = t==="s"?ss[+v.textContent] : (t==="str"||t==="b"||t==="e")?v.textContent : parseFloat(v.textContent); }
+      if(val===null||val==="") continue;
+      const r=parseInt(/\d+/.exec(ref)[0],10)-1; (grid[r]=grid[r]||[])[colNum(ref)]=val;
+    }
+    sheets.push({name:sh.getAttribute("name"),grid});
+  }
+  return sheets;
+}
+
+/* ---------- find the table inside a sheet (handles title rows, 2-level headers, Total row) ---------- */
+function findTable(grid){
+  const segRe=/^segment[\s_]*(number|no\.?|#|id|code)?$/i;
+  for(let r=0;r<grid.length;r++){
+    const row=grid[r]; if(!row) continue;
+    for(let c=0;c<row.length;c++){
+      if(row[c]==null||!segRe.test(String(row[c]).trim())) continue;
+      const hdr=row, up=grid[r-1]||[], last=c+14, col={};
+      const owner=(cc,t)=>{ if(/customer/.test(t))return"cust"; if(/market/.test(t))return"mkt";
+        for(let k=cc;k>c;k--){ const g=String(up[k]==null?"":up[k]).toLowerCase(); if(/customer/.test(g))return"cust"; if(/market/.test(g))return"mkt"; } return null; };
+      for(let cc=c+1;cc<=last&&cc<hdr.length;cc++){
+        if(hdr[cc]==null) continue; const t=String(hdr[cc]).trim().toLowerCase();
+        if(/^(index|idx)$/.test(t)){ if(col.idx==null) col.idx=cc; continue; }
+        if(/name/.test(t)){ if(col.name==null) col.name=cc; continue; }
+        const o=owner(cc,t); if(!o) continue;
+        const kind=/%|comp|pct|percent/.test(t)?"pct":/count|household|hh|records|base/.test(t)?"count":null;
+        if(kind && col[o+"_"+kind]==null) col[o+"_"+kind]=cc;
+      }
+      const rows=[]; let others=0;
+      for(let rr=r+1;rr<grid.length;rr++){
+        const g=grid[rr]||[]; const sv=String(g[c]==null?"":g[c]).trim();
+        if(!/^\d{1,3}$/.test(sv)) continue;
+        const n=k=>col[k]==null?null:num(g[col[k]]);
+        rows.push({seg:sv, name:col.name!=null?g[col.name]:null,
+          cust:n("cust_count")!=null?n("cust_count"):n("cust_pct"), mkt:n("mkt_count")!=null?n("mkt_count"):n("mkt_pct"),
+          idx:col.idx!=null?n("idx"):null});
+      }
+      return {rows,col,header:r+1};
+    }
+  }
+  return null;
+}
+function csvToGrid(text){
+  const lines=text.replace(/^\ufeff/,"").split(/\r?\n/).filter(l=>l.trim()); if(!lines.length) return [];
+  const d=(lines[0].match(/\t/g)||[]).length>=(lines[0].match(/,/g)||[]).length&&lines[0].includes("\t")?"\t":",";
+  return lines.map(l=>{const out=[]; let cur="",q=false; for(const ch of l){ if(ch==='"'){q=!q;} else if(ch===d&&!q){out.push(cur);cur="";} else cur+=ch; } out.push(cur); return out.map(x=>x.trim()===""?undefined:x.trim()); });
+}
+async function loadTables(file,pasted){
+  const out=[];
+  if(file){
+    if(/\.(xlsx|xlsm)$/i.test(file.name)){
+      for(const sh of await readXlsx(await file.arrayBuffer())){ const t=findTable(sh.grid); if(t&&t.rows.length) out.push({name:sh.name,rows:t.rows,col:t.col}); }
+    } else { const t=findTable(csvToGrid(await file.text())); if(t&&t.rows.length) out.push({name:file.name.replace(/\.[^.]+$/,""),rows:t.rows,col:t.col}); }
+  } else { const t=findTable(csvToGrid(pasted)); if(t&&t.rows.length) out.push({name:"pasted table",rows:t.rows,col:t.col}); }
+  if(!out.length) throw new Error("Couldn't find a table with a 'Segment Number' column and segment rows in "+(file?file.name:"the pasted text")+".");
+  const full=out.filter(t=>t.rows.length>=50);      // real distribution sheets have all 72 segments; skips partial/summary tabs
+  return full.length?full:out;
+}
+function describe(t,n){
+  const c=t.col, ok=(c.cust_count!=null||c.cust_pct!=null)&&(c.mkt_count!=null||c.mkt_pct!=null);
+  return 'Read '+t.rows.length+' segments from "'+t.name+'" \u2013 '+(ok?"customer + market found":"customer/market NOT found (band percentages hidden)")+", "+(c.idx!=null?"index column found":"no index column (calculated from customer/market)")+"."+(n>1?" This file has "+n+" distribution sheets \u2013 switch with the Sheet dropdown.":"");
+}
+
 function runStandalone(){
   document.getElementById("bar").style.display="block";
-  const go=()=>{ try{ show(parseTable(document.getElementById("paste").value)); }catch(e){ msg.style.display="block"; msg.textContent=e.message; } };
+  const fileEl=document.getElementById("file"), status=document.getElementById("status");
+  const fail=e=>{ msg.style.display="block"; msg.textContent=e.message; status.textContent=""; };
+  const sel=document.getElementById("sheet"), wrap=document.getElementById("sheetwrap");
+  const draw=i=>{ const t=window.__tables[i]; window.__tag=t.name; status.textContent=describe(t,window.__tables.length); msg.style.display="none"; show(t.rows); };
+  const go=async()=>{
+    msg.style.display="none";
+    try{
+      const f=fileEl.files[0], pasted=document.getElementById("paste").value;
+      if(!f && !pasted.trim()){ throw new Error("Choose your distribution file first (step 1), then click Render."); }
+      const prev=window.__tag; window.__tables=await loadTables(f,pasted);
+      sel.innerHTML=window.__tables.map((t,i)=>'<option value="'+i+'">'+esc(t.name)+'</option>').join("");
+      wrap.style.display=window.__tables.length>1?"inline":"none";
+      const keep=window.__tables.findIndex(t=>t.name===prev); sel.value=String(keep>=0?keep:0); draw(+sel.value);
+    }catch(e){ fail(e); }
+  };
+  sel.onchange=()=>draw(+sel.value);
   document.getElementById("go").onclick=go;
-  document.getElementById("sample").onclick=async()=>{ try{ const t=await (await fetch("SB_7489_sample.csv")).text(); document.getElementById("paste").value=t; go(); }catch(e){ msg.style.display="block"; msg.textContent="Could not load SB_7489_sample.csv (open this page through a web server, not file://)."; } };
+  fileEl.onchange=()=>{ status.textContent=fileEl.files[0]?('Ready: "'+fileEl.files[0].name+'" \u2013 click Render.'):""; };
+  window.addEventListener("dragover",e=>e.preventDefault());
+  window.addEventListener("drop",e=>{ e.preventDefault(); if(e.dataTransfer.files[0]){ const dt=new DataTransfer(); dt.items.add(e.dataTransfer.files[0]); fileEl.files=dt.files; fileEl.onchange(); go(); } });
+  document.getElementById("sample").onclick=async()=>{ try{ const t=await (await fetch("SB_7489_sample.csv")).text(); document.getElementById("paste").value=t; fileEl.value=""; go(); }catch(e){ fail(new Error("Could not load SB_7489_sample.csv (open this page through its web address, not as a local file).")); } };
+  const fname=ext=>"brand_preference_index"+(window.__tag?"_"+String(window.__tag).replace(/[^A-Za-z0-9]+/g,"_").replace(/^_|_$/g,""):"")+"."+ext;
   const dl=(blob,name)=>{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();};
-  document.getElementById("dlsvg").onclick=()=>window.__lastSVG&&dl(new Blob([window.__lastSVG],{type:"image/svg+xml"}),"brand_preference_index.svg");
-  document.getElementById("dlpng").onclick=()=>{ if(!window.__lastSVG)return; const img=new Image(); img.onload=()=>{const c=document.createElement("canvas");c.width=W*2;c.height=H*2;const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);c.toBlob(b=>dl(b,"brand_preference_index.png"));}; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(window.__lastSVG); };
-  stage.innerHTML='<p style="font:15px Arial;padding:24px;color:#002855">Paste data above and click <b>Render</b>.</p>';
+  const toPng=(svg,name)=>{ const img=new Image(); img.onload=()=>{const c=document.createElement("canvas");c.width=W*2;c.height=H*2;const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);c.toBlob(b=>dl(b,name));}; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg); };
+  document.getElementById("dlsvg").onclick=()=>window.__lastSVG&&dl(new Blob([window.__lastSVG],{type:"image/svg+xml"}),fname("svg"));
+  document.getElementById("dlpng").onclick=()=>window.__lastSVG&&toPng(window.__lastSVG,fname("png"));
+  document.getElementById("dlbg").onclick=()=>toPng(buildSVG([],{staticOnly:true}).svg,"BPI_background.png");
+  stage.innerHTML='<p style="font:15px Arial;padding:24px;color:#002855">Choose your distribution file above, then click <b>Render</b>.</p>';
 }
 
 function loadScript(src){return new Promise(res=>{const s=document.createElement("script");s.src=src;s.onload=()=>res(true);s.onerror=()=>res(false);document.head.appendChild(s);});}
