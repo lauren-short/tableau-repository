@@ -42,8 +42,7 @@
   .meta:empty{display:none} .meta .adj{color:var(--warn)}
   details.more{padding:10px 24px;background:#fff;border-bottom:1px solid var(--line)}
   details.more summary{cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:600}
-  details.more textarea{width:100%;height:60px;margin:10px 0 8px;padding:8px;border:1px solid var(--line);border-radius:9px;font:12px/1.4 Consolas,Menlo,monospace}
-  details.more .btn{height:32px;font-size:12px;margin-right:6px}
+  details.more textarea{width:100%;height:60px;margin:0;padding:8px;border:1px solid var(--line);border-radius:9px;font:12px/1.4 Consolas,Menlo,monospace}
   #msg{display:none;margin:12px 24px 0;padding:10px 14px;border-radius:9px;background:var(--badbg);color:var(--bad);font-size:13px;font-weight:500}
   body:not(.standalone) #msg{margin:0;padding:6px 12px;border-radius:0;background:none;color:#b00020}
   /* canvas */
@@ -54,6 +53,28 @@
   .drop:hover,body.dragging .drop{border-color:var(--navy);background:#f3f7fd}
   .drop .ic{width:60px;height:60px;border-radius:16px;background:#eaf0fa;display:grid;place-items:center;margin-bottom:6px}
   .drop h2{margin:0;font-size:20px;color:var(--navy)} .drop p{margin:0;font-size:14px;color:var(--mut);max-width:420px;line-height:1.5} .drop u{color:var(--accent)}
+  .btn.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .btn.on:hover:not(:disabled){background:#003a7a;border-color:#003a7a}
+  input.txt,input.num{height:34px;border:1px solid var(--line);border-radius:9px;padding:0 10px;font:13px inherit;font-family:inherit;color:var(--ink);background:#fff;width:120px}
+  input.num{width:64px}
+  .compare{background:#f8fafd;border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+  .morebody{display:flex;flex-direction:column;gap:14px;margin-top:12px} .morebody .crow{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+  .badge{display:inline-block;margin-left:8px;padding:2px 9px;border-radius:999px;background:#eaf0fa;color:var(--navy);font-size:11px;font-weight:700}
+  .compare .crow{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+  .ctitle{font-weight:700;font-size:13px;color:var(--navy);min-width:150px}
+  .seg .btn.on{background:var(--navy);color:#fff}
+  .chip.tog{border:1px solid var(--line);background:#fff;color:var(--mut);cursor:pointer;font-family:inherit;transition:.15s}
+  .chip.tog.on{background:#eaf0fa;color:var(--navy);border-color:#c9d6ea}
+  .chip .dot,#picker .dot{width:9px;height:9px;border-radius:50%;margin-right:6px;display:inline-block;flex:none}
+  .hint{font-size:12.5px;color:var(--mut)}
+  #stage .hdrhit{fill:transparent;cursor:text} #stage .hdrhit:hover{fill:rgba(255,255,255,.18)}
+  #picker{border:1px solid var(--line);border-radius:12px;padding:10px 12px;max-height:240px;overflow:auto;background:#fff}
+  #picker .ptools{display:flex;align-items:center;gap:10px;margin-bottom:8px;position:sticky;top:-10px;background:#fff;padding:4px 0}
+  #picker .ptools .btn{height:30px;font-size:12px}
+  #picker .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:2px 16px}
+  #picker label{display:flex;align-items:center;gap:6px;font-size:12.5px;padding:3px 5px;border-radius:6px;cursor:pointer}
+  #picker label:hover{background:#eef3fb} #picker label[hidden]{display:none}
+  #picker .m{color:var(--mut);margin-left:auto;white-space:nowrap;padding-left:8px;font-size:12px}
   @media print{
     @page{size:1508px 847px;margin:0}
     html,body{width:1508px;height:847px;overflow:hidden;background:#fff}
@@ -90,10 +111,37 @@
       <span class="chips"><span class="chip" id="chipC" hidden></span><span class="chip" id="chipM" hidden></span></span>
       <label class="opt" title="Adjusts the last digit of the rounded band percentages so each column adds to exactly 100.00%"><input type="checkbox" id="force100" checked> Make band totals add to 100.00%</label>
     </section>
-    <details class="more">
-      <summary>More options</summary>
-      <textarea id="paste" spellcheck="false" placeholder="Or paste rows copied from Excel (include the header row)"></textarea>
-      <button class="btn" id="sample">Try SB 7489 sample</button><button class="btn" id="dlbg">Download background PNG (for Tableau)</button>
+    <details class="more" id="more">
+      <summary>More options <span class="badge" id="cmpBadge" hidden>Compare on</span></summary>
+      <div class="morebody">
+        <div class="crow">
+          <button class="btn" id="cmpToggle" aria-pressed="false" title="Compare against a previous year's distribution" type="button"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5h10M10.5 3l2.5 2.5-2.5 2.5M13 10.5H3M5.5 8L3 10.5 5.5 13"/></svg>Compare years</button>
+          <label class="field">Subtitle <input type="text" id="subtitle" class="txt" style="width:200px" maxlength="40" placeholder="PERSONICX NS"></label>
+        </div>
+    <section class="compare" id="cmpPanel" hidden>
+      <div class="crow">
+        <span class="ctitle">Compare to a previous year</span>
+        <label class="filebtn" for="pfile" title="Choose the previous year's distribution file"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#002855" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V2M4.5 5.5L8 2l3.5 3.5M2 10v3.5h12V10"/></svg><span id="pname">Choose previous year's file</span></label>
+        <input type="file" id="pfile" accept=".xlsx,.xlsm,.csv,.tsv,.txt" hidden>
+        <label class="field" id="psheetwrap" hidden>Sheet <select id="psheet"></select></label>
+        <label class="field">Previous <input type="text" id="plabel" class="txt" style="width:90px" maxlength="14" placeholder="2024"></label>
+        <label class="field">Current <input type="text" id="clabel" class="txt" style="width:90px" maxlength="14" placeholder="2026"></label>
+      </div>
+      <div class="crow">
+        <span class="ctitle">View</span>
+        <div class="seg" id="viewSeg"><button class="btn on" data-view="move" type="button">Increase / decrease</button><button class="btn" data-view="life" type="button">Lifestage</button></div>
+        <label class="field">Show <select id="preset"><option value="changed">Segments that changed band</option><option value="movers">Biggest movers (up or down)</option><option value="up">Biggest increases</option><option value="down">Biggest decreases</option><option value="custom">Choose segments&hellip;</option></select></label>
+        <label class="field">Max <input type="number" id="maxn" class="num" min="1" max="10" value="8"></label>
+        <span class="chips" id="dirChips"><button class="chip tog on" data-dir="up" type="button">&#9650; Increases</button><button class="chip tog on" data-dir="down" type="button">&#9660; Decreases</button></span>
+        <span class="chips" id="lifeChips" hidden>
+          <button class="chip tog on" data-life="Y" type="button"><span class="dot" style="background:#00AEEF"></span>Youth</button><button class="chip tog on" data-life="C" type="button"><span class="dot" style="background:#39B54A"></span>Career Building</button><button class="chip tog on" data-life="E" type="button"><span class="dot" style="background:#662D91"></span>Earning Years</button><button class="chip tog on" data-life="R" type="button"><span class="dot" style="background:#EC008C"></span>Retirement</button>
+        </span>
+      </div>
+      <div id="picker" hidden></div>
+      <div class="crow"><span class="ctitle">Table headers</span><span class="hint">Click any header on the chart to rename it (the years above fill in &ldquo;2024 BPI&rdquo; automatically).</span><button class="btn" id="hdrReset" type="button">Reset headers</button></div>
+    </section>
+        <textarea id="paste" spellcheck="false" placeholder="Or paste rows copied from Excel (include the header row)"></textarea>
+      </div>
     </details>
     <div class="meta"><div id="status"></div><div id="adj" class="adj"></div></div>
   </div>
@@ -141,21 +189,20 @@ const yPx = d => YB - d/500*PLOT_H;
 
 // Collision-free x: start at each segment's default x, nudge only bubbles that would overlap
 function placeX(items){
-  const n=items.length, y=items.map(o=>o.dy/500*PLOT_H), r=items.map(o=>o.r);
+  const n=items.length, sh=items.map(o=>o.shapes||[{y:o.dy/500*PLOT_H,r:o.r}]), r=items.map(o=>o.r);
   const x0=items.map(o=>o.x0/100*PLOT_W), x=x0.slice();
   const lo=r.map(v=>v+1), hi=r.map(v=>PLOT_W-v-1);
-  const rr=(i,j)=>r[i]+r[j]+CONFIG.GAP, LAMBDA=0.004;
+  const LAMBDA=0.004;
+  const pen=(i,cx,j)=>{ let c=0; for(const a of sh[i]) for(const b of sh[j]){ const o=a.r+b.r+CONFIG.GAP-Math.hypot(cx-x[j],a.y-b.y); if(o>0)c+=o*o; } return c; };
   for(let pass=0;pass<40;pass++){
     let moved=false;
-    const crowd=new Array(n).fill(0);
-    for(let i=0;i<n;i++)for(let j=0;j<n;j++){ if(i===j)continue; const d=Math.hypot(x[i]-x[j],y[i]-y[j]); crowd[i]+=Math.max(0,rr(i,j)-d); }
+    const crowd=x.map((xi,i)=>{ let c=0; for(let j=0;j<n;j++) if(j!==i) c+=pen(i,xi,j); return c; });
     const order=[...Array(n).keys()].sort((a,b)=>crowd[b]-crowd[a]);
     for(const i of order){
       if(crowd[i]===0 && Math.abs(x[i]-x0[i])<1e-9) continue;
       let best=x[i], bc=Infinity;
       for(let c=Math.ceil(lo[i]); c<=Math.floor(hi[i]); c++){
-        let cost=LAMBDA*(c-x0[i])*(c-x0[i]);
-        for(let j=0;j<n;j++){ if(j===i)continue; const o=rr(i,j)-Math.hypot(c-x[j],y[i]-y[j]); if(o>0)cost+=o*o; }
+        let cost=LAMBDA*(c-x0[i])*(c-x0[i]); for(let j=0;j<n;j++) if(j!==i) cost+=pen(i,c,j);
         if(cost<bc){bc=cost;best=c;}
       }
       if(Math.abs(best-x[i])>1e-9){x[i]=best;moved=true;}
@@ -217,7 +264,7 @@ function buildSVG(rows,opts){
     s+=T(430,yPx(v)+(v===500?9:v===0?-9:0),t,{size:11,anchor:"end"});});
   s+=T(427,yPx(250)-9,"100",{size:12,bold:1,anchor:"end"})+T(427,yPx(250)+6,"Average",{size:10.5,bold:1,anchor:"end"});
   // title
-  s+=T(104,108,CONFIG.TITLE,{size:61,bold:1,fill:NAVY})+T(110,150,CONFIG.SUBTITLE,{size:21,fill:NAVY});
+  s+=T(104,108,CONFIG.TITLE,{size:61,bold:1,fill:NAVY})+T(110,150,(window.__subtitle||CONFIG.SUBTITLE),{size:21,fill:NAVY});
   // legend
   [["Lifestage",183],["Affluence",454]].forEach(([t,y])=>{s+=T(116,y,t,{size:17,bold:1,fill:NAVY})+`<line x1="116" x2="199" y1="${y+13}" y2="${y+13}" stroke="${NAVY}" stroke-width="1.5"/>`;});
   [["Y",236],["C",288],["E",340],["R",391]].forEach(([k,y])=>{s+=`<circle cx="126" cy="${y}" r="17" fill="${COLORS[k]}"/>`+T(126,y,k,{size:16,bold:1,fill:"#fff",anchor:"middle"})+T(164,y,LIFE[k],{size:14});});
@@ -249,6 +296,120 @@ function buildSVG(rows,opts){
   }
   s+="</svg>";
   return {svg:s,count:pts.length,skipped,haveShare,totals,adj};
+}
+
+/* ======================= COMPARE (year over year) ======================= */
+const UPC="#5CD62E", DNC="#F0200F", UPT="#2FA81F", DNT="#E3341F", LIFE_ORDER=["Y","C","E","R"], CMP_DX=321, CMP_DY=-11;
+const fmtPct=p=>p==null?"n/a":(p>0?"+":"")+p+"%";
+function compareData(curRows,prevRows){
+  const A=prepare(curRows), B=prepare(prevRows), pm=new Map(B.items.map(o=>[o.seg,o])), out=[]; let unmatched=0;
+  for(const c of A.items){
+    const p=pm.get(c.seg); if(!p){unmatched++;continue;}
+    const m=MASTER[c.seg], ci=Math.round(c.idx), pi=Math.round(p.idx);
+    out.push({seg:c.seg,name:(c.name||p.name||m[3]),life:m[0],aff:m[1],x0:m[2],r:RADIUS[m[1]],
+      pIdx:p.idx,cIdx:c.idx,pR:pi,cR:ci,delta:ci-pi,pct:pi>0?Math.round((ci-pi)/pi*100)||0:null,
+      pBand:bandOf(p.idx),cBand:bandOf(c.idx),cp:c.cp,mp:c.mp,pcp:p.cp,pmp:p.mp});
+  }
+  return {rows:out,unmatched};
+}
+function selectRows(all,o){
+  let r=all.slice();
+  if(o.view==="move") r=r.filter(x=>x.delta===0||(x.delta>0&&o.dirs.up)||(x.delta<0&&o.dirs.down));
+  if(o.view==="life") r=r.filter(x=>o.lifes.has(x.life));
+  if(o.preset==="changed") r=r.filter(x=>x.pBand!==x.cBand);
+  else if(o.preset==="up") r=r.filter(x=>x.delta>0);
+  else if(o.preset==="down") r=r.filter(x=>x.delta<0);
+  else if(o.preset==="custom") r=r.filter(x=>o.custom.has(x.seg));
+  r.sort(o.preset==="up"?(a,b)=>b.delta-a.delta:o.preset==="down"?(a,b)=>a.delta-b.delta:(a,b)=>(Math.abs(b.delta)-Math.abs(a.delta))||(a.seg-b.seg));
+  const total=r.length; return {rows:r.slice(0,o.max).sort((a,b)=>a.seg-b.seg),total};
+}
+// index of a whole lifestage = (sum of customer share) / (sum of market share) x 100 (falls back to the average index if shares are missing)
+function lifeRollup(all,lifes){
+  const out=[];
+  for(const k of LIFE_ORDER){
+    if(!lifes.has(k)) continue; const g=all.filter(x=>x.life===k); if(!g.length) continue;
+    const share=g.every(x=>x.cp!=null&&x.mp!=null&&x.pcp!=null&&x.pmp!=null);
+    let pv,cv;
+    if(share){ const sm=(f)=>g.reduce((a,x)=>a+(x[f]||0),0); pv=sm("pmp")>0?sm("pcp")/sm("pmp")*100:null; cv=sm("mp")>0?sm("cp")/sm("mp")*100:null; }
+    else { pv=g.reduce((a,x)=>a+x.pIdx,0)/g.length; cv=g.reduce((a,x)=>a+x.cIdx,0)/g.length; }
+    if(pv==null||cv==null) continue;
+    const p=Math.round(pv), c=Math.round(cv);
+    out.push({k,label:LIFE[k],n:g.length,p,c,pct:p>0?Math.round((c-p)/p*100)||0:null,avg:!share});
+  }
+  return out;
+}
+function plotBG(){
+  let s="";
+  for(let b=5;b>=1;b--) s+=`<rect x="${X0}" y="${yPx(b*100)}" width="${PLOT_W}" height="${PLOT_H/5}" fill="${BAND_FILL[b-1]}"/>`;
+  for(let k=0;k<=5;k++) s+=`<line x1="438" x2="1136" y1="${yPx(k*100)}" y2="${yPx(k*100)}" stroke="${GREY}" stroke-width="2"/>`;
+  s+=`<line x1="${X0}" x2="${X1}" y1="${yPx(250)}" y2="${yPx(250)}" stroke="#fff" stroke-width="2" stroke-dasharray="7 6"/>`;
+  [[500,"300+"],[400,"149"],[300,"119"],[200,"79"],[100,"49"],[0,"0"]].forEach(([v,t])=>{ s+=T(430,yPx(v)+(v===500?9:v===0?-9:0),t,{size:11,anchor:"end"}); });
+  s+=T(427,yPx(250)-9,"100",{size:12,bold:1,anchor:"end"})+T(427,yPx(250)+6,"Average",{size:10.5,bold:1,anchor:"end"});
+  for(let b=1;b<=5;b++){ const yc=yPx((b-1)*100+50), lines=BAND_TXT[b], y0=yc-(lines.length-1)*11;
+    lines.forEach((t,k)=>{ const sub=t.startsWith("("); s+=T(963,y0+k*22,t,{size:sub?14:16.5,bold:!sub,fill:sub?"#222":NAVY}); }); }
+  return s;
+}
+function arrowSVG(x,y1,y2,color){
+  const up=y2<y1, len=Math.abs(y2-y1); if(len<7) return "";
+  const hl=Math.min(15,len*.75), hw=Math.min(8,hl*.55+1.5), hb=up?y2+hl:y2-hl, X=x.toFixed(1);
+  const stem=len>hl+2?`<line x1="${X}" x2="${X}" y1="${y1.toFixed(1)}" y2="${hb.toFixed(1)}" stroke="${color}" stroke-width="3.6"/>`:"";
+  return stem+`<polygon points="${X},${y2.toFixed(1)} ${(x-hw).toFixed(1)},${hb.toFixed(1)} ${(x+hw).toFixed(1)},${hb.toFixed(1)}" fill="${color}"/>`;
+}
+function legendsCompare(lifes){
+  let s=T(114,175,"Lifestage",{size:17,bold:1,fill:NAVY})+`<line x1="114" x2="197" y1="188" y2="188" stroke="${NAVY}" stroke-width="1.5"/>`;
+  [["Y",229],["C",281],["E",333],["R",385]].forEach(([k,y])=>{ const o=lifes.has(k)?1:.3;
+    s+=`<g opacity="${o}"><circle cx="123" cy="${y}" r="18" fill="${COLORS[k]}"/>`+T(123,y,k,{size:16,bold:1,fill:"#fff",anchor:"middle"})+T(163,y,LIFE[k],{size:14.5})+`</g>`; });
+  s+=T(381,175,"Affluence",{size:17,bold:1,fill:NAVY})+`<line x1="381" x2="464" y1="188" y2="188" stroke="${NAVY}" stroke-width="1.5"/>`;
+  [["L",221],["M",269],["UM",325],["H",389],["W",451]].forEach(([k,y])=>{
+    s+=`<circle cx="390" cy="${y}" r="${RADIUS[k]}" fill="#8A8C8F"/>`+T(390,y,k,{size:{L:8,M:11,UM:14,H:18,W:23}[k],bold:1,fill:"#fff",anchor:"middle"})+T(423,y,AFF[k],{size:14.5}); });
+  return s;
+}
+function tableSVG(head,rows){
+  const cols=[105,398,474,556,668], hh=56, bottom=775, rh=Math.max(24,Math.min(43,(bottom-492-hh)/Math.max(rows.length,1))), top=bottom-hh-rh*rows.length, B="#0B1D3A";
+  let s=`<rect x="105" y="${top}" width="563" height="${hh}" fill="#00254F"/>`;
+  head.forEach((h,k)=>{ const cx=(cols[k]+cols[k+1])/2, w=cols[k+1]-cols[k], cut=h.lastIndexOf(" ");
+    if(k>0&&k<3&&h.length*7.4>w-6&&cut>0){ s+=T(cx,top+hh/2-9,h.slice(0,cut),{size:13,bold:1,fill:"#fff",anchor:"middle"})+T(cx,top+hh/2+9,h.slice(cut+1),{size:13,bold:1,fill:"#fff",anchor:"middle"}); }
+    else s+=T(cx,top+hh/2,h,{size:13.5,bold:1,fill:"#fff",anchor:"middle"}); });
+  const fs=rh<30?12:14.5;
+  rows.forEach((r,i)=>{
+    const y=top+hh+i*rh, cy=y+rh/2;
+    s+=`<rect x="105" y="${y}" width="563" height="${rh}" fill="#fff"/>`;
+    if(r.dot){ s+=`<circle cx="125" cy="${cy}" r="8" fill="${r.dot}"/>`+T(143,cy,r.label,{size:fs}); }
+    else s+=T((cols[0]+cols[1])/2,cy,r.label,{size:r.label.length>32?fs-2:fs,anchor:"middle"});
+    s+=T((cols[1]+cols[2])/2,cy,r.p,{size:fs,anchor:"middle"})+T((cols[2]+cols[3])/2,cy,r.c,{size:fs,anchor:"middle"});
+    const col=r.pct==null?"#667085":r.pct>0?UPT:r.pct<0?DNT:"#333";
+    s+=T((cols[3]+cols[4])/2,cy,fmtPct(r.pct),{size:fs,bold:1,fill:col,anchor:"middle"});
+  });
+  s+=`<rect x="105" y="${top}" width="563" height="${hh+rh*rows.length}" fill="none" stroke="${B}" stroke-width="3"/>`;
+  [1,2,3].forEach(k=>{ s+=`<line x1="${cols[k]}" x2="${cols[k]}" y1="${top}" y2="${bottom}" stroke="${B}" stroke-width="2.5"/>`; });
+  rows.forEach((r,i)=>{ if(i>0){ const y=top+hh+i*rh; s+=`<line x1="105" x2="668" y1="${y}" y2="${y}" stroke="${B}" stroke-width="2"/>`; } });
+  s+=`<line x1="105" x2="668" y1="${top+hh}" y2="${top+hh}" stroke="${B}" stroke-width="2.5"/>`;
+  for(let k=0;k<4;k++) s+=`<rect class="hdrhit" data-k="${k}" x="${cols[k]}" y="${top}" width="${cols[k+1]-cols[k]}" height="${hh}" fill="transparent"><title>Click to rename this header</title></rect>`;
+  return s;
+}
+function buildCompareSVG(rows,o){
+  const xs=placeX(rows.map(r=>{   // old bubble + new bubble + the arrow between them all count as obstacles
+    const yP=displayY(r.pIdx)/500*PLOT_H, yC=displayY(r.cIdx)/500*PLOT_H, shp=[{y:yP,r:r.r},{y:yC,r:r.r}], n=Math.floor(Math.abs(yC-yP)/10);
+    for(let k=1;k<n;k++) shp.push({y:yP+(yC-yP)*k/n,r:3});
+    return {x0:r.x0,r:r.r,shapes:shp}; }));
+  const defaults=[o.view==="life"?"LIFESTAGE":"PERSONICX SEGMENT",`${o.prevLabel} BPI`.toUpperCase(),`${o.curLabel} BPI`.toUpperCase(),"% OF CHANGE"];
+  const heads=defaults.map((d,k)=>((o.hdr&&o.hdr[k])||d).toUpperCase());
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" font-family='${FONT}'><rect width="${W}" height="${H}" fill="#fff"/>`;
+  s+=T(104,95,CONFIG.TITLE,{size:61,bold:1,fill:NAVY})+T(106,141,o.subtitle,{size:28,fill:NAVY});
+  s+=legendsCompare(o.view==="life"?o.lifes:new Set(LIFE_ORDER));
+  if(o.view==="life"){ const ro=o.rollup||[]; s+=tableSVG(heads,ro.map(r=>({label:r.label+(r.avg?" *":""),dot:COLORS[r.k],p:r.p,c:r.c,pct:r.pct}))); }
+  else s+=tableSVG(heads,rows.map(r=>({label:String(r.seg).padStart(2,"0")+" - "+r.name,p:r.pR,c:r.cR,pct:r.pct})));
+  s+=`<g transform="translate(${CMP_DX},${CMP_DY})">`+plotBG();
+  const col=r=>o.view==="life"?COLORS[r.life]:(r.delta>0?UPC:r.delta<0?DNC:"#8A8C8F");
+  const lab=(x,y,r,op)=>T(x.toFixed(1),y.toFixed(1),r.seg,{size:LABEL_PX[r.aff],bold:1,fill:"#fff",anchor:"middle"}).replace("<text ",`<text opacity="${op}" `);
+  rows.forEach((r,i)=>{ const x=xs[i], y=yPx(displayY(r.pIdx)); s+=`<g><title>${esc(r.seg+" \u2013 "+r.name+": "+r.pR+" \u2192 "+r.cR+" ("+fmtPct(r.pct)+")")}</title><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.r}" fill="${COLORS[r.life]}" opacity=".42"/>${lab(x,y,r,.9)}</g>`; });
+  rows.forEach((r,i)=>{ const x=xs[i], yP=yPx(displayY(r.pIdx)), yC=yPx(displayY(r.cIdx)), up=yC<yP;
+    s+=arrowSVG(x, up?yP-r.r-3:yP+r.r+3, up?yC+r.r+4:yC-r.r-4, col(r)); });
+  rows.forEach((r,i)=>{ const x=xs[i], y=yPx(displayY(r.cIdx)); s+=`<g><title>${esc(r.seg+" \u2013 "+r.name+": "+r.pR+" \u2192 "+r.cR+" ("+fmtPct(r.pct)+")")}</title><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.r}" fill="${COLORS[r.life]}"/>${lab(x,y,r,1)}</g>`; });
+  s+=`</g>`;
+  if(o.view==="life"&&(o.rollup||[]).some(r=>r.avg)) s+=T(105,792,"* simple average of segment indexes (customer/market counts not available)",{size:11,fill:"#667085"});
+  s+=T(1458,803,"\u00a9 Reflex Blu "+new Date().getFullYear(),{size:14,fill:"#333",anchor:"end"});
+  s+="</svg>"; return {svg:s,count:rows.length,heads,defaults};
 }
 
 /* ======================= INPUT: Tableau + standalone ======================= */
@@ -397,20 +558,61 @@ function describe(t,n){
 
 function runStandalone(){
   STANDALONE=true; document.body.classList.add("standalone"); stage.classList.add("stand");
-  const $=id=>document.getElementById(id);
+  const $=id=>document.getElementById(id), qa=q=>[...document.querySelectorAll(q)];
   const fileEl=$("file"), status=$("status"), goBtn=$("go"), sel=$("sheet"), wrap=$("sheetwrap"), force=$("force100"), paste=$("paste"), fname_=$("fname");
   const exp=["dlpng","dlsvg","dlpdf"].map($), chipC=$("chipC"), chipM=$("chipM"), adjEl=$("adj");
+  const subEl=$("subtitle"), cmpBtn=$("cmpToggle"), panel=$("cmpPanel"), pfile=$("pfile"), pname=$("pname"), psel=$("psheet"), pwrap=$("psheetwrap"),
+        plabel=$("plabel"), clabel=$("clabel"), presetEl=$("preset"), maxEl=$("maxn"), picker=$("picker"), dirChips=$("dirChips"), lifeChips=$("lifeChips");
+  const DEFAULT_FILE="Choose distribution file (.xlsx / .csv)", DEFAULT_PREV="Choose previous year's file";
+  const S={compare:false,view:"move",preset:"changed",max:8,dirs:{up:true,down:true},lifes:new Set(LIFE_ORDER),custom:new Set(),prev:null,dirty:{p:false,c:false},all:[],shown:[],pickKey:"",hdr:{move:[null,null,null,null],life:[null,null,null,null]},heads:[],defaults:[]};
   const fail=e=>{ msg.style.display="block"; msg.textContent=e.message; status.textContent=""; };
   const emptyHTML=()=>{ const f=fileEl.files[0];
     return '<label for="file" class="drop"><div class="ic"><svg width="30" height="30" viewBox="0 0 16 16" fill="none" stroke="#002855" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V2M4.5 5.5L8 2l3.5 3.5M2 10v3.5h12V10"/></svg></div>'
      +'<h2>'+(f?esc(f.name):'Upload your distribution file')+'</h2><p>'+(f?'Ready &ndash; click <b>Render</b> to build the chart.':'Drag &amp; drop your Personicx distribution (.xlsx or .csv) here, or <u>browse</u>. Then click <b>Render</b>.')+'</p></label>'; };
+  const present=svg=>{ stage.innerHTML='<div class="card">'+svg+'</div>'; window.__lastSVG=svg.replace(/<rect class="hdrhit"[\s\S]*?<\/rect>/g,""); };
   const setChip=(el,label,v,ok)=>{ el.hidden=false; el.className="chip "+(ok?"ok":"warn"); el.textContent=label+" total "+v.toFixed(2)+"%"+(ok?"  \u2713":""); };
   window.__onResult=r=>{
     const has=r.count>0; exp.forEach(b=>b.disabled=!has);
     if(has&&r.haveShare){ setChip(chipC,"Customer",r.totals.c,Math.abs(r.totals.c-100)<1e-9); setChip(chipM,"Market",r.totals.m,Math.abs(r.totals.m-100)<1e-9); } else { chipC.hidden=chipM.hidden=true; }
     adjEl.textContent=r.adj&&r.adj.length?"Rounding: "+r.adj.map(a=>a.side+" \u2013 "+a.band+" shown as "+a.to+" (calculated "+a.raw+", plain rounding gives "+a.was+")").join("; ")+". Adjusted so each column adds to 100.00%.":"";
   };
-  const draw=i=>{ const t=window.__tables[i]; window.__tag=t.name; status.textContent=describe(t,window.__tables.length); msg.style.display="none"; show(t.rows); };
+  const yr=x=>(String(x||"").match(/(?:19|20)\d\d/)||[""])[0];
+
+  /* ----- standard chart ----- */
+  const drawStandard=i=>{ const t=window.__tables[i]; window.__tag=t.name; status.textContent=describe(t,window.__tables.length); msg.style.display="none"; show(t.rows); };
+
+  /* ----- compare chart ----- */
+  const buildPicker=()=>{
+    const key=S.all.length+":"+S.all.reduce((a,x)=>a+x.delta*x.seg+x.cR,0); if(key===S.pickKey) return; S.pickKey=key;
+    const rows=S.all.slice().sort((a,b)=>a.seg-b.seg);
+    picker.innerHTML='<div class="ptools"><input id="psearch" class="txt" style="width:220px" placeholder="Search segments\u2026"><button class="btn" id="pshown" type="button">Select the ones shown</button><button class="btn" id="pclear" type="button">Clear</button><span style="color:var(--mut);font-size:12px">'+rows.length+' segments are in both files</span></div><div class="grid">'
+      +rows.map(r=>'<label data-t="'+esc((r.seg+" "+r.name).toLowerCase())+'"><input type="checkbox" value="'+r.seg+'"'+(S.custom.has(r.seg)?" checked":"")+'><span class="dot" style="background:'+COLORS[r.life]+'"></span><span>'+String(r.seg).padStart(2,"0")+" "+esc(r.name)+'</span><span class="m">'+r.pR+" \u2192 "+r.cR+" ("+fmtPct(r.pct)+')</span></label>').join("")+'</div>';
+  };
+  const syncChecks=()=>qa('#picker input[type=checkbox]').forEach(cb=>cb.checked=S.custom.has(+cb.value));
+  const drawCompare=t=>{
+    const pt=S.prev.tables[+psel.value]||S.prev.tables[0];
+    const cmp=compareData(t.rows,pt.rows);
+    if(!cmp.rows.length){ fail(new Error("None of the segment numbers match between the two files.")); return; }
+    S.all=cmp.rows; buildPicker();
+    const selr=selectRows(S.all,{view:S.view,preset:S.preset,max:S.max,dirs:S.dirs,lifes:S.lifes,custom:S.custom});
+    S.shown=selr.rows.map(r=>r.seg);
+    const r=buildCompareSVG(selr.rows,{view:S.view,prevLabel:plabel.value.trim()||"Previous",curLabel:clabel.value.trim()||"Current",subtitle:window.__subtitle||CONFIG.SUBTITLE,lifes:S.lifes,hdr:S.hdr[S.view],rollup:S.view==="life"?lifeRollup(S.all,S.lifes):null});
+    S.heads=r.heads; S.defaults=r.defaults; present(r.svg); msg.style.display="none"; chipC.hidden=chipM.hidden=true;
+    window.__tag=t.name+"_compare_"+(S.view==="life"?"lifestage":"movement"); window.__result={count:selr.rows.length,haveShare:true,compare:true,shown:S.shown};
+    exp.forEach(b=>b.disabled=false);
+    const notes=[];
+    if(cmp.unmatched) notes.push(cmp.unmatched+" segment(s) in the current file weren't in the previous file.");
+    if(selr.total>selr.rows.length) notes.push("Showing "+selr.rows.length+" of "+selr.total+" matching segments \u2013 raise Max (up to 10) or narrow the filters.");
+    if(!selr.rows.length) notes.push("No segments match the current selection \u2013 try another \u201cShow\u201d option.");
+    adjEl.textContent=notes.join("  ");
+    status.textContent='Comparing "'+t.name+'" with "'+pt.name+'" \u2013 '+cmp.rows.length+' segments matched.';
+  };
+  const refresh=()=>{
+    if(!window.__tables) return; const i=+sel.value, t=window.__tables[i];
+    if(S.compare&&S.prev) drawCompare(t); else { drawStandard(i); if(S.compare) status.textContent+="  Compare is on \u2013 choose the previous year's file."; }
+  };
+
+  /* ----- current file ----- */
   const go=async()=>{
     msg.style.display="none";
     try{
@@ -419,29 +621,75 @@ function runStandalone(){
       const prev=window.__tag; window.__tables=await loadTables(f,pasted);
       sel.innerHTML=window.__tables.map((t,i)=>'<option value="'+i+'">'+esc(t.name)+'</option>').join("");
       wrap.hidden=window.__tables.length<2;
-      const keep=window.__tables.findIndex(t=>t.name===prev); sel.value=String(keep>=0?keep:0); draw(+sel.value);
+      const keep=window.__tables.findIndex(t=>t.name===prev); sel.value=String(keep>=0?keep:0);
+      if(!S.dirty.c) clabel.value=yr(f&&f.name)||yr(window.__tables[+sel.value].name)||"";
+      refresh();
     }catch(e){ fail(e); }
   };
   const ready=()=>{ goBtn.disabled=!(fileEl.files[0]||paste.value.trim()); };
-  const reset=()=>{
-    fileEl.value=""; paste.value=""; window.__tables=null; window.__tag=null; window.__lastSVG=null; window.__result=null;
-    sel.innerHTML=""; wrap.hidden=true; status.textContent=""; adjEl.textContent=""; chipC.hidden=chipM.hidden=true; msg.style.display="none";
-    fname_.textContent="Choose distribution file (.xlsx / .csv)"; exp.forEach(b=>b.disabled=true); ready(); stage.innerHTML=emptyHTML();
+  goBtn.onclick=go; sel.onchange=refresh; paste.oninput=ready;
+  force.onchange=()=>{ window.__force100=force.checked; refresh(); };
+  fileEl.onchange=()=>{ const f=fileEl.files[0]; fname_.textContent=f?f.name:DEFAULT_FILE; status.textContent=f?'Ready \u2013 click Render.':""; ready(); if(!window.__lastSVG) stage.innerHTML=emptyHTML(); };
+  subEl.oninput=()=>{ window.__subtitle=subEl.value.trim(); refresh(); };
+
+  /* ----- compare controls ----- */
+  cmpBtn.onclick=()=>{ S.compare=!S.compare; $("cmpBadge").hidden=!S.compare; cmpBtn.classList.toggle("on",S.compare); cmpBtn.setAttribute("aria-pressed",S.compare); panel.hidden=!S.compare; refresh(); };
+  pfile.onchange=async()=>{
+    const f=pfile.files[0]; if(!f) return;
+    try{
+      const tables=await loadTables(f,""); S.prev={tables,name:f.name};
+      psel.innerHTML=tables.map((t,i)=>'<option value="'+i+'">'+esc(t.name)+'</option>').join(""); pwrap.hidden=tables.length<2;
+      const cur=window.__tables&&window.__tables[+sel.value]; const m=cur?tables.findIndex(t=>t.name===cur.name):-1; psel.value=String(m>=0?m:0);
+      pname.textContent=f.name; msg.style.display="none";
+      if(!S.dirty.p) plabel.value=yr(f.name)||yr(tables[+psel.value].name)||"";
+      refresh();
+    }catch(e){ fail(e); }
   };
-  goBtn.onclick=go; sel.onchange=()=>draw(+sel.value); paste.oninput=ready; $("newchart").onclick=reset;
-  force.onchange=()=>{ window.__force100=force.checked; if(window.__tables) draw(+sel.value); };
-  fileEl.onchange=()=>{ const f=fileEl.files[0]; fname_.textContent=f?f.name:"Choose distribution file (.xlsx / .csv)"; status.textContent=f?'Ready \u2013 click Render.':""; ready(); if(!window.__lastSVG) stage.innerHTML=emptyHTML(); };
+  psel.onchange=()=>{ if(!S.dirty.p&&S.prev) plabel.value=yr(S.prev.name)||yr(S.prev.tables[+psel.value].name)||""; refresh(); };
+  plabel.oninput=()=>{ S.dirty.p=true; refresh(); }; clabel.oninput=()=>{ S.dirty.c=true; refresh(); };
+  qa("#viewSeg button").forEach(b=>b.onclick=()=>{ S.view=b.dataset.view; qa("#viewSeg button").forEach(x=>x.classList.toggle("on",x===b)); dirChips.hidden=S.view!=="move"; lifeChips.hidden=S.view!=="life"; refresh(); });
+  presetEl.onchange=()=>{ S.preset=presetEl.value; picker.hidden=S.preset!=="custom"; if(S.preset==="custom"&&!S.custom.size) S.custom=new Set(S.shown); refresh(); syncChecks(); };
+  maxEl.oninput=()=>{ S.max=Math.max(1,Math.min(10,parseInt(maxEl.value,10)||8)); refresh(); };
+  qa("#dirChips .tog").forEach(b=>b.onclick=()=>{ S.dirs[b.dataset.dir]=!S.dirs[b.dataset.dir]; b.classList.toggle("on",S.dirs[b.dataset.dir]); refresh(); });
+  qa("#lifeChips .tog").forEach(b=>b.onclick=()=>{ const k=b.dataset.life; S.lifes.has(k)?S.lifes.delete(k):S.lifes.add(k); b.classList.toggle("on",S.lifes.has(k)); refresh(); });
+  picker.addEventListener("change",e=>{ if(e.target.type==="checkbox"){ const v=+e.target.value; e.target.checked?S.custom.add(v):S.custom.delete(v); refresh(); } });
+  picker.addEventListener("input",e=>{ if(e.target.id==="psearch"){ const q=e.target.value.trim().toLowerCase(); qa("#picker label").forEach(l=>l.hidden=!!q&&!l.dataset.t.includes(q)); } });
+  picker.addEventListener("click",e=>{ if(e.target.id==="pclear"){ S.custom.clear(); syncChecks(); refresh(); } if(e.target.id==="pshown"){ S.custom=new Set(S.shown); syncChecks(); refresh(); } });
+
+  /* ----- click a table header on the chart to rename it ----- */
+  stage.addEventListener("click",e=>{
+    const h=e.target.closest&&e.target.closest(".hdrhit"); if(!h||!S.compare||!S.heads.length) return;
+    const k=+h.dataset.k, r=h.getBoundingClientRect(); qa(".hdredit").forEach(x=>x.remove());
+    const inp=document.createElement("input"); inp.className="hdredit"; inp.value=S.heads[k]; inp.maxLength=26; inp.setAttribute("aria-label","Table header");
+    Object.assign(inp.style,{position:"fixed",left:r.left+"px",top:r.top+"px",width:r.width+"px",height:r.height+"px",font:"700 "+Math.max(11,Math.min(15,r.height*.27))+"px Arial,sans-serif",textAlign:"center",border:"2px solid #0a4fb4",borderRadius:"4px",background:"#fff",color:"#002855",zIndex:60,boxSizing:"border-box",outline:"none"});
+    document.body.appendChild(inp); inp.focus(); inp.select();
+    let done=false; const commit=ok=>{ if(done) return; done=true; if(ok){ const v=inp.value.trim(); S.hdr[S.view][k]=(v&&v.toUpperCase()!==S.defaults[k])?v:null; } inp.remove(); refresh(); };
+    inp.onkeydown=ev=>{ if(ev.key==="Enter") commit(true); else if(ev.key==="Escape") commit(false); };
+    inp.onblur=()=>commit(true);
+  });
+  $("hdrReset").onclick=()=>{ S.hdr={move:[null,null,null,null],life:[null,null,null,null]}; refresh(); };
+
+  /* ----- start over ----- */
+  const reset=()=>{
+    fileEl.value=""; paste.value=""; pfile.value=""; window.__tables=null; window.__tag=null; window.__lastSVG=null; window.__result=null; window.__subtitle=""; subEl.value="";
+    sel.innerHTML=""; wrap.hidden=true; psel.innerHTML=""; pwrap.hidden=true; status.textContent=""; adjEl.textContent=""; chipC.hidden=chipM.hidden=true; msg.style.display="none";
+    fname_.textContent=DEFAULT_FILE; pname.textContent=DEFAULT_PREV; plabel.value=""; clabel.value="";
+    Object.assign(S,{hdr:{move:[null,null,null,null],life:[null,null,null,null]},compare:false,view:"move",preset:"changed",max:8,prev:null,all:[],shown:[],pickKey:"",custom:new Set(),dirty:{p:false,c:false},dirs:{up:true,down:true},lifes:new Set(LIFE_ORDER)});
+    cmpBtn.classList.remove("on"); cmpBtn.setAttribute("aria-pressed","false"); $("cmpBadge").hidden=true; panel.hidden=true; picker.hidden=true; picker.innerHTML="";
+    qa("#viewSeg button").forEach(x=>x.classList.toggle("on",x.dataset.view==="move")); dirChips.hidden=false; lifeChips.hidden=true; presetEl.value="changed"; maxEl.value=8;
+    qa("#dirChips .tog,#lifeChips .tog").forEach(x=>x.classList.add("on"));
+    exp.forEach(b=>b.disabled=true); ready(); stage.innerHTML=emptyHTML();
+  };
+  $("newchart").onclick=reset;
   window.addEventListener("dragover",e=>{e.preventDefault(); document.body.classList.add("dragging");});
   window.addEventListener("dragleave",e=>{ if(!e.relatedTarget) document.body.classList.remove("dragging"); });
   window.addEventListener("drop",e=>{ e.preventDefault(); document.body.classList.remove("dragging");
     const f=e.dataTransfer.files[0]; if(f){ const dt=new DataTransfer(); dt.items.add(f); fileEl.files=dt.files; fileEl.onchange(); go(); } });
-  $("sample").onclick=async()=>{ try{ const t=await (await fetch("SB_7489_sample.csv")).text(); paste.value=t; fileEl.value=""; fname_.textContent="Choose distribution file (.xlsx / .csv)"; ready(); go(); }catch(e){ fail(new Error("Could not load SB_7489_sample.csv (open this page through its web address, not as a local file).")); } };
   const fname=ext=>"brand_preference_index"+(window.__tag?"_"+String(window.__tag).replace(/[^A-Za-z0-9]+/g,"_").replace(/^_|_$/g,""):"")+"."+ext;
   const dl=(blob,name)=>{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();};
   const toPng=(svg,name)=>{ const img=new Image(); img.onload=()=>{const c=document.createElement("canvas");c.width=W*2;c.height=H*2;const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);c.toBlob(b=>dl(b,name));}; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg); };
   $("dlsvg").onclick=()=>window.__lastSVG&&dl(new Blob([window.__lastSVG],{type:"image/svg+xml"}),fname("svg"));
   $("dlpng").onclick=()=>window.__lastSVG&&toPng(window.__lastSVG,fname("png"));
-  $("dlbg").onclick=()=>toPng(buildSVG([],{staticOnly:true}).svg,"BPI_background.png");
   window.__force100=force.checked; stage.innerHTML=emptyHTML();
 }
 
