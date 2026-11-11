@@ -58,7 +58,7 @@
   #msg{display:none;margin:12px 24px 0;padding:10px 14px;border-radius:9px;background:var(--badbg);color:var(--bad);font-size:13px;font-weight:500}
   body:not(.standalone) #msg{margin:0;padding:6px 12px;border-radius:0;background:none;color:#b00020}
   /* canvas: the chart is 16:9 and never gets squeezed into a scroll box */
-  .card{width:100%;max-width:min(1400px,calc((100vh - 250px) * 1.7778));min-width:0;aspect-ratio:1508/847;background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(16,24,40,.06),0 10px 30px rgba(16,24,40,.08)}
+  .card{width:100%;max-width:min(1400px,calc((100vh - 250px) * 1.7778));min-width:0;aspect-ratio:1504/846;background:#fff;border-radius:14px;box-shadow:0 1px 2px rgba(16,24,40,.06),0 10px 30px rgba(16,24,40,.08)}
   .card svg{width:100%;height:100%;display:block;border-radius:14px}
   .drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:min(720px,100%);height:min(380px,60vh);margin-top:4vh;text-align:center;border:2px dashed #b6c2d2;border-radius:18px;background:#fff;cursor:pointer;transition:.15s;color:var(--ink)}
   .drop:hover,body.dragging .drop{border-color:var(--navy);background:#f3f7fd}
@@ -91,12 +91,12 @@
   .tabbtn .badge{background:rgba(255,255,255,.22);color:inherit;margin:0} .tabbtn:not(.on) .badge{background:#eaf0fa;color:var(--navy)}
   #appendix{display:flex;flex-direction:column;align-items:center;gap:26px;width:100%}
   .apage{margin:0;width:100%;max-width:1240px}
-  .apage .sheet{aspect-ratio:1508/847;background:#fff;border-radius:6px;box-shadow:0 1px 2px rgba(16,24,40,.06),0 10px 30px rgba(16,24,40,.08)}
+  .apage .sheet{aspect-ratio:1504/846;background:#fff;border-radius:6px;box-shadow:0 1px 2px rgba(16,24,40,.06),0 10px 30px rgba(16,24,40,.08)}
   .apage svg{width:100%;height:100%;display:block;border-radius:6px}
   .apage figcaption{font-size:12px;color:var(--mut);margin:0 0 8px 2px}
   body.tab-app .segbar{display:none!important}
-  @page chart{size:1508px 847px;margin:0}
-  @page app{size:1508px 847px;margin:0}
+  @page chart{size:16in 9in;margin:0}
+  @page app{size:16in 9in;margin:0}
   /* options side panel */
   #opts{width:400px;flex:none;position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:auto;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(16,24,40,.10)}
   .ohead{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);font-weight:700;color:var(--navy);position:sticky;top:0;background:#fff;z-index:2;border-radius:16px 16px 0 0}
@@ -120,22 +120,22 @@
   }
   @media (max-width:760px){ .segbar{flex-wrap:wrap} .segpick{width:100%} .segpick .btn{width:100%;justify-content:center} .top{flex-wrap:wrap} .controls,.top,.morelink,.meta{padding-left:14px;padding-right:14px} body.standalone .work{padding:14px} .opt{margin-left:0} }
   @media print{
-    @page{size:1508px 847px;margin:0}
-    html,body{width:1508px;height:847px;overflow:hidden;background:#fff}
+    @page{size:16in 9in;margin:0}
+    html,body{width:16in;height:9in;overflow:hidden;background:#fff}
     .chrome,#msg,#opts,.segbar,.tabs{display:none!important}
     .mainCol{display:block}
-    #app,.work,#stage,body.standalone #stage,body.standalone .work,body.standalone #app{height:847px;min-height:0;padding:0;background:#fff;display:block;overflow:hidden}
-    .card{width:1508px;max-width:none;min-width:0;height:847px;border-radius:0;box-shadow:none}
-    .card svg{width:1508px;height:847px;border-radius:0}
+    #app,.work,#stage,body.standalone #stage,body.standalone .work,body.standalone #app{height:9in;min-height:0;padding:0;background:#fff;display:block;overflow:hidden}
+    .card{width:16in;max-width:none;min-width:0;height:9in;border-radius:0;box-shadow:none}
+    .card svg{width:16in;height:9in;border-radius:0}
     html.tab-app,html.tab-app body{width:auto!important;height:auto!important;overflow:visible!important}
     html.tab-app #app,html.tab-app .work,html.tab-app .mainCol,html.tab-app body.standalone #app,html.tab-app body.standalone .work{height:auto!important;min-height:0!important;overflow:visible!important;display:block!important;padding:0!important}
     html.tab-app #stage,html.tab-app .tabs,html.tab-app .segbar{display:none!important}
     html.tab-app #appendix{display:block!important}
-    #appendix .apage{page:app;width:1508px;max-width:none;height:847px;margin:0;break-after:page}
+    #appendix .apage{page:app;width:16in;max-width:none;height:9in;margin:0;break-after:page}
     #appendix .apage:last-child{break-after:auto}
     #appendix figcaption{display:none}
-    #appendix .sheet{width:1508px;height:847px;aspect-ratio:auto;border-radius:0;box-shadow:none}
-    #appendix .apage svg{width:1508px;height:847px;border-radius:0}
+    #appendix .sheet{width:16in;height:9in;aspect-ratio:auto;border-radius:0;box-shadow:none}
+    #appendix .apage svg{width:16in;height:9in;border-radius:0}
   }
 </style>
 </head>
@@ -285,8 +285,8 @@ const BAND_TXT = {
   3:["Brand Neutral","(Index of 80 - 119)"], 2:["Brand Resistant","(Index of 50 - 79)"],
   1:["Extremely","Brand Resistant","(Index of 0 - 49)"] };
 const NAVY="#00254F", GREY="#818285", FONT='Gotham,"Gotham Book",Montserrat,Arial,Helvetica,sans-serif';
-// slide geometry (px on a 1508 x 847 canvas)
-const W=1508, H=847, X0=460, X1=932, YT=168, YB=797, PLOT_W=X1-X0, PLOT_H=YB-YT;
+// slide geometry (px on a 1504 x 846 canvas = exactly 16:9)
+const W=1504, H=846, X0=460, X1=932, YT=168, YB=797, PLOT_W=X1-X0, PLOT_H=YB-YT;
 
 /* ======================= LOGIC ======================= */
 const rnd = v => CONFIG.ROUND_INDEX ? Math.round(v) : v;
@@ -549,7 +549,7 @@ function buildCompareSVG(rows,o){
 }
 
 /* ======================= APPENDIX (one page per brand-receptivity band) ======================= */
-const AP_W=1508, AP_H=847, AP_FONT="Arial, Helvetica, sans-serif";
+const AP_W=1504, AP_H=846, AP_FONT="Arial, Helvetica, sans-serif";
 const AP_G={titleX:104,titleY:132,titleFs:61,titleMaxW:1070, cTip:[1206,118],cX1:1238,cX2:1458,cY1:72,cY2:164, cTextX:1254,cFs:14,cStep:19,cFirst:97,
   tX:104,tW:1354,top:192,hdr:40,bottom:806,headFs:11.5,minRow:25,fsList:[12.5,12,11.5,11,10.5,10,9.5,9],pageX:45,pageY:796};
 const AP_BANDS=[
