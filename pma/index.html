@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Brand Preference Index</title>
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAF8AAABABAMAAACO4raIAAAAMFBMVEX////+///+/v/9/f7z9fzk6Pl2i98YPckUOskHLsYBKsQAKsQCKcQAKcQAJcMAH8F2/ShfAAAC2UlEQVR42u2XT0gUURzHv/PHCMJ21j/YpRo1ohRjdUw0PHRQpEAIwpBOHoKtKOjUH7qIwUKHPInCGiFkh0JxQYhSQ0GwMNcGxSBjdVYpzFp3dCPD9c3rsLvtLMzLGaGb7zK/N7zP+/7ee7/3m99wIThqMREI2h8ueMCF4LYPUD0mgvjtA/xFiOTglG4byGuJicCPMdtAAyACfIVdCQmACBhrmk1Azgd4OGx7gFPALaVtjhWSosmOmuMyakOhqMjaZijwQhNea6mwqpc+aQWetRwalhcLjXZiqXC1NW0fugNwd+Fr3V8NXyvDpWFT1NJhgJPAAxcyd9K8aMFkcwIQ8Ua9dNNLvQa1BgDkFoNOpzqTkztsKyCEACimNKLQdSmisYFgfSFot0dN9E7LRj+ArCbaxwCkSzW3sIUnKf9edA4Y4PnnmwPEGlivOd9PfnbE1YQEjSRex1XGtnITl4+TXy3POmeTfS75lFlr2N7njSLYPteoqcxozQBEnx/IypWPzdgLb3rms1JRXDpf0haGPQXXYLYO4WOPYffG6WUA6NHepUbZwRU14ksTkJzcabf+j/FWAN1F1tAdARuSKzNn7wAIws0a3STBaexzkGYP65DD2WScAAClnsIQygp0psJM47KikGuz0eTU2eVhRZmrHmcpcF869TFUPXraUaYC4BfB1Y7Be3+Z6dL2t6p87mSwuVdP7u+rqvycroDrBAOgYsk9CVsv+0YNgICU3i59CPT8ro2zkvE53wG//2vD+1MA6oCNlSt+f6B5NJfl0vzK27YH6BoaJ8BWN6AtXe/CuxuB7oglYHBvXEOj867vg4c1YErSVBx5vCatBipHKMmY9mz6KIsTFctffz0Ayk1n3rCqml0qQkjwIKIm7AXAmFFAPvCyoVmvYQEgwbQNwAgCMBb2vtP/HRABPsculSrhph0WiXl1tgE3IAoblQ5WHNtNKY0Rp8W6s9+BPxmj+13DkgQBAAAAAElFTkSuQmCC">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root{--navy:#002855;--ink:#1c2733;--mut:#667085;--line:#e3e8ef;--bg:#f2f5f9;--card:#fff;--ok:#0f7b4a;--okbg:#e6f6ee;--warn:#9a5b00;--warnbg:#fff4de;--bad:#b42318;--badbg:#fee4e2;--accent:#0a4fb4}
@@ -16,7 +17,7 @@
   body.standalone{background:var(--bg)}
   .top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 24px;background:#fff;border-bottom:1px solid var(--line)}
   .brand{display:flex;align-items:center;gap:12px}
-  .brand .mark{width:38px;height:38px;border-radius:10px;background:var(--navy);display:grid;place-items:center}
+  .brand .logo{height:40px;width:auto;display:block}
   .brand .t{font-weight:700;font-size:16px;letter-spacing:.2px;color:var(--navy)} .brand .s{font-size:12px;color:var(--mut);margin-top:1px}
   .actions{display:flex;align-items:center;gap:10px}
   .btn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--ink);font:600 13px/1 inherit;font-family:inherit;cursor:pointer;transition:.15s}
@@ -68,7 +69,7 @@
   <div class="chrome">
     <header class="top">
       <div class="brand">
-        <div class="mark"><svg width="22" height="22" viewBox="0 0 22 22"><circle cx="7" cy="14" r="5" fill="#00AEEF"/><circle cx="15" cy="7" r="4" fill="#EC008C"/><circle cx="16" cy="16" r="3.4" fill="#39B54A"/></svg></div>
+        <img class="logo" alt="blü" src="data:image/png;base64,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">
         <div><div class="t">Brand Preference Index</div><div class="s">Personicx NS &middot; bubble chart builder</div></div>
       </div>
       <div class="actions">
