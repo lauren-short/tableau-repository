@@ -212,8 +212,7 @@
             <div class="hint">Only the table is re-ordered; the bubbles stay where they are.</div>
           </div>
           <div class="osec">
-            <div class="lbl">% of change decimals</div>
-            <div class="seg full" id="decSeg"><button class="btn on" data-dec="0" type="button">0 &nbsp;<span class="mut">29%</span></button><button class="btn" data-dec="1" type="button">1 &nbsp;<span class="mut">29.4%</span></button><button class="btn" data-dec="2" type="button">2 &nbsp;<span class="mut">29.41%</span></button></div>
+            <label class="field"><span class="lbl">% of change decimals</span><select id="decSel"><option value="0">0 decimals (29%)</option><option value="1">1 decimal (29.4%)</option><option value="2">2 decimals (29.41%)</option></select></label>
             <div class="hint">Worked out from the whole-number BPIs shown in the table.</div>
           </div>
           <div class="osec">
@@ -790,7 +789,7 @@ function runStandalone(){
   qa("#viewSeg button").forEach(b=>b.onclick=()=>{ S.view=b.dataset.view; qa("#viewSeg button").forEach(x=>x.classList.toggle("on",x===b)); dirChips.hidden=S.view!=="move"; lifeChips.hidden=S.view!=="life"; $("tblModeWrap").hidden=S.view!=="life"; refresh(); });
   $("sortKey").onchange=()=>{ S.sortKey=$("sortKey").value; qa("#sortDir button").forEach(b=>b.disabled=S.sortKey==="seg"); refresh(); };
   qa("#sortDir button").forEach(b=>b.onclick=()=>{ S.sortDir=b.dataset.dir; qa("#sortDir button").forEach(x=>x.classList.toggle("on",x===b)); refresh(); });
-  qa("#decSeg button").forEach(b=>b.onclick=()=>{ S.dec=+b.dataset.dec; PCT_DEC=S.dec; qa("#decSeg button").forEach(x=>x.classList.toggle("on",x===b)); refresh(); });
+  { const setDec=()=>{ S.dec=+$("decSel").value; PCT_DEC=S.dec; refresh(); }; $("decSel").onchange=setDec; $("decSel").oninput=setDec; }
   $("tblMode").onchange=()=>{ S.tableMode=$("tblMode").value; refresh(); };
   qa("#sortDir button").forEach(b=>b.disabled=true);
   presetEl.onchange=()=>{ S.preset=presetEl.value; refresh(); };
@@ -819,7 +818,7 @@ function runStandalone(){
     fname_.textContent=DEFAULT_FILE; pname.textContent=DEFAULT_PREV; plabel.value=""; clabel.value="";
     Object.assign(S,{dec:0,sortKey:"seg",sortDir:"desc",tableMode:"codes",segScope:"shown",cross:"off",hdr:{move:[null,null,null,null],life:[null,null,null,null],lifeTot:[null,null,null,null]},compare:false,view:"move",preset:"changed",max:8,prev:null,all:[],shown:[],excl:new Set(),incl:new Set(),autoSet:new Set(),dirty:{p:false,c:false},dirs:{up:true,down:true},lifes:new Set(LIFE_ORDER)});
     cmpBtn.classList.remove("on"); cmpBtn.setAttribute("aria-pressed","false"); cmpBtn.setAttribute("aria-checked","false"); $("cmpBadge").hidden=true; panel.hidden=true; segbar.hidden=true; segMenu.hidden=true; chipsEl.innerHTML="";
-    qa("#viewSeg button").forEach(x=>x.classList.toggle("on",x.dataset.view==="move")); dirChips.hidden=false; lifeChips.hidden=true; presetEl.value="changed"; maxEl.value=8; PCT_DEC=0; qa("#decSeg button").forEach(x=>x.classList.toggle("on",x.dataset.dec==="0")); $("sortKey").value="seg"; $("tblMode").value="codes"; $("tblModeWrap").hidden=true; qa("#sortDir button").forEach(x=>{ x.disabled=true; x.classList.toggle("on",x.dataset.dir==="desc"); }); $("crossSel").value="off";
+    qa("#viewSeg button").forEach(x=>x.classList.toggle("on",x.dataset.view==="move")); dirChips.hidden=false; lifeChips.hidden=true; presetEl.value="changed"; maxEl.value=8; PCT_DEC=0; $("decSel").value="0"; $("sortKey").value="seg"; $("tblMode").value="codes"; $("tblModeWrap").hidden=true; qa("#sortDir button").forEach(x=>{ x.disabled=true; x.classList.toggle("on",x.dataset.dir==="desc"); }); $("crossSel").value="off";
     qa("#dirChips .tog,#lifeChips .tog").forEach(x=>x.classList.add("on"));
     exp.forEach(b=>b.disabled=true); ready(); stage.innerHTML=emptyHTML();
   };
