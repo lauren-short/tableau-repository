@@ -191,6 +191,9 @@
             <div class="lbl">View</div>
             <div class="seg full" id="viewSeg"><button class="btn on" data-view="move" type="button">Increase / decrease</button><button class="btn" data-view="life" type="button">Lifestage</button></div>
           </div>
+          <div class="osec" id="tblModeWrap" hidden>
+            <label class="field"><span class="lbl">Table shows</span><select id="tblMode"><option value="codes">Personicx codes (grouped by lifestage)</option><option value="life">Lifestage totals</option></select></label>
+          </div>
           <div class="osec">
             <label class="field"><span class="lbl">Show</span><select id="preset"><option value="changed">Segments that changed band</option><option value="movers">Biggest movers (up or down)</option><option value="up">Biggest increases</option><option value="down">Biggest decreases</option></select></label>
             <label class="field" title="Index 120 is where Brand Receptive begins. Use this to look only at segments that cross it."><span class="lbl">Crossing 120</span><select id="crossSel"><option value="off">Off (any movement)</option><option value="any">Into or out of 120+</option><option value="in">Moved into 120+</option><option value="out">Moved out of 120+</option></select></label>
@@ -202,6 +205,11 @@
             <span class="chips" id="lifeChips" hidden>
               <button class="chip tog on" data-life="Y" type="button"><span class="dot" style="background:#00AEEF"></span>Youth</button><button class="chip tog on" data-life="C" type="button"><span class="dot" style="background:#39B54A"></span>Career Building</button><button class="chip tog on" data-life="E" type="button"><span class="dot" style="background:#662D91"></span>Earning Years</button><button class="chip tog on" data-life="R" type="button"><span class="dot" style="background:#EC008C"></span>Retirement</button>
             </span>
+          </div>
+          <div class="osec">
+            <label class="field"><span class="lbl">Sort table by</span><select id="sortKey"><option value="seg">Personicx code (default)</option><option value="p">Previous BPI</option><option value="c">Current BPI</option><option value="pct">% of change</option></select></label>
+            <div class="seg full" id="sortDir"><button class="btn on" data-dir="desc" type="button">High &rarr; low</button><button class="btn" data-dir="asc" type="button">Low &rarr; high</button></div>
+            <div class="hint">Only the table is re-ordered; the bubbles stay where they are.</div>
           </div>
           <div class="osec">
             <div class="lbl">Table headers</div>
@@ -260,22 +268,29 @@ const yPx = d => YB - d/500*PLOT_H;
 // Collision-free x: start at each segment's default x, nudge only bubbles that would overlap
 function placeX(items){
   const n=items.length, sh=items.map(o=>o.shapes||[{y:o.dy/500*PLOT_H,r:o.r}]), r=items.map(o=>o.r);
-  const x0=items.map(o=>o.x0/100*PLOT_W), x=x0.slice();
-  const lo=r.map(v=>v+1), hi=r.map(v=>PLOT_W-v-1);
-  const LAMBDA=0.004;
-  const pen=(i,cx,j)=>{ let c=0; for(const a of sh[i]) for(const b of sh[j]){ const o=a.r+b.r+CONFIG.GAP-Math.hypot(cx-x[j],a.y-b.y); if(o>0)c+=o*o; } return c; };
+  const x0=items.map(o=>Math.round(o.x0/100*PLOT_W)), x=x0.slice();
+  const lo=r.map(v=>Math.ceil(v+1)), hi=r.map(v=>Math.floor(PLOT_W-v-1)), LAMBDA=0.004;
+  // Penalty between two segments depends only on how far apart they are horizontally, so it is computed once per pair.
+  const f=new Array(n*n);
+  for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){
+    let reach=0; for(const a of sh[i]) for(const b of sh[j]) reach=Math.max(reach,a.r+b.r+CONFIG.GAP);
+    const arr=new Float32Array(Math.ceil(reach)+1);
+    for(let dx=0;dx<arr.length;dx++){ let c=0; for(const a of sh[i]) for(const b of sh[j]){ const o=a.r+b.r+CONFIG.GAP-Math.hypot(dx,a.y-b.y); if(o>0) c+=o*o; } arr[dx]=c; }
+    f[i*n+j]=arr; f[j*n+i]=arr;
+  }
+  const pen=(i,cx,j)=>{ const arr=f[i*n+j], d=Math.abs(cx-x[j]); return d<arr.length?arr[d]:0; };
   for(let pass=0;pass<40;pass++){
     let moved=false;
     const crowd=x.map((xi,i)=>{ let c=0; for(let j=0;j<n;j++) if(j!==i) c+=pen(i,xi,j); return c; });
     const order=[...Array(n).keys()].sort((a,b)=>crowd[b]-crowd[a]);
     for(const i of order){
-      if(crowd[i]===0 && Math.abs(x[i]-x0[i])<1e-9) continue;
+      if(crowd[i]===0 && x[i]===x0[i]) continue;
       let best=x[i], bc=Infinity;
-      for(let c=Math.ceil(lo[i]); c<=Math.floor(hi[i]); c++){
+      for(let c=lo[i]; c<=hi[i]; c++){
         let cost=LAMBDA*(c-x0[i])*(c-x0[i]); for(let j=0;j<n;j++) if(j!==i) cost+=pen(i,c,j);
         if(cost<bc){bc=cost;best=c;}
       }
-      if(Math.abs(best-x[i])>1e-9){x[i]=best;moved=true;}
+      if(best!==x[i]){x[i]=best;moved=true;}
     }
     if(!moved)break;
   }
@@ -446,7 +461,7 @@ function tableSVG(head,rows){
   rows.forEach((r,i)=>{
     const y=top+hh+i*rh, cy=y+rh/2;
     s+=`<rect x="105" y="${y}" width="563" height="${rh}" fill="#fff"/>`;
-    if(r.dot){ s+=`<circle cx="125" cy="${cy}" r="8" fill="${r.dot}"/>`+T(143,cy,r.label,{size:fs}); }
+    if(r.dot){ s+=`<circle cx="125" cy="${cy}" r="${Math.min(8,rh/2-4)}" fill="${r.dot}"/>`+T(143,cy,r.label,{size:r.label.length>30?fs-2:fs}); }
     else s+=T((cols[0]+cols[1])/2,cy,r.label,{size:r.label.length>32?fs-2:fs,anchor:"middle"});
     s+=T((cols[1]+cols[2])/2,cy,r.p,{size:fs,anchor:"middle"})+T((cols[2]+cols[3])/2,cy,r.c,{size:fs,anchor:"middle"});
     const col=r.pct==null?"#667085":r.pct>0?UPT:r.pct<0?DNT:"#333";
@@ -459,18 +474,26 @@ function tableSVG(head,rows){
   for(let k=0;k<4;k++) s+=`<rect class="hdrhit" data-k="${k}" x="${cols[k]}" y="${top}" width="${cols[k+1]-cols[k]}" height="${hh}" fill="transparent"><title>Click to rename this header</title></rect>`;
   return s;
 }
+const _v=(r,k)=>k==="p"?(r.pR!=null?r.pR:r.p):k==="c"?(r.cR!=null?r.cR:r.c):r.pct;
+function sortRows(list,key,dir,groupByLife){
+  const a=list.slice(), sg=r=>r.seg||0;
+  if(!key||key==="seg"){ if(groupByLife) a.sort((x,y)=>(LIFE_ORDER.indexOf(x.life)-LIFE_ORDER.indexOf(y.life))||(sg(x)-sg(y))); else if(a.length&&a[0].seg!=null) a.sort((x,y)=>sg(x)-sg(y)); return a; }
+  return a.sort((x,y)=>{ const u=_v(x,key), v=_v(y,key); if(u==null&&v==null) return sg(x)-sg(y); if(u==null) return 1; if(v==null) return -1; return ((dir==="asc")?(u-v):(v-u))||(sg(x)-sg(y)); });
+}
 function buildCompareSVG(rows,o){
   const xs=placeX(rows.map(r=>{   // old bubble + new bubble + the arrow between them all count as obstacles
     const yP=displayY(r.pIdx)/500*PLOT_H, yC=displayY(r.cIdx)/500*PLOT_H, shp=[{y:yP,r:r.r},{y:yC,r:r.r}], n=Math.floor(Math.abs(yC-yP)/10);
     for(let k=1;k<n;k++) shp.push({y:yP+(yC-yP)*k/n,r:3});
     return {x0:r.x0,r:r.r,shapes:shp}; }));
-  const defaults=[o.view==="life"?"LIFESTAGE":"PERSONICX SEGMENT",`${o.prevLabel} BPI`.toUpperCase(),`${o.curLabel} BPI`.toUpperCase(),"% OF CHANGE"];
+  const totalsTable=o.view==="life"&&o.tableMode==="life";
+  const defaults=[totalsTable?"LIFESTAGE":"PERSONICX SEGMENT",`${o.prevLabel} BPI`.toUpperCase(),`${o.curLabel} BPI`.toUpperCase(),"% OF CHANGE"];
   const heads=defaults.map((d,k)=>((o.hdr&&o.hdr[k])||d).toUpperCase());
   let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" font-family='${FONT}'><rect width="${W}" height="${H}" fill="#fff"/>`;
   s+=T(104,95,CONFIG.TITLE,{size:61,bold:1,fill:NAVY})+T(106,141,o.subtitle,{size:28,fill:NAVY});
   s+=legendsCompare(o.view==="life"?o.lifes:new Set(LIFE_ORDER));
-  if(o.view==="life"){ const ro=o.rollup||[]; s+=tableSVG(heads,ro.map(r=>({label:r.label+(r.avg?" *":""),dot:COLORS[r.k],p:r.p,c:r.c,pct:r.pct}))); }
-  else s+=tableSVG(heads,rows.map(r=>({label:String(r.seg).padStart(2,"0")+" - "+r.name,p:r.pR,c:r.cR,pct:r.pct})));
+  if(totalsTable){ const ro=sortRows(o.rollup||[],o.sortKey,o.sortDir,false); s+=tableSVG(heads,ro.map(r=>({label:r.label+(r.avg?" *":""),dot:COLORS[r.k],p:r.p,c:r.c,pct:r.pct}))); }
+  else { const tr=sortRows(rows,o.sortKey,o.sortDir,o.view==="life");   // lifestage view: codes grouped by lifestage, each row carries its lifestage colour dot
+    s+=tableSVG(heads,tr.map(r=>({label:String(r.seg).padStart(2,"0")+" - "+r.name,dot:o.view==="life"?COLORS[r.life]:null,p:r.pR,c:r.cR,pct:r.pct}))); }
   s+=`<g transform="translate(${CMP_DX},${CMP_DY})">`+plotBG();
   const col=r=>o.view==="life"?COLORS[r.life]:(r.delta>0?UPC:r.delta<0?DNC:"#8A8C8F");
   const lab=(x,y,r,op)=>T(x.toFixed(1),y.toFixed(1),r.seg,{size:LABEL_PX[r.aff],bold:1,fill:"#fff",anchor:"middle"}).replace("<text ",`<text opacity="${op}" `);
@@ -635,7 +658,7 @@ function runStandalone(){
   const subEl=$("subtitle"), cmpBtn=$("cmpToggle"), panel=$("cmpPanel"), pfile=$("pfile"), pname=$("pname"), psel=$("psheet"), pwrap=$("psheetwrap"),
         plabel=$("plabel"), clabel=$("clabel"), presetEl=$("preset"), maxEl=$("maxn"), dirChips=$("dirChips"), lifeChips=$("lifeChips");
   const DEFAULT_FILE="Choose distribution file (.xlsx / .csv)", DEFAULT_PREV="Choose previous year's file";
-  const S={cross:"off",compare:false,view:"move",preset:"changed",max:8,dirs:{up:true,down:true},lifes:new Set(LIFE_ORDER),excl:new Set(),incl:new Set(),autoSet:new Set(),segScope:"shown",prev:null,dirty:{p:false,c:false},all:[],shown:[],hdr:{move:[null,null,null,null],life:[null,null,null,null]},heads:[],defaults:[]};
+  const S={cross:"off",compare:false,view:"move",preset:"changed",max:8,dirs:{up:true,down:true},lifes:new Set(LIFE_ORDER),excl:new Set(),incl:new Set(),autoSet:new Set(),segScope:"shown",sortKey:"seg",sortDir:"desc",tableMode:"codes",prev:null,dirty:{p:false,c:false},all:[],shown:[],hdr:{move:[null,null,null,null],life:[null,null,null,null],lifeTot:[null,null,null,null]},heads:[],defaults:[]};
   const fail=e=>{ msg.style.display="block"; msg.textContent=e.message; status.textContent=""; };
   const emptyHTML=()=>{ const f=fileEl.files[0];
     return '<label for="file" class="drop"><div class="ic"><svg width="30" height="30" viewBox="0 0 16 16" fill="none" stroke="#002855" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V2M4.5 5.5L8 2l3.5 3.5M2 10v3.5h12V10"/></svg></div>'
@@ -647,6 +670,7 @@ function runStandalone(){
     if(has&&r.haveShare){ setChip(chipC,"Customer",r.totals.c,Math.abs(r.totals.c-100)<1e-9); setChip(chipM,"Market",r.totals.m,Math.abs(r.totals.m-100)<1e-9); } else { chipC.hidden=chipM.hidden=true; }
     adjEl.textContent=r.adj&&r.adj.length?"Rounding: "+r.adj.map(a=>a.side+" \u2013 "+a.band+" shown as "+a.to+" (calculated "+a.raw+", plain rounding gives "+a.was+")").join("; ")+". Adjusted so each column adds to 100.00%.":"";
   };
+  const hk=()=>S.view==="move"?"move":(S.tableMode==="life"?"lifeTot":"life");
   const yr=x=>(String(x||"").match(/(?:19|20)\d\d/)||[""])[0];
 
   /* ----- standard chart ----- */
@@ -689,12 +713,13 @@ function runStandalone(){
     const cmp=compareData(t.rows,pt.rows);
     if(!cmp.rows.length){ fail(new Error("None of the segment numbers match between the two files.")); return; }
     S.all=cmp.rows;
+    $("sortKey").options[1].textContent=(plabel.value.trim()||"Previous")+" BPI"; $("sortKey").options[2].textContent=(clabel.value.trim()||"Current")+" BPI";
     const selr=selectRows(S.all,{view:S.view,preset:S.preset,max:S.max,dirs:S.dirs,lifes:S.lifes,cross:S.cross});
     S.autoSet=new Set(selr.rows.map(r=>r.seg));
     let rowsOut=selr.rows.filter(r=>!S.excl.has(r.seg)).concat(S.all.filter(r=>S.incl.has(r.seg)&&!S.autoSet.has(r.seg)));
     let capped=0; if(rowsOut.length>10){ capped=rowsOut.length-10; rowsOut=rowsOut.slice().sort((a,b)=>(Math.abs(b.delta)-Math.abs(a.delta))||(a.seg-b.seg)).slice(0,10); }
     rowsOut.sort((a,b)=>a.seg-b.seg); S.shown=rowsOut.map(r=>r.seg);
-    const r=buildCompareSVG(rowsOut,{view:S.view,prevLabel:plabel.value.trim()||"Previous",curLabel:clabel.value.trim()||"Current",subtitle:window.__subtitle||CONFIG.SUBTITLE,lifes:S.lifes,hdr:S.hdr[S.view],rollup:S.view==="life"?lifeRollup(S.cross!=="off"?S.all.filter(x=>crosses(x,S.cross)):S.all,S.lifes,S.cross!=="off"):null});
+    const r=buildCompareSVG(rowsOut,{view:S.view,prevLabel:plabel.value.trim()||"Previous",curLabel:clabel.value.trim()||"Current",subtitle:window.__subtitle||CONFIG.SUBTITLE,lifes:S.lifes,hdr:S.hdr[hk()],sortKey:S.sortKey,sortDir:S.sortDir,tableMode:S.tableMode,rollup:(S.view==="life"&&S.tableMode==="life")?lifeRollup(S.cross!=="off"?S.all.filter(x=>crosses(x,S.cross)):S.all,S.lifes,S.cross!=="off"):null});
     S.heads=r.heads; S.defaults=r.defaults; present(r.svg); msg.style.display="none"; chipC.hidden=chipM.hidden=true;
     window.__tag=t.name+"_compare_"+(S.view==="life"?"lifestage":"movement"); window.__result={count:rowsOut.length,haveShare:true,compare:true,shown:S.shown};
     exp.forEach(b=>b.disabled=false);
@@ -754,7 +779,11 @@ function runStandalone(){
   };
   psel.onchange=()=>{ if(!S.dirty.p&&S.prev) plabel.value=yr(S.prev.name)||yr(S.prev.tables[+psel.value].name)||""; refresh(); };
   plabel.oninput=()=>{ S.dirty.p=true; refresh(); }; clabel.oninput=()=>{ S.dirty.c=true; refresh(); };
-  qa("#viewSeg button").forEach(b=>b.onclick=()=>{ S.view=b.dataset.view; qa("#viewSeg button").forEach(x=>x.classList.toggle("on",x===b)); dirChips.hidden=S.view!=="move"; lifeChips.hidden=S.view!=="life"; refresh(); });
+  qa("#viewSeg button").forEach(b=>b.onclick=()=>{ S.view=b.dataset.view; qa("#viewSeg button").forEach(x=>x.classList.toggle("on",x===b)); dirChips.hidden=S.view!=="move"; lifeChips.hidden=S.view!=="life"; $("tblModeWrap").hidden=S.view!=="life"; refresh(); });
+  $("sortKey").onchange=()=>{ S.sortKey=$("sortKey").value; qa("#sortDir button").forEach(b=>b.disabled=S.sortKey==="seg"); refresh(); };
+  qa("#sortDir button").forEach(b=>b.onclick=()=>{ S.sortDir=b.dataset.dir; qa("#sortDir button").forEach(x=>x.classList.toggle("on",x===b)); refresh(); });
+  $("tblMode").onchange=()=>{ S.tableMode=$("tblMode").value; refresh(); };
+  qa("#sortDir button").forEach(b=>b.disabled=true);
   presetEl.onchange=()=>{ S.preset=presetEl.value; refresh(); };
   $("crossSel").onchange=()=>{ S.cross=$("crossSel").value; refresh(); };
   maxEl.oninput=()=>{ S.max=Math.max(1,Math.min(10,parseInt(maxEl.value,10)||8)); refresh(); };
@@ -768,7 +797,7 @@ function runStandalone(){
     const inp=document.createElement("input"); inp.className="hdredit"; inp.value=S.heads[k]; inp.maxLength=26; inp.setAttribute("aria-label","Table header");
     Object.assign(inp.style,{position:"fixed",left:r.left+"px",top:r.top+"px",width:r.width+"px",height:r.height+"px",font:"700 "+Math.max(11,Math.min(15,r.height*.27))+"px Arial,sans-serif",textAlign:"center",border:"2px solid #0a4fb4",borderRadius:"4px",background:"#fff",color:"#002855",zIndex:60,boxSizing:"border-box",outline:"none"});
     document.body.appendChild(inp); inp.focus(); inp.select();
-    let done=false; const commit=ok=>{ if(done) return; done=true; if(ok){ const v=inp.value.trim(); S.hdr[S.view][k]=(v&&v.toUpperCase()!==S.defaults[k])?v:null; } inp.remove(); refresh(); };
+    let done=false; const commit=ok=>{ if(done) return; done=true; if(ok){ const v=inp.value.trim(); S.hdr[hk()][k]=(v&&v.toUpperCase()!==S.defaults[k])?v:null; } inp.remove(); refresh(); };
     inp.onkeydown=ev=>{ if(ev.key==="Enter") commit(true); else if(ev.key==="Escape") commit(false); };
     inp.onblur=()=>commit(true);
   });
@@ -779,9 +808,9 @@ function runStandalone(){
     fileEl.value=""; paste.value=""; pfile.value=""; window.__tables=null; window.__tag=null; window.__lastSVG=null; window.__result=null; window.__subtitle=""; subEl.value="";
     sel.innerHTML=""; wrap.hidden=true; psel.innerHTML=""; pwrap.hidden=true; status.textContent=""; adjEl.textContent=""; chipC.hidden=chipM.hidden=true; msg.style.display="none";
     fname_.textContent=DEFAULT_FILE; pname.textContent=DEFAULT_PREV; plabel.value=""; clabel.value="";
-    Object.assign(S,{segScope:"shown",cross:"off",hdr:{move:[null,null,null,null],life:[null,null,null,null]},compare:false,view:"move",preset:"changed",max:8,prev:null,all:[],shown:[],excl:new Set(),incl:new Set(),autoSet:new Set(),dirty:{p:false,c:false},dirs:{up:true,down:true},lifes:new Set(LIFE_ORDER)});
+    Object.assign(S,{sortKey:"seg",sortDir:"desc",tableMode:"codes",segScope:"shown",cross:"off",hdr:{move:[null,null,null,null],life:[null,null,null,null],lifeTot:[null,null,null,null]},compare:false,view:"move",preset:"changed",max:8,prev:null,all:[],shown:[],excl:new Set(),incl:new Set(),autoSet:new Set(),dirty:{p:false,c:false},dirs:{up:true,down:true},lifes:new Set(LIFE_ORDER)});
     cmpBtn.classList.remove("on"); cmpBtn.setAttribute("aria-pressed","false"); cmpBtn.setAttribute("aria-checked","false"); $("cmpBadge").hidden=true; panel.hidden=true; segbar.hidden=true; segMenu.hidden=true; chipsEl.innerHTML="";
-    qa("#viewSeg button").forEach(x=>x.classList.toggle("on",x.dataset.view==="move")); dirChips.hidden=false; lifeChips.hidden=true; presetEl.value="changed"; maxEl.value=8; $("crossSel").value="off";
+    qa("#viewSeg button").forEach(x=>x.classList.toggle("on",x.dataset.view==="move")); dirChips.hidden=false; lifeChips.hidden=true; presetEl.value="changed"; maxEl.value=8; $("sortKey").value="seg"; $("tblMode").value="codes"; $("tblModeWrap").hidden=true; qa("#sortDir button").forEach(x=>{ x.disabled=true; x.classList.toggle("on",x.dataset.dir==="desc"); }); $("crossSel").value="off";
     qa("#dirChips .tog,#lifeChips .tog").forEach(x=>x.classList.add("on"));
     exp.forEach(b=>b.disabled=true); ready(); stage.innerHTML=emptyHTML();
   };
