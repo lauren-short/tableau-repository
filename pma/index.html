@@ -34,7 +34,7 @@
   .btn.on:hover:not(:disabled){background:#003a7a;border-color:#003a7a}
   .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
   .seg .btn{border:0;border-radius:0;border-right:1px solid var(--line);height:34px;padding:0 13px} .seg .btn:last-child{border-right:0}
-  .seg.full{display:flex;width:100%} .seg.full .btn{flex:1;justify-content:center}
+  .seg.full{display:flex;width:100%} .seg.full .btn{flex:1;justify-content:center} .seg .btn .mut{font-weight:500;font-size:11px;opacity:.75}
   .controls{display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:14px 24px;background:#fff;border-bottom:1px solid var(--line)}
   .filebtn{display:inline-flex;align-items:center;gap:9px;max-width:360px;height:36px;padding:0 14px;border:1px dashed #b6c2d2;border-radius:9px;background:#f8fafd;cursor:pointer;font-size:13px;color:var(--ink)}
   .filebtn:hover{border-color:var(--navy);background:#f0f5fc} .filebtn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -212,6 +212,11 @@
             <div class="hint">Only the table is re-ordered; the bubbles stay where they are.</div>
           </div>
           <div class="osec">
+            <div class="lbl">% of change decimals</div>
+            <div class="seg full" id="decSeg"><button class="btn on" data-dec="0" type="button">0 &nbsp;<span class="mut">29%</span></button><button class="btn" data-dec="1" type="button">1 &nbsp;<span class="mut">29.4%</span></button><button class="btn" data-dec="2" type="button">2 &nbsp;<span class="mut">29.41%</span></button></div>
+            <div class="hint">Worked out from the whole-number BPIs shown in the table.</div>
+          </div>
+          <div class="osec">
             <div class="lbl">Table headers</div>
             <div class="hint">Click any header on the chart to rename it. The labels above fill in &ldquo;2024 BPI&rdquo; automatically.</div>
             <div><button class="btn" id="hdrReset" type="button">Reset headers</button></div>
@@ -387,14 +392,16 @@ function buildSVG(rows,opts){
 const UPC="#5CD62E", DNC="#F0200F", UPT="#2FA81F", DNT="#E3341F", LIFE_ORDER=["Y","C","E","R"], CMP_DX=321, CMP_DY=-11;
 const RECEPTIVE=120;   // index at which a segment becomes "Brand Receptive"
 const crosses=(x,m)=>m==='any'?((x.pR>=RECEPTIVE)!==(x.cR>=RECEPTIVE)):m==='in'?(x.pR<RECEPTIVE&&x.cR>=RECEPTIVE):m==='out'?(x.pR>=RECEPTIVE&&x.cR<RECEPTIVE):true;
-const fmtPct=p=>p==null?"n/a":(p>0?"+":"")+p+"%";
+let PCT_DEC=0;   // decimals shown for % of change (0, 1 or 2)
+const pctShown=p=>p==null?null:Number(p.toFixed(PCT_DEC));
+const fmtPct=p=>{ if(p==null) return "n/a"; const v=pctShown(p); return (v>0?"+":"")+v.toFixed(PCT_DEC)+"%"; };
 function compareData(curRows,prevRows){
   const A=prepare(curRows), B=prepare(prevRows), pm=new Map(B.items.map(o=>[o.seg,o])), out=[]; let unmatched=0;
   for(const c of A.items){
     const p=pm.get(c.seg); if(!p){unmatched++;continue;}
     const m=MASTER[c.seg], ci=Math.round(c.idx), pi=Math.round(p.idx);
     out.push({seg:c.seg,name:(c.name||p.name||m[3]),life:m[0],aff:m[1],x0:m[2],r:RADIUS[m[1]],
-      pIdx:p.idx,cIdx:c.idx,pR:pi,cR:ci,delta:ci-pi,pct:pi>0?Math.round((ci-pi)/pi*100)||0:null,
+      pIdx:p.idx,cIdx:c.idx,pR:pi,cR:ci,delta:ci-pi,pct:pi>0?(ci-pi)/pi*100:null,
       pBand:bandOf(p.idx),cBand:bandOf(c.idx),cp:c.cp,mp:c.mp,pcp:p.cp,pmp:p.mp});
   }
   return {rows:out,unmatched};
@@ -421,7 +428,7 @@ function lifeRollup(all,lifes,showCount){
     else { pv=g.reduce((a,x)=>a+x.pIdx,0)/g.length; cv=g.reduce((a,x)=>a+x.cIdx,0)/g.length; }
     if(pv==null||cv==null) continue;
     const p=Math.round(pv), c=Math.round(cv);
-    out.push({k,label:LIFE[k]+(showCount?" ("+g.length+")":""),n:g.length,p,c,pct:p>0?Math.round((c-p)/p*100)||0:null,avg:!share});
+    out.push({k,label:LIFE[k]+(showCount?" ("+g.length+")":""),n:g.length,p,c,pct:p>0?(c-p)/p*100:null,avg:!share});
   }
   return out;
 }
@@ -436,8 +443,9 @@ function plotBG(){
     lines.forEach((t,k)=>{ const sub=t.startsWith("("); s+=T(963,y0+k*22,t,{size:sub?14:16.5,bold:!sub,fill:sub?"#222":NAVY}); }); }
   return s;
 }
-function arrowSVG(x,y1,y2,color){
-  const up=y2<y1, len=Math.abs(y2-y1); if(len<7) return "";
+function arrowSVG(x,y1,y2,color,up){
+  // direction comes from the data (up = index went up); if the two bubbles are too close for an arrow to fit, draw none
+  const len=up?(y1-y2):(y2-y1); if(len<7) return "";
   const hl=Math.min(15,len*.75), hw=Math.min(8,hl*.55+1.5), hb=up?y2+hl:y2-hl, X=x.toFixed(1);
   const stem=len>hl+2?`<line x1="${X}" x2="${X}" y1="${y1.toFixed(1)}" y2="${hb.toFixed(1)}" stroke="${color}" stroke-width="3.6"/>`:"";
   return stem+`<polygon points="${X},${y2.toFixed(1)} ${(x-hw).toFixed(1)},${hb.toFixed(1)} ${(x+hw).toFixed(1)},${hb.toFixed(1)}" fill="${color}"/>`;
@@ -464,8 +472,8 @@ function tableSVG(head,rows){
     if(r.dot){ s+=`<circle cx="125" cy="${cy}" r="${Math.min(8,rh/2-4)}" fill="${r.dot}"/>`+T(143,cy,r.label,{size:r.label.length>30?fs-2:fs}); }
     else s+=T((cols[0]+cols[1])/2,cy,r.label,{size:r.label.length>32?fs-2:fs,anchor:"middle"});
     s+=T((cols[1]+cols[2])/2,cy,r.p,{size:fs,anchor:"middle"})+T((cols[2]+cols[3])/2,cy,r.c,{size:fs,anchor:"middle"});
-    const col=r.pct==null?"#667085":r.pct>0?UPT:r.pct<0?DNT:"#333";
-    s+=T((cols[3]+cols[4])/2,cy,fmtPct(r.pct),{size:fs,bold:1,fill:col,anchor:"middle"});
+    const pv=pctShown(r.pct), col=pv==null?"#667085":pv>0?UPT:pv<0?DNT:"#333", ptxt=fmtPct(r.pct);
+    s+=T((cols[3]+cols[4])/2,cy,ptxt,{size:ptxt.length>9?fs-1.5:fs,bold:1,fill:col,anchor:"middle"});
   });
   s+=`<rect x="105" y="${top}" width="563" height="${hh+rh*rows.length}" fill="none" stroke="${B}" stroke-width="3"/>`;
   [1,2,3].forEach(k=>{ s+=`<line x1="${cols[k]}" x2="${cols[k]}" y1="${top}" y2="${bottom}" stroke="${B}" stroke-width="2.5"/>`; });
@@ -495,11 +503,11 @@ function buildCompareSVG(rows,o){
   else { const tr=sortRows(rows,o.sortKey,o.sortDir,o.view==="life");   // lifestage view: codes grouped by lifestage, each row carries its lifestage colour dot
     s+=tableSVG(heads,tr.map(r=>({label:String(r.seg).padStart(2,"0")+" - "+r.name,dot:o.view==="life"?COLORS[r.life]:null,p:r.pR,c:r.cR,pct:r.pct}))); }
   s+=`<g transform="translate(${CMP_DX},${CMP_DY})">`+plotBG();
-  const col=r=>o.view==="life"?COLORS[r.life]:(r.delta>0?UPC:r.delta<0?DNC:"#8A8C8F");
+  const col=r=>r.delta>0?UPC:r.delta<0?DNC:"#8A8C8F";   // arrows are always green up / red down, in every view
   const lab=(x,y,r,op)=>T(x.toFixed(1),y.toFixed(1),r.seg,{size:LABEL_PX[r.aff],bold:1,fill:"#fff",anchor:"middle"}).replace("<text ",`<text opacity="${op}" `);
   rows.forEach((r,i)=>{ const x=xs[i], y=yPx(displayY(r.pIdx)); s+=`<g><title>${esc(r.seg+" \u2013 "+r.name+": "+r.pR+" \u2192 "+r.cR+" ("+fmtPct(r.pct)+")")}</title><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.r}" fill="${COLORS[r.life]}" opacity=".42"/>${lab(x,y,r,.9)}</g>`; });
-  rows.forEach((r,i)=>{ const x=xs[i], yP=yPx(displayY(r.pIdx)), yC=yPx(displayY(r.cIdx)), up=yC<yP;
-    s+=arrowSVG(x, up?yP-r.r-3:yP+r.r+3, up?yC+r.r+4:yC-r.r-4, col(r)); });
+  rows.forEach((r,i)=>{ const x=xs[i], yP=yPx(displayY(r.pIdx)), yC=yPx(displayY(r.cIdx)), up=r.delta>0;
+    if(r.delta!==0) s+=arrowSVG(x, up?yP-r.r-3:yP+r.r+3, up?yC+r.r+4:yC-r.r-4, col(r), up); });
   rows.forEach((r,i)=>{ const x=xs[i], y=yPx(displayY(r.cIdx)); s+=`<g><title>${esc(r.seg+" \u2013 "+r.name+": "+r.pR+" \u2192 "+r.cR+" ("+fmtPct(r.pct)+")")}</title><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.r}" fill="${COLORS[r.life]}"/>${lab(x,y,r,1)}</g>`; });
   s+=`</g>`;
   if(o.view==="life"&&(o.rollup||[]).some(r=>r.avg)) s+=T(105,792,"* simple average of segment indexes (customer/market counts not available)",{size:11,fill:"#667085"});
@@ -658,7 +666,7 @@ function runStandalone(){
   const subEl=$("subtitle"), cmpBtn=$("cmpToggle"), panel=$("cmpPanel"), pfile=$("pfile"), pname=$("pname"), psel=$("psheet"), pwrap=$("psheetwrap"),
         plabel=$("plabel"), clabel=$("clabel"), presetEl=$("preset"), maxEl=$("maxn"), dirChips=$("dirChips"), lifeChips=$("lifeChips");
   const DEFAULT_FILE="Choose distribution file (.xlsx / .csv)", DEFAULT_PREV="Choose previous year's file";
-  const S={cross:"off",compare:false,view:"move",preset:"changed",max:8,dirs:{up:true,down:true},lifes:new Set(LIFE_ORDER),excl:new Set(),incl:new Set(),autoSet:new Set(),segScope:"shown",sortKey:"seg",sortDir:"desc",tableMode:"codes",prev:null,dirty:{p:false,c:false},all:[],shown:[],hdr:{move:[null,null,null,null],life:[null,null,null,null],lifeTot:[null,null,null,null]},heads:[],defaults:[]};
+  const S={cross:"off",compare:false,view:"move",preset:"changed",max:8,dirs:{up:true,down:true},lifes:new Set(LIFE_ORDER),excl:new Set(),incl:new Set(),autoSet:new Set(),segScope:"shown",sortKey:"seg",sortDir:"desc",tableMode:"codes",dec:0,prev:null,dirty:{p:false,c:false},all:[],shown:[],hdr:{move:[null,null,null,null],life:[null,null,null,null],lifeTot:[null,null,null,null]},heads:[],defaults:[]};
   const fail=e=>{ msg.style.display="block"; msg.textContent=e.message; status.textContent=""; };
   const emptyHTML=()=>{ const f=fileEl.files[0];
     return '<label for="file" class="drop"><div class="ic"><svg width="30" height="30" viewBox="0 0 16 16" fill="none" stroke="#002855" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V2M4.5 5.5L8 2l3.5 3.5M2 10v3.5h12V10"/></svg></div>'
@@ -691,7 +699,7 @@ function runStandalone(){
     const cands=(S.segScope==="all"?S.all:onChart).slice().sort((a,b)=>a.seg-b.seg);
     $("scopeN").textContent="("+onChart.length+")"; $("scopeAll").textContent="("+S.all.length+")";
     qa("#segscope button").forEach(x=>x.classList.toggle("on",x.dataset.scope===S.segScope));
-    const key=S.segScope+":"+cands.map(r=>r.seg+","+r.pR+","+r.cR).join("|");
+    const key=S.segScope+":"+PCT_DEC+":"+cands.map(r=>r.seg+","+r.pR+","+r.cR).join("|");
     if(key!==listKey){ listKey=key;
       segList.innerHTML=cands.length?cands.map(r=>'<label data-t="'+esc((r.seg+" "+r.name).toLowerCase())+'"><input type="checkbox" value="'+r.seg+'"><i class="dot" style="background:'+COLORS[r.life]+'"></i><span>'+pad2(r.seg)+" "+esc(r.name)+'</span><span class="m">'+r.pR+" \u2192 "+r.cR+" ("+fmtPct(r.pct)+')</span></label>').join(""):'<div class="segempty">Nothing matches the current filters, so there is nothing to trim. Switch to <b>All segments</b> to pick codes yourself.</div>';
       applySearch(); }
@@ -782,6 +790,7 @@ function runStandalone(){
   qa("#viewSeg button").forEach(b=>b.onclick=()=>{ S.view=b.dataset.view; qa("#viewSeg button").forEach(x=>x.classList.toggle("on",x===b)); dirChips.hidden=S.view!=="move"; lifeChips.hidden=S.view!=="life"; $("tblModeWrap").hidden=S.view!=="life"; refresh(); });
   $("sortKey").onchange=()=>{ S.sortKey=$("sortKey").value; qa("#sortDir button").forEach(b=>b.disabled=S.sortKey==="seg"); refresh(); };
   qa("#sortDir button").forEach(b=>b.onclick=()=>{ S.sortDir=b.dataset.dir; qa("#sortDir button").forEach(x=>x.classList.toggle("on",x===b)); refresh(); });
+  qa("#decSeg button").forEach(b=>b.onclick=()=>{ S.dec=+b.dataset.dec; PCT_DEC=S.dec; qa("#decSeg button").forEach(x=>x.classList.toggle("on",x===b)); refresh(); });
   $("tblMode").onchange=()=>{ S.tableMode=$("tblMode").value; refresh(); };
   qa("#sortDir button").forEach(b=>b.disabled=true);
   presetEl.onchange=()=>{ S.preset=presetEl.value; refresh(); };
@@ -808,9 +817,9 @@ function runStandalone(){
     fileEl.value=""; paste.value=""; pfile.value=""; window.__tables=null; window.__tag=null; window.__lastSVG=null; window.__result=null; window.__subtitle=""; subEl.value="";
     sel.innerHTML=""; wrap.hidden=true; psel.innerHTML=""; pwrap.hidden=true; status.textContent=""; adjEl.textContent=""; chipC.hidden=chipM.hidden=true; msg.style.display="none";
     fname_.textContent=DEFAULT_FILE; pname.textContent=DEFAULT_PREV; plabel.value=""; clabel.value="";
-    Object.assign(S,{sortKey:"seg",sortDir:"desc",tableMode:"codes",segScope:"shown",cross:"off",hdr:{move:[null,null,null,null],life:[null,null,null,null],lifeTot:[null,null,null,null]},compare:false,view:"move",preset:"changed",max:8,prev:null,all:[],shown:[],excl:new Set(),incl:new Set(),autoSet:new Set(),dirty:{p:false,c:false},dirs:{up:true,down:true},lifes:new Set(LIFE_ORDER)});
+    Object.assign(S,{dec:0,sortKey:"seg",sortDir:"desc",tableMode:"codes",segScope:"shown",cross:"off",hdr:{move:[null,null,null,null],life:[null,null,null,null],lifeTot:[null,null,null,null]},compare:false,view:"move",preset:"changed",max:8,prev:null,all:[],shown:[],excl:new Set(),incl:new Set(),autoSet:new Set(),dirty:{p:false,c:false},dirs:{up:true,down:true},lifes:new Set(LIFE_ORDER)});
     cmpBtn.classList.remove("on"); cmpBtn.setAttribute("aria-pressed","false"); cmpBtn.setAttribute("aria-checked","false"); $("cmpBadge").hidden=true; panel.hidden=true; segbar.hidden=true; segMenu.hidden=true; chipsEl.innerHTML="";
-    qa("#viewSeg button").forEach(x=>x.classList.toggle("on",x.dataset.view==="move")); dirChips.hidden=false; lifeChips.hidden=true; presetEl.value="changed"; maxEl.value=8; $("sortKey").value="seg"; $("tblMode").value="codes"; $("tblModeWrap").hidden=true; qa("#sortDir button").forEach(x=>{ x.disabled=true; x.classList.toggle("on",x.dataset.dir==="desc"); }); $("crossSel").value="off";
+    qa("#viewSeg button").forEach(x=>x.classList.toggle("on",x.dataset.view==="move")); dirChips.hidden=false; lifeChips.hidden=true; presetEl.value="changed"; maxEl.value=8; PCT_DEC=0; qa("#decSeg button").forEach(x=>x.classList.toggle("on",x.dataset.dec==="0")); $("sortKey").value="seg"; $("tblMode").value="codes"; $("tblModeWrap").hidden=true; qa("#sortDir button").forEach(x=>{ x.disabled=true; x.classList.toggle("on",x.dataset.dir==="desc"); }); $("crossSel").value="off";
     qa("#dirChips .tog,#lifeChips .tog").forEach(x=>x.classList.add("on"));
     exp.forEach(b=>b.disabled=true); ready(); stage.innerHTML=emptyHTML();
   };
