@@ -84,6 +84,19 @@
   .seglist input{accent-color:var(--navy)}
   .seglist .m{margin-left:auto;color:var(--mut);white-space:nowrap;padding-left:8px;font-size:12px}
   .segfoot{padding:10px 14px;border-top:1px solid var(--line);font-size:12px;color:var(--mut)}
+  .tabs{display:none}
+  body.standalone .tabs:not([hidden]){display:flex;gap:8px;width:100%;max-width:min(1400px,calc((100vh - 250px) * 1.7778));margin:0 auto 14px}
+  .tabbtn{height:36px;padding:0 18px;border-radius:999px;border:1px solid var(--line);background:#fff;font:600 13px inherit;font-family:inherit;color:var(--mut);cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:.15s}
+  .tabbtn:hover{border-color:#c3ccd8;color:var(--ink)} .tabbtn.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .tabbtn .badge{background:rgba(255,255,255,.22);color:inherit;margin:0} .tabbtn:not(.on) .badge{background:#eaf0fa;color:var(--navy)}
+  #appendix{display:flex;flex-direction:column;align-items:center;gap:26px;width:100%}
+  .apage{margin:0;width:100%;max-width:1000px}
+  .apage .sheet{aspect-ratio:1100/850;background:#fff;border-radius:6px;box-shadow:0 1px 2px rgba(16,24,40,.06),0 10px 30px rgba(16,24,40,.08)}
+  .apage svg{width:100%;height:100%;display:block;border-radius:6px}
+  .apage figcaption{font-size:12px;color:var(--mut);margin:0 0 8px 2px}
+  body.tab-app .segbar{display:none!important}
+  @page chart{size:1508px 847px;margin:0}
+  @page app{size:11in 8.5in;margin:0}
   /* options side panel */
   #opts{width:400px;flex:none;position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:auto;background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(16,24,40,.10)}
   .ohead{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);font-weight:700;color:var(--navy);position:sticky;top:0;background:#fff;z-index:2;border-radius:16px 16px 0 0}
@@ -114,6 +127,15 @@
     #app,.work,#stage,body.standalone #stage,body.standalone .work,body.standalone #app{height:847px;min-height:0;padding:0;background:#fff;display:block;overflow:hidden}
     .card{width:1508px;max-width:none;min-width:0;height:847px;border-radius:0;box-shadow:none}
     .card svg{width:1508px;height:847px;border-radius:0}
+    html.tab-app,html.tab-app body{width:auto!important;height:auto!important;overflow:visible!important}
+    html.tab-app #app,html.tab-app .work,html.tab-app .mainCol,html.tab-app body.standalone #app,html.tab-app body.standalone .work{height:auto!important;min-height:0!important;overflow:visible!important;display:block!important;padding:0!important}
+    html.tab-app #stage,html.tab-app .tabs,html.tab-app .segbar{display:none!important}
+    html.tab-app #appendix{display:block!important}
+    #appendix .apage{page:app;width:11in;max-width:none;height:8.5in;margin:0;break-after:page}
+    #appendix .apage:last-child{break-after:auto}
+    #appendix figcaption{display:none}
+    #appendix .sheet{width:11in;height:8.5in;aspect-ratio:auto;border-radius:0;box-shadow:none}
+    #appendix .apage svg{width:11in;height:8.5in;border-radius:0}
   }
 </style>
 </head>
@@ -139,6 +161,7 @@
       </label>
       <input type="file" id="file" accept=".xlsx,.xlsm,.csv,.tsv,.txt" hidden>
       <button id="go" class="btn primary" disabled>Render</button>
+      <button id="appBtn" class="btn ghost" type="button" hidden title="Build the five brand-receptivity appendix pages from this distribution"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="2" width="10" height="12" rx="1.5"/><path d="M5.5 6h5M5.5 8.5h5M5.5 11h3"/></svg>Populate appendix</button>
       <label class="field" id="sheetwrap" hidden>Sheet <select id="sheet"></select></label>
       <span class="chips"><span class="chip" id="chipC" hidden></span><span class="chip" id="chipM" hidden></span></span>
       <label class="opt" title="Adjusts the last digit of the rounded band percentages so each column adds to exactly 100.00%"><input type="checkbox" id="force100" checked> Make band totals add to 100.00%</label>
@@ -151,7 +174,12 @@
   <div id="msg"></div>
   <div class="work">
     <div class="mainCol">
+      <div class="tabs" id="tabs" role="tablist" hidden>
+        <button class="tabbtn on" data-tab="chart" role="tab" aria-selected="true" type="button">Bubble chart</button>
+        <button class="tabbtn" data-tab="app" role="tab" aria-selected="false" type="button">Appendix <span class="badge" id="appCount"></span></button>
+      </div>
       <main id="stage"></main>
+      <div id="appendix" hidden></div>
       <div class="segbar" id="segbar" hidden>
         <div class="seglabel">Segments on chart <span class="mut" id="segCount"></span></div>
         <div class="segchips" id="segchips"></div>
@@ -221,6 +249,10 @@
             <div><button class="btn" id="hdrReset" type="button">Reset headers</button></div>
           </div>
         </section>
+        <div class="osec">
+          <label class="field"><span class="lbl">Appendix: starting page number <span class="mut">(optional)</span></span><input type="number" id="appStart" class="txt" min="1" max="999" placeholder="none" style="width:120px"></label>
+          <div class="hint">Adds a page number at the bottom left of each appendix page, like your deck. Leave it empty for none.</div>
+        </div>
         <div class="osec">
           <label class="lbl" for="paste">Or paste a table <span class="mut">&ndash; rows copied from Excel, with the header row</span></label>
           <textarea id="paste" spellcheck="false" placeholder="Segment Number&#9;Segment Name&#9;Count&#9;% Comp&#9;Count&#9;% Comp&#9;Index"></textarea>
@@ -307,7 +339,10 @@ function prepare(rows){
   for(const r of rows){
     const seg=parseInt(String(r.seg).replace(/[^0-9]/g,''),10);
     if(!(seg in MASTER)) continue;
-    const o=by.get(seg)||{seg,cust:null,mkt:null,idx:null,name:null};
+    const o=by.get(seg)||{seg,cust:null,mkt:null,idx:null,name:null,cc:null,mc:null,attrs:null};
+    if(r.attrs) o.attrs=r.attrs;
+    if(r.cc!=null&&isFinite(r.cc)) o.cc=(o.cc||0)+Number(r.cc);
+    if(r.mc!=null&&isFinite(r.mc)) o.mc=(o.mc||0)+Number(r.mc);
     if(r.name) o.name=String(r.name).trim();
     if(isFinite(r.cust)&&r.cust!==null) o.cust=(o.cust||0)+Number(r.cust);
     if(isFinite(r.mkt)&&r.mkt!==null)   o.mkt =(o.mkt ||0)+Number(r.mkt);
@@ -513,6 +548,125 @@ function buildCompareSVG(rows,o){
     s+="</svg>"; return {svg:s,count:rows.length,heads,defaults};
 }
 
+/* ======================= APPENDIX (one page per brand-receptivity band) ======================= */
+const AP_W=1100, AP_H=850, AP_FONT="Arial, Helvetica, sans-serif";
+const AP_BANDS=[
+  {b:5,title:"EXTREMELY BRAND RECEPTIVE",name:"Extremely Brand Receptive",range:"Index 150+",   fill:"#1B284C",cell:"#213055",edge:"#1B284C",light:false},
+  {b:4,title:"BRAND RECEPTIVE",          name:"Brand Receptive",          range:"Index 120-149",fill:"#254885",cell:"#2E4D89",edge:"#254885",light:false},
+  {b:3,title:"BRAND NEUTRAL",            name:"Brand Neutral",            range:"Index 80-119", fill:"#83B2E3",cell:"#85B3E4",edge:"#83B2E3",light:true},
+  {b:2,title:"BRAND RESISTANT",          name:"Brand Resistant",          range:"Index 50-79",  fill:"#D3D3D3",cell:"#D4D5D5",edge:"#D3D3D3",light:true},
+  {b:1,title:"EXTREMELY BRAND RESISTANT",name:"Extremely Brand Resistant",range:"Index 0-49",   fill:"#B8B7B7",cell:"#B8B7B7",edge:"#B9B7B8",light:true}];
+const AP_COLS=[
+  {key:"name",head:"Segment Name",w:152,left:true},{key:"cc",head:"Customer Counts",w:57},{key:"cp",head:"% Comp",w:46},{key:"mc",head:"Base Counts",w:40},{key:"mp",head:"% Comp",w:46},
+  {key:"idx",head:"Index",w:32},{key:"age",head:"Age",w:48},{key:"marital",head:"Marital Status",w:50},{key:"home",head:"Home Ownership",w:71},{key:"children",head:"Children",w:101},
+  {key:"income",head:"Income",w:90},{key:"worth",head:"Net Worth",w:87},{key:"urban",head:"Urbanicity",w:82},{key:"prom",head:"Consumer Prominence",w:80}];
+let _apCtx=null;
+const apMeasure=(t,fs,bold)=>{ _apCtx=_apCtx||document.createElement("canvas").getContext("2d"); _apCtx.font=(bold?"bold ":"")+fs+"px "+AP_FONT; return _apCtx.measureText(t).width; };
+function apWrap(text,maxW,fs,bold){
+  text=String(text==null?"":text).replace(/\s+/g," ").trim(); if(!text) return [""];
+  const words=text.split(" "), lines=[]; let cur="";
+  for(const w of words){ const trial=cur?cur+" "+w:w; if(!cur||apMeasure(trial,fs,bold)<=maxW) cur=trial; else { lines.push(cur); cur=w; } }
+  if(cur) lines.push(cur); return lines;
+}
+const apInt=v=>v==null||!isFinite(v)?"":Math.round(v).toLocaleString("en-US");
+const apPct=v=>v==null||!isFinite(v)?"":(v*100).toFixed(2)+"%";
+function apCell(r,key){
+  switch(key){
+    case "name": return String(r.seg).padStart(2,"0")+" - "+(r.name||MASTER[r.seg][3]);
+    case "cc": return apInt(r.cc); case "mc": return apInt(r.mc);
+    case "cp": return r.cc!=null?apPct(r.cp):""; case "mp": return r.mc!=null?apPct(r.mp):"";
+    case "idx": return String(Math.round(r.idx));
+    default: return r.attrs&&r.attrs[key]!=null?String(r.attrs[key]):"";
+  }
+}
+function apColumns(items){ return AP_COLS.filter(c=>c.key==="name"||c.key==="idx"||items.some(r=>apCell(r,c.key)!==""));}
+const AP_NUM=["cc","cp","mc","mp","idx","age"];
+function apSizeCols(cols,list,fs){
+  const gap=1.5, usable=992-gap*(cols.length-1);
+  const hmin=c=>Math.max(...c.head.split(" ").map(w=>apMeasure(w,10,true)))+7;
+  const nat=c=>Math.max(...list.map(r=>apMeasure(apCell(r,c.key),fs,false)))+8;
+  let wNum=0, refText=0;
+  const ws=cols.map(c=>{ if(AP_NUM.includes(c.key)){ const w=Math.max(hmin(c),list.length?nat(c):0,28); wNum+=w; return w; } refText+=c.w; return null; });
+  const left=Math.max(usable-wNum,refText*0.6); let x=76;
+  return cols.map((c,i)=>{ const w=ws[i]!=null?ws[i]:c.w/refText*left, o=Object.assign({},c,{x,w}); x+=w+gap; return o; });
+}
+const apPad=c=>c.left?8:6;
+// choose the biggest font that lets the whole band fit on one page (rows only get taller when a cell wraps); otherwise split it over several pages
+function apFit(cols0,list){
+  const TOP=296, BOTTOM=748, avail=BOTTOM-TOP;
+  const probe=fs=>{ const cols=apSizeCols(cols0,list,fs), lh=fs*1.2, hs=list.map(r=>{ let n=1; for(const c of cols){ const k=apWrap(apCell(r,c.key),c.w-apPad(c),fs,false).length; if(k>n) n=k; } return Math.max(21.5,n*lh+9); });
+    return {fs,lh,hs,cols,total:hs.reduce((a,b)=>a+b,0)}; };
+  for(const fs of [10.5,10,9.5,9,8.5]){ const t=probe(fs); if(t.total<=avail) return Object.assign(t,{chunks:[{rows:list,hs:t.hs}]}); }
+  const t=probe(9), np=Math.ceil(t.total/avail), target=t.total/np, chunks=[]; let cur={rows:[],hs:[]}, acc=0;
+  list.forEach((r,i)=>{ const h=t.hs[i];
+    if(cur.rows.length&&(acc+h>avail||(acc>=target&&chunks.length<np-1))){ chunks.push(cur); cur={rows:[],hs:[]}; acc=0; }
+    cur.rows.push(r); cur.hs.push(h); acc+=h; });
+  chunks.push(cur); return Object.assign(t,{chunks});
+}
+function apPageSVG(B,st,cols,rows,lay,pi,np,opts,pageNo){
+  cols=lay.cols||cols;
+  const TXT=B.light?"#231F20":"#FFFFFF", HDR=31, TOP=263, R0=296;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${AP_W} ${AP_H}" preserveAspectRatio="xMidYMid meet" font-family="${AP_FONT}"><rect width="${AP_W}" height="${AP_H}" fill="#fff"/>`;
+  let tf=44; const tw=apMeasure(B.title,tf,true); if(tw>790) tf=44*790/tw;
+  s+=`<text x="78" y="205" font-size="${tf.toFixed(1)}" font-weight="700" fill="#23396F">${esc(B.title)}</text>`;
+  if(np>1&&pi>0) s+=`<text x="80" y="242" font-size="14" font-style="italic" fill="#667085">(continued)</text>`;
+  // callout
+  s+=`<polygon points="886,210 916,169 1068,169 1068,253 916,253" fill="${B.fill}"/>`;
+  const L=[[B.name,1],[B.range,0],["% Customer Base: "+(st.c!=null?st.c:"\u2013"),1],["% Market Trade Area: "+(st.m!=null?st.m:"\u2013"),0]];
+  L.forEach(([t,b],i)=>{ s+=`<text x="921" y="${(193+i*13.7).toFixed(1)}" font-size="10.5" font-weight="${b?700:400}" fill="${TXT}">${esc(t)}</text>`; });
+  // header cells
+  cols.forEach(c=>{ s+=`<rect x="${c.x.toFixed(1)}" y="${TOP+1}" width="${c.w.toFixed(1)}" height="${HDR}" fill="#fff" stroke="#231F20" stroke-width="1"/>`;
+    const ls=apWrap(c.head,c.w-6,10,true), y0=TOP+1+HDR/2-(ls.length-1)*6;
+    ls.forEach((t,i)=>{ s+=`<text x="${(c.x+c.w/2).toFixed(1)}" y="${(y0+i*12+3.6).toFixed(1)}" font-size="10" font-weight="700" text-anchor="middle" fill="#000">${esc(t)}</text>`; }); });
+  // body (rows are as tall as their tallest cell)
+  const rowsA=rows.rows, hs=rows.hs; let y=R0;
+  if(!rowsA.length) s+=`<text x="${AP_W/2}" y="${R0+40}" font-size="14" text-anchor="middle" fill="#667085">No segments fall in this band.</text>`;
+  rowsA.forEach((r,i)=>{ const rh=hs[i];
+    cols.forEach(c=>{ s+=`<rect x="${c.x.toFixed(1)}" y="${(y+.5).toFixed(1)}" width="${c.w.toFixed(1)}" height="${(rh-1.5).toFixed(1)}" fill="${B.cell}" stroke="${B.edge}" stroke-width="1"/>`;
+      const ls=apWrap(apCell(r,c.key),c.w-apPad(c),lay.fs,false), y0=y+rh/2-(ls.length*lay.lh)/2+lay.lh*0.78;
+      ls.forEach((t,k)=>{ s+=`<text x="${(c.left?c.x+5:c.x+c.w/2).toFixed(1)}" y="${(y0+k*lay.lh).toFixed(1)}" font-size="${lay.fs}" text-anchor="${c.left?"start":"middle"}" fill="${TXT}">${esc(t)}</text>`; }); });
+    y+=rh; });
+  s+=`<rect x="75.5" y="${TOP}" width="993" height="${(HDR+2+(rowsA.length?y-R0:40)).toFixed(1)}" fill="none" stroke="#231F20" stroke-width="2.5"/>`;
+  if(pageNo!=null) s+=`<text x="40" y="712" font-size="13" fill="#231F20">${pageNo}</text>`;
+  return s+"</svg>";
+}
+// rows: parsed distribution rows (same shape the chart uses). Returns one entry per page, band order top -> bottom.
+function buildAppendixPages(rows,opts){
+  opts=opts||{}; const P=prepare(rows), items=P.items;
+  if(!items.length) return [];
+  const sum=a=>a.reduce((x,y)=>x+y,0), B5=[1,2,3,4,5];
+  const rawC=B5.map(b=>sum(items.filter(r=>bandOf(r.idx)===b).map(r=>r.cp||0))*10000), rawM=B5.map(b=>sum(items.filter(r=>bandOf(r.idx)===b).map(r=>r.mp||0))*10000);
+  const force=opts.force!==false, bpC=force?apportion(rawC,Math.round(sum(rawC))):rawC.map(Math.round), bpM=force?apportion(rawM,Math.round(sum(rawM))):rawM.map(Math.round);
+  const fmt=bp=>(bp/100).toFixed(2)+"%", cols=apColumns(items), pages=[]; let n=0;
+  for(const B of AP_BANDS){
+    const list=items.filter(r=>bandOf(r.idx)===B.b).sort((a,b)=>(b.idx-a.idx)||(a.seg-b.seg));
+    const st=P.haveShare?{c:fmt(bpC[B.b-1]),m:fmt(bpM[B.b-1])}:{c:null,m:null};
+    const lay=list.length?apFit(cols,list):{fs:10.5,lh:12.6,cols:apSizeCols(cols,[],10.5),chunks:[{rows:[],hs:[]}]};
+    lay.chunks.forEach((chunk,pi)=>{ const pageNo=opts.startPage!=null&&isFinite(opts.startPage)?opts.startPage+n:null;
+      pages.push({band:B,part:pi+1,parts:lay.chunks.length,count:chunk.rows.length,svg:apPageSVG(B,st,cols,chunk,lay,pi,lay.chunks.length,opts,pageNo)}); n++; });
+  }
+  return pages;
+}
+// ----- zip (store only) so five images download as one file -----
+const _crcT=(()=>{ const t=[]; for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
+const crc32=u8=>{ let c=0xFFFFFFFF; for(let i=0;i<u8.length;i++) c=_crcT[(c^u8[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; };
+function makeZip(files){
+  const enc=new TextEncoder(), out=[], cen=[]; let off=0;
+  for(const f of files){
+    const nm=enc.encode(f.name), crc=crc32(f.data), sz=f.data.length, lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true); lh.setUint16(12,0x21,true); lh.setUint32(14,crc,true); lh.setUint32(18,sz,true); lh.setUint32(22,sz,true); lh.setUint16(26,nm.length,true);
+    out.push(new Uint8Array(lh.buffer),nm,f.data);
+    const ch=new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true); ch.setUint16(8,0x0800,true); ch.setUint16(14,0x21,true); ch.setUint32(16,crc,true); ch.setUint32(20,sz,true); ch.setUint32(24,sz,true); ch.setUint16(28,nm.length,true); ch.setUint32(42,off,true);
+    cen.push(new Uint8Array(ch.buffer),nm); off+=30+nm.length+sz;
+  }
+  const cd=cen.reduce((a,c)=>a+c.length,0), end=new DataView(new ArrayBuffer(22));
+  end.setUint32(0,0x06054b50,true); end.setUint16(8,files.length,true); end.setUint16(10,files.length,true); end.setUint32(12,cd,true); end.setUint32(16,off,true);
+  return new Blob([...out,...cen,new Uint8Array(end.buffer)],{type:"application/zip"});
+}
+const apFileName=(pg,i,ext)=>"Appendix_"+(i+1)+"_"+pg.band.name.replace(/\s+/g,"_")+(pg.parts>1?"_p"+pg.part:"")+"."+ext;
+function svgToPngBlob(svg,w,h){ return new Promise((res,rej)=>{ const img=new Image(); img.onload=()=>{ const c=document.createElement("canvas"); c.width=w; c.height=h; const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,w,h); g.drawImage(img,0,0,w,h); c.toBlob(b=>b?res(b):rej(new Error("PNG failed")),"image/png"); }; img.onerror=()=>rej(new Error("Could not draw the page")); img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg); }); }
+
 /* ======================= INPUT: Tableau + standalone ======================= */
 window.buildStaticSVG=()=>buildSVG([],{staticOnly:true}).svg;
 const stage=document.getElementById("stage"), msg=document.getElementById("msg");
@@ -622,6 +776,13 @@ function findTable(grid){
         const kind=/%|comp|pct|percent/.test(t)?"pct":/count|household|hh|records|base/.test(t)?"count":null;
         if(kind && col[o+"_"+kind]==null) col[o+"_"+kind]=cc;
       }
+      const ATTR=[["age",/^age$/],["marital",/marital/],["home",/home\s*ownership/],["children",/^children$/],["income",/income/],["worth",/net\s*worth/],["urban",/urban(icity|city)/],["prom",/prominence/]];
+      const acol={};
+      for(let cc=c+1;cc<hdr.length;cc++){
+        if(hdr[cc]==null) continue; const t=String(hdr[cc]).trim().toLowerCase(); if(!t||/^average/.test(t)) continue;
+        for(const [k,re] of ATTR){ if(acol[k]==null&&re.test(t)){ acol[k]=cc; break; } }
+      }
+      col.attr=acol;
       const rows=[]; let others=0;
       for(let rr=r+1;rr<grid.length;rr++){
         const g=grid[rr]||[]; const sv=String(g[c]==null?"":g[c]).trim();
@@ -629,7 +790,8 @@ function findTable(grid){
         const n=k=>col[k]==null?null:num(g[col[k]]);
         rows.push({seg:sv, name:col.name!=null?g[col.name]:null,
           cust:n("cust_count")!=null?n("cust_count"):n("cust_pct"), mkt:n("mkt_count")!=null?n("mkt_count"):n("mkt_pct"),
-          idx:col.idx!=null?n("idx"):null});
+          idx:col.idx!=null?n("idx"):null, cc:n("cust_count"), mc:n("mkt_count"),
+          attrs:Object.keys(acol).length?Object.fromEntries(Object.entries(acol).map(([k,j])=>[k,g[j]==null?"":String(g[j]).replace(/\s+/g," ").trim()])):null});
       }
       return {rows,col,header:r+1};
     }
@@ -760,12 +922,12 @@ function runStandalone(){
       const keep=window.__tables.findIndex(t=>t.name===prev); sel.value=String(keep>=0?keep:0);
       S.excl.clear(); S.incl.clear();
       if(!S.dirty.c) clabel.value=yr(f&&f.name)||yr(window.__tables[+sel.value].name)||"";
-      refresh();
+      refresh(); appBtn.hidden=false; if(S.appOn) buildAppendix(false);
     }catch(e){ fail(e); }
   };
   const ready=()=>{ goBtn.disabled=!(fileEl.files[0]||paste.value.trim()); };
-  goBtn.onclick=go; sel.onchange=refresh; paste.oninput=ready;
-  force.onchange=()=>{ window.__force100=force.checked; refresh(); };
+  goBtn.onclick=go; sel.onchange=()=>{ refresh(); if(S.appOn) buildAppendix(false); }; paste.oninput=ready;
+  force.onchange=()=>{ window.__force100=force.checked; refresh(); if(S.appOn) buildAppendix(false); };
   fileEl.onchange=()=>{ const f=fileEl.files[0]; fname_.textContent=f?f.name:DEFAULT_FILE; status.textContent=f?'Ready \u2013 click Render.':""; ready(); if(!window.__lastSVG) stage.innerHTML=emptyHTML(); };
   subEl.oninput=()=>{ window.__subtitle=subEl.value.trim(); refresh(); };
 
@@ -811,6 +973,33 @@ function runStandalone(){
   });
   $("hdrReset").onclick=()=>{ S.hdr={move:[null,null,null,null],life:[null,null,null,null]}; refresh(); };
 
+  /* ----- appendix: one page per brand-receptivity band, in its own tab ----- */
+  const appBtn=$("appBtn"), tabsEl=$("tabs"), appEl=$("appendix"); S.appOn=false; S.tab="chart"; S.appPages=[];
+  const setTab=tab=>{
+    S.tab=tab; stage.hidden=(tab==="app"); appEl.hidden=(tab!=="app");
+    qa("#tabs .tabbtn").forEach(b=>{ const on=b.dataset.tab===tab; b.classList.toggle("on",on); b.setAttribute("aria-selected",on); });
+    document.body.classList.toggle("tab-app",tab==="app"); document.documentElement.classList.toggle("tab-app",tab==="app");
+    if(tab==="app") exp.forEach(b=>b.disabled=!S.appPages.length); else exp.forEach(b=>b.disabled=!(window.__result&&window.__result.count>0));
+  };
+  const buildAppendix=toTab=>{
+    if(!window.__tables) return; const t=window.__tables[+sel.value], sp=parseInt($("appStart").value,10);
+    const pages=buildAppendixPages(t.rows,{force:window.__force100!==false,startPage:isFinite(sp)?sp:null}); S.appPages=pages; S.appOn=true;
+    if(!pages.length){ fail(new Error("Couldn't build the appendix \u2013 the file needs an Index (or customer and market counts) for each segment.")); return; }
+    appEl.innerHTML=pages.map(p=>'<figure class="apage"><figcaption>'+esc(p.band.name)+" \u00b7 "+p.count+" segment"+(p.count===1?"":"s")+(p.parts>1?" \u00b7 page "+p.part+" of "+p.parts:"")+'</figcaption><div class="sheet">'+p.svg+'</div></figure>').join("");
+    $("appCount").textContent=pages.length; tabsEl.hidden=false;
+    if(toTab) setTab("app"); else if(S.tab==="app") exp.forEach(b=>b.disabled=false);
+  };
+  appBtn.onclick=()=>buildAppendix(true);
+  qa("#tabs .tabbtn").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+  $("appStart").oninput=()=>{ if(S.appOn) buildAppendix(false); };
+  const dlAppZip=async kind=>{
+    const files=[]; for(let i=0;i<S.appPages.length;i++){ const pg=S.appPages[i];
+      const data=kind==="svg"?new TextEncoder().encode('<?xml version="1.0" encoding="UTF-8"?>\n'+pg.svg):new Uint8Array(await (await svgToPngBlob(pg.svg,AP_W*2,AP_H*2)).arrayBuffer());
+      files.push({name:apFileName(pg,i,kind),data}); }
+    const tag=window.__tag?"_"+String(window.__tag).replace(/[^A-Za-z0-9]+/g,"_").replace(/^_|_$/g,""):"";
+    dl(makeZip(files),"Brand_Preference_Appendix"+tag+"_"+kind.toUpperCase()+"s.zip");
+  };
+
   /* ----- start over ----- */
   const reset=()=>{
     fileEl.value=""; paste.value=""; pfile.value=""; window.__tables=null; window.__tag=null; window.__lastSVG=null; window.__result=null; window.__subtitle=""; subEl.value="";
@@ -820,6 +1009,7 @@ function runStandalone(){
     cmpBtn.classList.remove("on"); cmpBtn.setAttribute("aria-pressed","false"); cmpBtn.setAttribute("aria-checked","false"); $("cmpBadge").hidden=true; panel.hidden=true; segbar.hidden=true; segMenu.hidden=true; chipsEl.innerHTML="";
     qa("#viewSeg button").forEach(x=>x.classList.toggle("on",x.dataset.view==="move")); dirChips.hidden=false; lifeChips.hidden=true; presetEl.value="changed"; maxEl.value=8; PCT_DEC=0; $("decSel").value="0"; $("sortKey").value="seg"; $("tblMode").value="codes"; $("tblModeWrap").hidden=true; qa("#sortDir button").forEach(x=>{ x.disabled=true; x.classList.toggle("on",x.dataset.dir==="desc"); }); $("crossSel").value="off";
     qa("#dirChips .tog,#lifeChips .tog").forEach(x=>x.classList.add("on"));
+    S.appOn=false; S.appPages=[]; appEl.innerHTML=""; tabsEl.hidden=true; appBtn.hidden=true; $("appStart").value=""; setTab("chart");
     exp.forEach(b=>b.disabled=true); ready(); stage.innerHTML=emptyHTML();
   };
   $("newchart").onclick=reset;
@@ -830,8 +1020,8 @@ function runStandalone(){
   const fname=ext=>"brand_preference_index"+(window.__tag?"_"+String(window.__tag).replace(/[^A-Za-z0-9]+/g,"_").replace(/^_|_$/g,""):"")+"."+ext;
   const dl=(blob,name)=>{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();};
   const toPng=(svg,name)=>{ const img=new Image(); img.onload=()=>{const c=document.createElement("canvas");c.width=W*2;c.height=H*2;const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);c.toBlob(b=>dl(b,name));}; img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg); };
-  $("dlsvg").onclick=()=>window.__lastSVG&&dl(new Blob([window.__lastSVG],{type:"image/svg+xml"}),fname("svg"));
-  $("dlpng").onclick=()=>window.__lastSVG&&toPng(window.__lastSVG,fname("png"));
+  $("dlsvg").onclick=()=>S.tab==="app"?dlAppZip("svg"):window.__lastSVG&&dl(new Blob([window.__lastSVG],{type:"image/svg+xml"}),fname("svg"));
+  $("dlpng").onclick=()=>S.tab==="app"?dlAppZip("png"):window.__lastSVG&&toPng(window.__lastSVG,fname("png"));
   window.__force100=force.checked; stage.innerHTML=emptyHTML();
 }
 
