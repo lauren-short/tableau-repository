@@ -378,7 +378,7 @@ function buildSVG(rows,opts){
   const {items,haveShare,skipped}=prepare(rows);
   const pts=items.map(o=>{const m=MASTER[o.seg]; return Object.assign(o,{life:m[0],aff:m[1],name:o.name||m[3],r:RADIUS[m[1]],x0:m[2],dy:displayY(o.idx),band:bandOf(o.idx)});});
   const xs=placeX(pts); pts.forEach((p,i)=>{p.x=xs[i]; p.y=yPx(p.dy);});
-  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" font-family='${FONT}'><rect width="${W}" height="${H}" fill="#fff"/>`;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" font-family='${FONT}'><rect width="${W}" height="${H}" fill="#fff"/><g transform="translate(-18,0)">`;
   // bands + lines
   for(let b=5;b>=1;b--) s+=`<rect x="${X0}" y="${yPx(b*100)}" width="${PLOT_W}" height="${PLOT_H/5}" fill="${BAND_FILL[b-1]}"/>`;
   for(let k=0;k<=5;k++) s+=`<line x1="438" x2="1136" y1="${yPx(k*100)}" y2="${yPx(k*100)}" stroke="${GREY}" stroke-width="2"/>`;
@@ -418,7 +418,7 @@ function buildSVG(rows,opts){
     [[1271,"c","of Customer","Base"],[1392,"m","of Market","Trade Area"]].forEach(([cx,k,l1,l2])=>{
       s+=(opts.staticOnly?"":T(cx,yc-14,haveShare?fmt(k==="c"?bpC[b-1]:bpM[b-1]):"\u2013",{size:29,bold:1,fill:NAVY,anchor:"middle"}))+T(cx,yc+14,l1,{size:13,fill:"#333",anchor:"middle"})+T(cx,yc+30,l2,{size:13,fill:"#333",anchor:"middle"});});
   }
-  s+="</svg>";
+  s+="</g></svg>";
   return {svg:s,count:pts.length,skipped,haveShare,totals,adj};
 }
 
@@ -530,7 +530,7 @@ function buildCompareSVG(rows,o){
   const totalsTable=o.view==="life"&&o.tableMode==="life";
   const defaults=[totalsTable?"LIFESTAGE":"PERSONICX SEGMENT",`${o.prevLabel} BPI`.toUpperCase(),`${o.curLabel} BPI`.toUpperCase(),"% OF CHANGE"];
   const heads=defaults.map((d,k)=>((o.hdr&&o.hdr[k])||d).toUpperCase());
-  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" font-family='${FONT}'><rect width="${W}" height="${H}" fill="#fff"/>`;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" font-family='${FONT}'><rect width="${W}" height="${H}" fill="#fff"/><g transform="translate(-28,0)">`;
   s+=T(104,95,CONFIG.TITLE,{size:61,bold:1,fill:NAVY})+T(106,141,o.subtitle,{size:28,fill:NAVY});
   s+=legendsCompare(o.view==="life"?o.lifes:new Set(LIFE_ORDER));
   if(totalsTable){ const ro=sortRows(o.rollup||[],o.sortKey,o.sortDir,false); s+=tableSVG(heads,ro.map(r=>({label:r.label+(r.avg?" *":""),dot:COLORS[r.k],p:r.p,c:r.c,pct:r.pct}))); }
@@ -545,7 +545,7 @@ function buildCompareSVG(rows,o){
   rows.forEach((r,i)=>{ const x=xs[i], y=yPx(displayY(r.cIdx)); s+=`<g><title>${esc(r.seg+" \u2013 "+r.name+": "+r.pR+" \u2192 "+r.cR+" ("+fmtPct(r.pct)+")")}</title><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.r}" fill="${COLORS[r.life]}"/>${lab(x,y,r,1)}</g>`; });
   s+=`</g>`;
   if(o.view==="life"&&(o.rollup||[]).some(r=>r.avg)) s+=T(105,792,"* simple average of segment indexes (customer/market counts not available)",{size:11,fill:"#667085"});
-    s+="</svg>"; return {svg:s,count:rows.length,heads,defaults};
+    s+="</g></svg>"; return {svg:s,count:rows.length,heads,defaults};
 }
 
 /* ======================= APPENDIX (one page per brand-receptivity band) ======================= */
@@ -625,7 +625,7 @@ function apFit(cols0,list){
 }
 function apPageSVG(B,st,cols,rows,lay,pi,np,opts,pageNo){
   cols=lay.cols||cols; const G=AP_G, TXT=B.light?"#231F20":"#FFFFFF", HDR=lay.hdr||G.hdr, HF=lay.headFs||G.headFs, TOP=G.top, R0=G.top+HDR;
-  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${AP_W} ${AP_H}" preserveAspectRatio="xMidYMid meet" font-family="${AP_FONT}"><rect width="${AP_W}" height="${AP_H}" fill="#fff"/>`;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${AP_W} ${AP_H}" preserveAspectRatio="xMidYMid meet" font-family="${AP_FONT}"><rect width="${AP_W}" height="${AP_H}" fill="#fff"/><g transform="translate(-28,0)">`;
   let tf=G.titleFs; const tw=apMeasure(B.title,tf,true); if(tw>G.titleMaxW) tf=tf*G.titleMaxW/tw;
   s+=`<text x="${G.titleX}" y="${G.titleY}" font-size="${tf.toFixed(1)}" font-weight="700" fill="#23396F">${esc(B.title)}</text>`;
   if(np>1&&pi>0) s+=`<text x="${G.titleX+2}" y="${TOP-14}" font-size="16" font-style="italic" fill="#667085">(continued)</text>`;
@@ -646,6 +646,7 @@ function apPageSVG(B,st,cols,rows,lay,pi,np,opts,pageNo){
       ls.forEach((t,k)=>{ s+=`<text x="${(c.left?c.x+6:c.x+c.w/2).toFixed(1)}" y="${(y0+k*lay.lh).toFixed(1)}" font-size="${lay.fs}" text-anchor="${c.left?"start":"middle"}" fill="${TXT}">${esc(t)}</text>`; }); });
     y+=rh; });
   s+=`<rect x="${G.tX-0.5}" y="${TOP}" width="${G.tW+1}" height="${(HDR+2+(rowsA.length?y-R0:48)).toFixed(1)}" fill="none" stroke="#231F20" stroke-width="2.5"/>`;
+  s+="</g>";
   if(pageNo!=null) s+=`<text x="${G.pageX}" y="${G.pageY}" font-size="16" fill="#231F20">${pageNo}</text>`;
   return s+"</svg>";
 }
