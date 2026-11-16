@@ -1716,7 +1716,9 @@ function syncCmpText(){
   $('tTitle').value=state.text.title; $('tSub').value=state.text.sub;
 }
 function toks(s){return NORM(s).split(' ').filter(Boolean);}
-function sameHeader(a,b){const x=toks(a),y=toks(b); if(!x.length||!y.length) return false; const [s,l]=x.length<=y.length?[x,y]:[y,x]; return s.every(t=>l.includes(t));}
+const HSTOP=['the','of','in','a','an','and','for','number','by'];
+function htoks(s){return NORM(s).split(' ').filter(w=>w&&!HSTOP.includes(w)).map(w=>w.replace(/s$/,''));}
+function sameHeader(a,b){const x=htoks(a),y=htoks(b); if(!x.length||!y.length) return false; const [s,l]=x.length<=y.length?[x,y]:[y,x]; return s.every(t=>l.includes(t));}
 function pmGroupFor(p){
   const G=(state.cmp.pm&&state.cmp.pm.groups)||[];
   return G.find(g=>NORM(g.header)===NORM(p.header)||NORM(g.header)===NORM(p.label))||G.find(g=>sameHeader(g.header,p.header)||sameHeader(g.header,p.label));
@@ -1768,6 +1770,10 @@ function matchRowsByText(rows,text){
   const ok=rows.filter(r=>!isUnknown(r.desc));
   let hit=ok.filter(r=>NORM(displayDesc(r.desc))===t);
   if(!hit.length) hit=ok.filter(r=>NORM(r.desc)===t);
+  if(!hit.length){   // abbreviations: every word is the start of the matching word ("Grad School" = Graduate School)
+    const tw=toks(text);
+    hit=ok.filter(r=>{const rw=toks(displayDesc(r.desc)); return rw.length===tw.length&&tw.length>0&&tw.every((w,i)=>w.length>=3&&rw[i].startsWith(w));});
+  }
   if(!hit.length){   // a hand-made roll-up, e.g. "Mid to Full-Size SUV" = Mid-Size SUV + Full-Size SUV
     const STOP=['to','and','or','of','the','a','in','with','for'], tt=new Set(toks(text).filter(w=>!STOP.includes(w)));
     const roll=ok.filter(r=>{const rt=toks(displayDesc(r.desc)).filter(w=>!STOP.includes(w)); return rt.length>=2&&rt.every(w=>tt.has(w));});
@@ -1792,7 +1798,9 @@ function cmpLines(p){
   return prev.map(l=>{
     const r=rowsForLine(p,el.rows,l);
     const cur=!r.rows.length?null:(r.rows.length===1&&p.mode!=='range'?r.rows[0].mpi:bpiOf(r.rows,state.report.totals,state.opts.method));
-    return {text:l.text,bpi:cur,prev:l.bpi,approx:r.approx};
+    let tx=l.text; const hw=NORM(p.header).split(' ')[0], hm=tx.match(/^([A-Za-z]+)\s+(?=[\d$])/);
+    if(hm&&NORM(hm[1])===hw) tx=tx.slice(hm[0].length);
+    return {text:tx,bpi:cur,prev:l.bpi,approx:r.approx};
   });
 }
 
@@ -1803,11 +1811,12 @@ function ocrToItems(words){
   for(const w of ws){
     let s=String(w.text).trim(); const h=w.bbox.y1-w.bbox.y0;
     if(h<mh*0.5&&!/[A-Za-z0-9]/.test(s)) continue;                         // stray bullet marks
+    if(h>mh*5) continue;                                                    // artwork picked up as text
     s=s.replace(/^[\u00BB\u203A>\u25B6\u25B8\u25BA\u2023\u2022*\u00AB]+(?=\S)/,'');   // bullet glued to a word
     const m=s.match(/^[\[\(\{]?(\d{1,4})[\]\)\}]?$/); if(m&&/[\[\(\{\]\)\}]/.test(s)) s='('+m[1]+')';
     items.push({s,x:w.bbox.x0,y:-(w.bbox.y0+w.bbox.y1)/2,w:w.bbox.x1-w.bbox.x0,h:Math.max(h,mh),bold:false});
   }
-  return {items,k:mh/14,rowTol:mh*0.4,gapF:1.1};
+  return {items,k:mh/14,rowTol:mh*0.4,gapF:1.1,colTol:mh*5};
 }
 async function loadTesseract(){
   if(window.Tesseract) return;
@@ -1816,6 +1825,21 @@ async function loadTesseract(){
   }
   throw new Error('Could not load the text reader (needs an internet connection).');
 }
+// grey-scale that keeps blue / gold text dark, and brings any light or coloured slide background up to white
+function cleanCanvas(cv){
+  const W=cv.width,H=cv.height,cx=cv.getContext('2d',{willReadFrequently:true}),im=cx.getImageData(0,0,W,H),d=im.data,g=new Uint8Array(W*H);
+  for(let i=0,j=0;i<d.length;i+=4,j++) g[j]=Math.min(d[i],d[i+1],d[i+2]);
+  const T=48;
+  for(let ty=0;ty<H;ty+=T) for(let tx=0;tx<W;tx+=T){
+    const x1=Math.min(W,tx+T),y1=Math.min(H,ty+T),hist=new Uint32Array(256),n=(x1-tx)*(y1-ty);
+    for(let y=ty;y<y1;y++) for(let x=tx;x<x1;x++) hist[g[y*W+x]]++;
+    let acc=0,bg=255; for(let v=0;v<256;v++){acc+=hist[v]; if(acc>=n*0.7){bg=v;break;}}
+    const gain=(bg>=90&&bg<250)?255/bg:1;
+    for(let y=ty;y<y1;y++) for(let x=tx;x<x1;x++){const i=y*W+x; let v=Math.min(255,g[i]*gain); if(v>215) v=255; g[i]=v;}
+  }
+  for(let i=0,j=0;i<d.length;i+=4,j++){d[i]=d[i+1]=d[i+2]=g[j];d[i+3]=255;}
+  cx.putImageData(im,0,0); return cv;
+}
 async function prepImage(file){
   let bmp; try{bmp=await createImageBitmap(file);}catch(e){
     bmp=await new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(new Error('Could not open that image.'));im.src=URL.createObjectURL(file);});
@@ -1823,12 +1847,9 @@ async function prepImage(file){
   const w0=bmp.width||bmp.naturalWidth, h0=bmp.height||bmp.naturalHeight, sc=Math.max(1,Math.min(3,2000/w0));
   const cv=document.createElement('canvas'); cv.width=Math.round(w0*sc); cv.height=Math.round(h0*sc);
   const cx=cv.getContext('2d',{willReadFrequently:true}); cx.fillStyle='#fff'; cx.fillRect(0,0,cv.width,cv.height); cx.imageSmoothingQuality='high'; cx.drawImage(bmp,0,0,cv.width,cv.height);
-  const im=cx.getImageData(0,0,cv.width,cv.height),d=im.data;
-  for(let i=0;i<d.length;i+=4){ let v=Math.min(d[i],d[i+1],d[i+2]); if(v>215) v=255; d[i]=d[i+1]=d[i+2]=v; d[i+3]=255; }   // blue and gold text turn dark
-  cx.putImageData(im,0,0); cv.srcWidth=w0; return cv;
+  cleanCanvas(cv); cv.srcWidth=w0; return cv;
 }
-async function readOldImage(file,st){
-  st.textContent='Preparing image\u2026'; const cv=await prepImage(file);
+async function ocrCanvas(cv,st){
   st.textContent='Loading the text reader (first time only)\u2026'; await loadTesseract();
   const worker=await Tesseract.createWorker('eng');
   try{
@@ -1838,10 +1859,29 @@ async function readOldImage(file,st){
     let words=dt.words;
     if(!words&&dt.blocks){words=[];dt.blocks.forEach(b=>(b.paragraphs||[]).forEach(p=>(p.lines||[]).forEach(l=>(l.words||[]).forEach(w=>words.push(w)))));}
     const o=ocrToItems((words||[]).map(w=>({text:w.text,bbox:w.bbox,confidence:w.confidence})));
-    const r=parseOldPM(o.items,{k:o.k,rowTol:o.rowTol,gapF:o.gapF,mode:'gap'});
-    if(!r.groups.length) throw new Error('Could not read any puzzle man lines from that image. Try a larger, sharper screenshot, or type last year\u2019s lines into each piece.');
+    const r=parseOldPM(o.items,{k:o.k,rowTol:o.rowTol,gapF:o.gapF,colTol:o.colTol,mode:'gap'});
     return {groups:r.groups,ocr:true,small:(cv.srcWidth||9999)<1000};
   } finally { try{await worker.terminate();}catch(e){} }
+}
+async function readOldImage(file,st){
+  st.textContent='Preparing image\u2026'; const cv=await prepImage(file), r=await ocrCanvas(cv,st);
+  if(!r.groups.length) throw new Error('Could not read any puzzle man lines from that image. Try a larger, sharper screenshot, or type last year\u2019s lines into each piece.');
+  return r;
+}
+// a PDF that is really a picture (no text inside): draw each page and read it like an image
+async function ocrPdf(pdf,st){
+  let best=null;
+  for(let n=1;n<=Math.min(pdf.numPages,5);n++){
+    st.textContent='Reading page '+n+' as a picture\u2026';
+    const pg=await pdf.getPage(n),v1=pg.getViewport({scale:1}),v2=pg.getViewport({scale:Math.max(1,Math.min(4,2200/v1.width))});
+    const cv=document.createElement('canvas'); cv.width=Math.round(v2.width); cv.height=Math.round(v2.height);
+    const cx=cv.getContext('2d',{willReadFrequently:true}); cx.fillStyle='#fff'; cx.fillRect(0,0,cv.width,cv.height);
+    await pg.render({canvasContext:cx,viewport:v2}).promise;
+    cleanCanvas(cv); cv.srcWidth=2000;
+    const r=await ocrCanvas(cv,st), score=r.groups.reduce((a,g)=>a+g.lines.length,0);
+    if(!best||score>best.score) best={...r,score};
+  }
+  return best;
 }
 
 /* ---- reading an old puzzle man (PDF text -> groups of lines) ---- */
@@ -1852,8 +1892,20 @@ function pdfPos(vp,it){
   return {x:e,y:vp.height-f};
 }
 function parseOldPM(items,opt){
-  const k=(opt&&opt.k)||1, RT=(opt&&opt.rowTol)||2.5*k, GF=(opt&&opt.gapF)||0.6;
+  const k=(opt&&opt.k)||1, RT=(opt&&opt.rowTol)||2.5*k, GF=(opt&&opt.gapF)||0.6, CT=(opt&&opt.colTol)||40*k;
   const END=/\((\d{1,4})\)(?:\s*\((\d{1,4})\))?\s*$/;
+  // index styles: "Compact Van (380)" or the plain-number style "2023: Age 46-57 157"
+  const YEAR=/^\s*(?:19|20)\d\d\s*[:\-\u2013]?\s+(?=\S)/;
+  const UNITW=/^(years?|yrs?|children|child|adults?|months?|miles?|to|and|or|plus|in|of|the|hh)$/i;
+  let style='paren';
+  const parenEnd=t=>{const u=t.replace(YEAR,''),m=u.match(END); return m?[{text:u.replace(END,'').trim(),bpi:parseInt(m[1],10)}]:null;};
+  const bareEnd=t=>{
+    const u=t.replace(YEAR,''),m=u.match(/^(.*\S)\s+(\d{2,3})$/); if(!m) return null;
+    const head=m[1],out=[],re=/\s(\d{2,3})\s+(?=\S)/g; let cut=0,mm;
+    while((mm=re.exec(head))){const n=+mm[1],nx=head.slice(mm.index+mm[0].length).split(/\s+/)[0]; if(n>=50&&/^[A-Z]/.test(nx)&&!UNITW.test(nx)){out.push({text:head.slice(cut,mm.index).trim(),bpi:n});cut=mm.index+mm[0].length;}}
+    out.push({text:head.slice(cut).trim(),bpi:+m[2]}); return out;
+  };
+  const endOf=t=>style==='bare'?bareEnd(t):parenEnd(t);
   const BULC='\u2022\u2023\u2043\u2219\u25AA\u25AB\u25B6\u25B8\u25BA\u25CF\u25E6\u25CB\uF000-\uF0FF\u00B7\u00A7';
   const BUL=new RegExp('^['+BULC+']+$'), BULP=new RegExp('^\\s*['+BULC+']');
   // 1. glue items into lines. Items may arrive in any order, so an item can join a line from either side
@@ -1881,9 +1933,10 @@ function parseOldPM(items,opt){
     L.t=L.s.replace(/\s+/g,' ').trim().replace(/^[^\w$<("']+\s*/,'');
   });
   const all=lines.filter(L=>L.t);
+  style=all.filter(L=>parenEnd(L.t)).length>=all.filter(L=>bareEnd(L.t)).length?'paren':'bare';
   // 2. columns = clusters of left edges; read each column top to bottom
   const byX=all.slice().sort((a,b)=>a.x-b.x),cols=[];
-  for(const L of byX){const c=cols[cols.length-1]; if(c&&L.x-c.x1<=40*k){c.items.push(L);c.x1=L.x;} else cols.push({x1:L.x,items:[L]});}
+  for(const L of byX){const c=cols[cols.length-1]; if(c&&L.x-c.x1<=CT){c.items.push(L);c.x1=L.x;} else cols.push({x1:L.x,items:[L]});}
   // headings are marked by a bullet if the slide has them, otherwise by bold type, otherwise by spacing
   const nBul=all.filter(L=>L.bul).length, mode=(opt&&opt.mode)||(nBul>=2?'bullet':(all.some(L=>L.bold)?'bold':'gap'));
   const groups=[];
@@ -1892,7 +1945,7 @@ function parseOldPM(items,opt){
     const ds=seq.slice(1).map((L,i)=>seq[i].y-L.y).filter(d=>d>0).sort((a,b)=>a-b), pitch=ds.length?ds[Math.floor(ds.length/2)]:20;
     let g=null,pend='',prevHdr=false,prevTerm=true,prevY=null;
     for(const L of seq){
-      const t=L.t,term=END.test(t), big=prevY!==null&&(prevY-L.y)>pitch*1.3;
+      const t=L.t,term=!!endOf(t), big=prevY!==null&&(prevY-L.y)>pitch*1.3;
       const hdr=!term&&(mode==='bullet'?L.bul:mode==='bold'?L.bold:(big||(!pend&&prevTerm&&!/[\d$]/.test(t))));
       if(hdr){
         if(mode!=='bullet'&&prevHdr&&g&&!g.lines.length&&Math.abs(g.x-L.x)<5*k&&g.y-L.y>0&&g.y-L.y<30*k){g.header+=' '+t;g.y=L.y;}
@@ -1900,8 +1953,8 @@ function parseOldPM(items,opt){
         pend='';prevHdr=true;
       } else {
         prevHdr=false; pend=pend?pend+' '+t:t;
-        const m=pend.match(END);
-        if(m){ if(g) g.lines.push({text:pend.replace(END,'').trim(),bpi:parseInt(m[1],10)}); pend=''; }
+        const pr=endOf(pend);
+        if(pr){ if(g) pr.forEach(x=>g.lines.push(x)); pend=''; }
       }
       prevTerm=term; prevY=L.y;
     }
@@ -1926,6 +1979,7 @@ async function readOldPM(file,st){
     const score=r.groups.reduce((a,g)=>a+g.lines.length,0);
     if(!best||score>best.score) best={groups:r.groups,score};
   }
+  if(!best||!best.groups.length){ const o=await ocrPdf(pdf,st); if(o&&o.groups.length) return {groups:o.groups,ocr:true,small:false}; }
   if(!best||!best.groups.length) throw new Error('No puzzle man lines found. Export the slide as a PDF from PowerPoint and try again, or type last year\u2019s lines into each piece.');
   return {groups:best.groups};
 }
