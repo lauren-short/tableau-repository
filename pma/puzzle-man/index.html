@@ -150,11 +150,12 @@
   .segpick select{max-width:260px}
   #opts textarea{font-family:Consolas,Menlo,monospace}
   .bands{max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff}
-  .bhead,.band{display:grid;grid-template-columns:20px 1fr 54px 42px;gap:6px;align-items:center;padding:5px 8px;font-size:12px}
+  .bhead,.band{display:grid;grid-template-columns:20px 1fr 54px 42px 56px;gap:6px;align-items:center;padding:5px 8px;font-size:12px}
   .bhead{position:sticky;top:0;background:#f4f6fa;color:var(--mut);font-weight:600;border-bottom:1px solid var(--line);z-index:1}
   .band{cursor:pointer;border-bottom:1px solid #f0f2f7;margin:0} .band:hover{background:#f7f9fd} .band.on{background:#eaf2fc}
   .bhead span:nth-child(n+3),.band .bp,.band .bi{text-align:right} .band .bi{font-weight:700;color:var(--mut)} .band.hit .bi{color:#2f8fd6}
   .band.unk{opacity:.45;cursor:default} .band input{margin:0;accent-color:var(--navy);width:14px;height:14px}
+  .bsplit{font-size:11px;padding:1px 6px;border:1px solid #c9cfdd;border-radius:6px;background:#fff;color:var(--navy);cursor:pointer} .bsplit.on{background:var(--navy);color:#fff;border-color:var(--navy)}
   .band .bd{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 </head>
@@ -391,7 +392,8 @@ function computeLines(piece,els,T,opts){
   if(piece.mode==='range'){
     const order=rows.map((r,i)=>i).filter(i=>!isUnknown(rows[i].desc)), pos={}; order.forEach((i,k)=>pos[i]=k);
     const runs=[];let run=[];
-    for(const i of sel){ if(run.length&&pos[i]!==pos[run[run.length-1]]+1){runs.push(run);run=[];} run.push(i); }
+    const sp=new Set(piece.splits||[]);
+    for(const i of sel){ if(run.length&&(pos[i]!==pos[run[run.length-1]]+1||sp.has(i))){runs.push(run);run=[];} run.push(i); }
     if(run.length) runs.push(run);
     return runs.map(rn=>{const rr=rn.map(i=>rows[i]);return {text:labelRun(piece.fmt,rr),bpi:bpiOf(rr,T,opts.method)};});
   }
@@ -650,10 +652,12 @@ function bandsHTML(p){
   if(!state.report||!el) return '<div class="mut" style="padding:8px">Pick a source element to see its bands.</div>';
   const sel=new Set(selectRows(p,els,state.report.totals,state.opts));
   const idxs=el.rows.map((r,i)=>i); if(p.mode==='items') idxs.sort((x,y)=>el.rows[y].mpi-el.rows[x].mpi);
-  const thr=state.opts.thr,ex=state.opts.excl;
-  return '<div class="bhead"><span></span><span>Band</span><span>% cust.</span><span>Index</span></div>'+idxs.map(i=>{
+  const thr=state.opts.thr,ex=state.opts.excl,order=el.rows.map((r,i)=>i).filter(i=>!isUnknown(el.rows[i].desc));
+  return '<div class="bhead"><span></span><span>Band</span><span>% cust.</span><span>Index</span><span></span></div>'+idxs.map(i=>{
     const r=el.rows[i],unk=isUnknown(r.desc),hit=!unk&&r.mpi>=thr&&!(ex&&r.flagged);
-    return `<label class="band${sel.has(i)?' on':''}${hit?' hit':''}${unk?' unk':''}"><input type="checkbox" class="bandchk" data-i="${i}" ${sel.has(i)?'checked':''} ${unk?'disabled':''}><span class="bd">${esc(cleanDesc(r.desc))}</span><span class="bp">${r.custPct.toFixed(1)}%</span><span class="bi">${r.mpi}${r.flagged?'*':''}</span></label>`;
+    const k=order.indexOf(i),canSplit=p.mode==='range'&&sel.has(i)&&k>0&&sel.has(order[k-1]),isSp=(p.splits||[]).includes(i);
+    const sp=canSplit?`<button type="button" class="bsplit${isSp?' on':''}" data-i="${i}" title="${isSp?'Join with the band above':'Start a new band here'}">${isSp?'\u2715 split':'+ split'}</button>`:'<span></span>';
+    return `<label class="band${sel.has(i)?' on':''}${hit?' hit':''}${unk?' unk':''}"><input type="checkbox" class="bandchk" data-i="${i}" ${sel.has(i)?'checked':''} ${unk?'disabled':''}><span class="bd">${esc(cleanDesc(r.desc))}</span><span class="bp">${r.custPct.toFixed(1)}%</span><span class="bi">${r.mpi}${r.flagged?'*':''}</span>${sp}</label>`;
   }).join('');
 }
 function bandMode(p){return Array.isArray(p.bands)?'custom bands':'auto bands';}
@@ -682,7 +686,7 @@ function buildPieceList(){
         <label class="field"><span class="lbl2">Items order</span><select class="sort">${optSel([['mpi','Highest index first'],['report','Report order']],p.sort)}</select></label>
       </div>
       <label class="field"><span class="lbl2">Location on the figure</span><select class="zone">${optSel(ZONES,p.zone)}</select></label>
-      <div class="field"><span class="lbl2">Bands in this piece <span class="mut">&ndash; tick any band to add or drop it (<b class="bmode">${bandMode(p)}</b>). Blue index = meets the cutoff.</span></span><div class="bands">${bandsHTML(p)}</div></div>
+      <div class="field"><span class="lbl2">Bands in this piece <span class="mut">&ndash; tick a band to add or drop it; use <b>+ split</b> to break a range into separate lines (<b class="bmode">${bandMode(p)}</b>). Blue index = meets the cutoff.</span></span><div class="bands">${bandsHTML(p)}</div></div>
       <label class="field"><span class="lbl2">Lines <span class="mut">(one per line: text | index) &ndash; ${p.override!=null?'edited':'auto'}</span></span><textarea class="ov" spellcheck="false">${esc(p.override!=null?p.override:autoLines(p))}</textarea></label>
       <div class="pcbtns"><button class="btn rb" type="button">Auto bands</button><button class="btn reset" type="button">Reset lines to auto</button><button class="btn rm" type="button">Remove piece</button></div>
     </div>
@@ -722,8 +726,8 @@ $('pieces').addEventListener('change',e=>{
     renderStage(); return;
   }
   if(c.contains('vis')) p.visible=e.target.checked;
-  else if(c.contains('src')){p.src=parseInt(e.target.value);const f=guessFmt(elsOf()[p.src]?.name||'');if(f){p.fmt=f;p.mode='range';}p.override=null;p.bands=null;}
-  else if(c.contains('mode')){p.mode=e.target.value;p.override=null;p.bands=null;}
+  else if(c.contains('src')){p.src=parseInt(e.target.value);const f=guessFmt(elsOf()[p.src]?.name||'');if(f){p.fmt=f;p.mode='range';}p.override=null;p.bands=null;p.splits=[];}
+  else if(c.contains('mode')){p.mode=e.target.value;p.override=null;p.bands=null;p.splits=[];}
   else if(c.contains('fmt')){p.fmt=e.target.value;p.override=null;}
   else if(c.contains('sort')){p.sort=e.target.value;p.override=null;}
   else if(c.contains('zone')) p.zone=e.target.value;
@@ -733,12 +737,18 @@ $('pieces').addEventListener('change',e=>{
 });
 $('pieces').addEventListener('click',e=>{
   const b=e.target.closest('button'); const el=e.target.closest('.pc'); if(!el||!b) return;
+  if(b.classList.contains('bsplit')){
+    e.preventDefault(); const p=state.pieces.find(x=>x.uid==el.dataset.uid),i=+b.dataset.i;
+    p.splits=p.splits||[]; const k=p.splits.indexOf(i); k>=0?p.splits.splice(k,1):p.splits.push(i); p.override=null;
+    const bx=el.querySelector('.bands'),st=bx.scrollTop; bx.innerHTML=bandsHTML(p); bx.scrollTop=st;
+    const ta=el.querySelector('.ov'); if(ta) ta.value=autoLines(p); renderStage(); return;
+  }
   const p=state.pieces.find(x=>x.uid==el.dataset.uid),i=state.pieces.indexOf(p),c=b.classList;
   if(c.contains('up')&&i>0) [state.pieces[i-1],state.pieces[i]]=[state.pieces[i],state.pieces[i-1]];
   else if(c.contains('dn')&&i<state.pieces.length-1) [state.pieces[i+1],state.pieces[i]]=[state.pieces[i],state.pieces[i+1]];
   else if(c.contains('tg')){state.open.has(p.uid)?state.open.delete(p.uid):state.open.add(p.uid);}
   else if(c.contains('reset')) p.override=null;
-  else if(c.contains('rb')){p.bands=null;p.override=null;}
+  else if(c.contains('rb')){p.bands=null;p.splits=[];p.override=null;}
   else if(c.contains('rm')) state.pieces.splice(i,1);
   else return;
   buildPieceList();
