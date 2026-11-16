@@ -1281,6 +1281,12 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
   .grip:hover{color:var(--navy);background:#f0f3f8}
   .pc.dragging{border-color:var(--navy);box-shadow:0 8px 24px rgba(16,24,40,.22);background:#f8fbff;position:relative;z-index:3}
   body.reordering,body.reordering *{cursor:grabbing!important;user-select:none!important}
+  .mpc{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;margin-top:8px}
+  .mhead{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--navy)}
+  .mhead .mst{font-weight:500;color:var(--mut);margin-left:auto} .mhead .mreset{border:0;background:none;color:var(--accent);font:600 11.5px inherit;font-family:inherit;cursor:pointer;padding:0}
+  .mrow{display:flex;gap:6px;align-items:center;margin-top:6px} #opts .mrow input.mt{flex:1 1 0;min-width:0;width:auto} #opts .mrow input.mi{flex:none;width:64px;max-width:64px}
+  .mcur{flex:none;width:74px;font-size:11px;line-height:1.2;color:var(--mut);text-align:right} .mx{flex:none;border:0;background:none;color:var(--mut);font-size:18px;line-height:1;cursor:pointer;padding:0 2px} .mx:hover{color:var(--bad)}
+  .madd{margin-top:8px;border:0;background:none;color:var(--accent);font:600 12px inherit;font-family:inherit;cursor:pointer;padding:0}
 </style>
 </head>
 <body class="standalone">
@@ -1361,6 +1367,10 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
           <div class="osec two">
             <label class="field"><span>Previous label</span><input type="text" id="plabel" class="txt" maxlength="14"></label>
             <label class="field"><span>Current label</span><input type="text" id="clabel" class="txt" maxlength="14"></label>
+          </div>
+          <div class="osec">
+            <button class="btn" id="manualBtn" type="button" aria-expanded="false">Enter or fix last year&rsquo;s numbers by hand</button>
+            <div id="manualBox" hidden></div>
           </div>
           <div class="hint">Last year&rsquo;s bands stay exactly as they were. This year&rsquo;s index is recalculated for those same bands from this year&rsquo;s report, so last year&rsquo;s Age 24-36 is re-scored with this year&rsquo;s ages 24-36.</div>
         </section>
@@ -1718,11 +1728,21 @@ function syncCmpText(){
 function toks(s){return NORM(s).split(' ').filter(Boolean);}
 const HSTOP=['the','of','in','a','an','and','for','number','by'];
 function htoks(s){return NORM(s).split(' ').filter(w=>w&&!HSTOP.includes(w)).map(w=>w.replace(/s$/,''));}
-function sameHeader(a,b){const x=htoks(a),y=htoks(b); if(!x.length||!y.length) return false; const [s,l]=x.length<=y.length?[x,y]:[y,x]; return s.every(t=>l.includes(t));}
+function lev(a,b){const d=[];for(let i=0;i<=a.length;i++){d[i]=[i];} for(let j=1;j<=b.length;j++) d[0][j]=j;
+  for(let i=1;i<=a.length;i++) for(let j=1;j<=b.length;j++) d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1)); return d[a.length][b.length];}
+const tokEq=(a,b)=>a===b||(a.length>=4&&b.length>=4&&lev(a,b)<=1);
+function sameHeader(a,b){const x=htoks(a),y=htoks(b); if(!x.length||!y.length) return false; const [s,l]=x.length<=y.length?[x,y]:[y,x]; return s.every(t=>l.some(u=>tokEq(t,u)));}
 function pmGroupFor(p){
   const G=(state.cmp.pm&&state.cmp.pm.groups)||[];
-  return G.find(g=>NORM(g.header)===NORM(p.header)||NORM(g.header)===NORM(p.label))||G.find(g=>sameHeader(g.header,p.header)||sameHeader(g.header,p.label));
+  const byHead=g=>NORM(g.header)===NORM(p.header)||NORM(g.header)===NORM(p.label)||sameHeader(g.header,p.header)||sameHeader(g.header,p.label);
+  const hit=G.find(g=>NORM(g.header)===NORM(p.header)||NORM(g.header)===NORM(p.label))||G.find(byHead);
+  if(hit) return hit;
+  // heading unreadable (picture text): take a group nobody else claims whose lines all fit this piece's rows
+  const el=elsOf()[p.src]; if(!el) return null;
+  const claimed=new Set(); state.pieces.forEach(q=>{if(q!==p){const h=G.find(byHeadFor(q)); if(h) claimed.add(h);}});
+  return G.find(g=>!claimed.has(g)&&g.lines.length&&g.lines.every(l=>rowsForLine(p,el.rows,l).rows.length))||null;
 }
+function byHeadFor(q){return g=>NORM(g.header)===NORM(q.header)||NORM(g.header)===NORM(q.label)||sameHeader(g.header,q.header)||sameHeader(g.header,q.label);}
 function prevElFor(p){
   const R=state.cmp.report,cur=elsOf()[p.src]; if(!R||!cur) return -1;
   const n=NORM(cur.name); let i=R.elements.findIndex(e=>NORM(e.name)===n);
@@ -1813,6 +1833,7 @@ function ocrToItems(words){
     if(h<mh*0.5&&!/[A-Za-z0-9]/.test(s)) continue;                         // stray bullet marks
     if(h>mh*5) continue;                                                    // artwork picked up as text
     s=s.replace(/^[\u00BB\u203A>\u25B6\u25B8\u25BA\u2023\u2022*\u00AB]+(?=\S)/,'');   // bullet glued to a word
+    if(/^[\[\(\{]?[0-9OoIlSB|]{2,4}[\]\)\}.,;]?$/.test(s)&&(s.match(/[0-9]/g)||[]).length>=2) s=s.replace(/[Oo]/g,'0').replace(/[Il|]/g,'1').replace(/S/g,'5').replace(/B/g,'8');
     const m=s.match(/^[\[\(\{]?(\d{1,4})[\]\)\}]?$/); if(m&&/[\[\(\{\]\)\}]/.test(s)) s='('+m[1]+')';
     items.push({s,x:w.bbox.x0,y:-(w.bbox.y0+w.bbox.y1)/2,w:w.bbox.x1-w.bbox.x0,h:Math.max(h,mh),bold:false});
   }
@@ -1860,7 +1881,7 @@ async function ocrCanvas(cv,st){
     if(!words&&dt.blocks){words=[];dt.blocks.forEach(b=>(b.paragraphs||[]).forEach(p=>(p.lines||[]).forEach(l=>(l.words||[]).forEach(w=>words.push(w)))));}
     const o=ocrToItems((words||[]).map(w=>({text:w.text,bbox:w.bbox,confidence:w.confidence})));
     const r=parseOldPM(o.items,{k:o.k,rowTol:o.rowTol,gapF:o.gapF,colTol:o.colTol,mode:'gap'});
-    return {groups:r.groups,ocr:true,small:(cv.srcWidth||9999)<1000};
+    return {groups:r.groups,left:r.left,ocr:true,small:(cv.srcWidth||9999)<1000};
   } finally { try{await worker.terminate();}catch(e){} }
 }
 async function readOldImage(file,st){
@@ -1898,9 +1919,9 @@ function parseOldPM(items,opt){
   const YEAR=/^\s*(?:19|20)\d\d\s*[:\-\u2013]?\s+(?=\S)/;
   const UNITW=/^(years?|yrs?|children|child|adults?|months?|miles?|to|and|or|plus|in|of|the|hh)$/i;
   let style='paren';
-  const parenEnd=t=>{const u=t.replace(YEAR,''),m=u.match(END); return m?[{text:u.replace(END,'').trim(),bpi:parseInt(m[1],10)}]:null;};
+  const parenEnd=t=>{const u=t.replace(YEAR,'').replace(/[.,;:]+$/,''),m=u.match(END); return m?[{text:u.replace(END,'').trim(),bpi:parseInt(m[1],10)}]:null;};
   const bareEnd=t=>{
-    const u=t.replace(YEAR,''),m=u.match(/^(.*\S)\s+(\d{2,3})$/); if(!m) return null;
+    const u=t.replace(YEAR,'').replace(/[.,;:]+$/,''),m=u.match(/^(.*\S)\s+(\d{2,3})$/); if(!m) return null;
     const head=m[1],out=[],re=/\s(\d{2,3})\s+(?=\S)/g; let cut=0,mm;
     while((mm=re.exec(head))){const n=+mm[1],nx=head.slice(mm.index+mm[0].length).split(/\s+/)[0]; if(n>=50&&/^[A-Z]/.test(nx)&&!UNITW.test(nx)){out.push({text:head.slice(cut,mm.index).trim(),bpi:n});cut=mm.index+mm[0].length;}}
     out.push({text:head.slice(cut).trim(),bpi:+m[2]}); return out;
@@ -1939,7 +1960,7 @@ function parseOldPM(items,opt){
   for(const L of byX){const c=cols[cols.length-1]; if(c&&L.x-c.x1<=CT){c.items.push(L);c.x1=L.x;} else cols.push({x1:L.x,items:[L]});}
   // headings are marked by a bullet if the slide has them, otherwise by bold type, otherwise by spacing
   const nBul=all.filter(L=>L.bul).length, mode=(opt&&opt.mode)||(nBul>=2?'bullet':(all.some(L=>L.bold)?'bold':'gap'));
-  const groups=[];
+  const groups=[], left=[];
   for(const c of cols.sort((a,b)=>a.items[0].x-b.items[0].x)){
     const seq=c.items.slice().sort((a,b)=>b.y-a.y||a.x-b.x);
     const ds=seq.slice(1).map((L,i)=>seq[i].y-L.y).filter(d=>d>0).sort((a,b)=>a-b), pitch=ds.length?ds[Math.floor(ds.length/2)]:20;
@@ -1950,16 +1971,18 @@ function parseOldPM(items,opt){
       if(hdr){
         if(mode!=='bullet'&&prevHdr&&g&&!g.lines.length&&Math.abs(g.x-L.x)<5*k&&g.y-L.y>0&&g.y-L.y<30*k){g.header+=' '+t;g.y=L.y;}
         else{g={header:t,lines:[],x:L.x,y:L.y};groups.push(g);}
-        pend='';prevHdr=true;
+        if(pend&&mode!=='bullet'||pend) left.push(pend); pend='';prevHdr=true;
       } else {
         prevHdr=false; pend=pend?pend+' '+t:t;
         const pr=endOf(pend);
-        if(pr){ if(g) pr.forEach(x=>g.lines.push(x)); pend=''; }
+        if(pr){ if(g) pr.forEach(x=>g.lines.push(x)); else left.push(pend); pend=''; }
       }
       prevTerm=term; prevY=L.y;
     }
+    if(pend) left.push(pend);
   }
-  return {groups:groups.filter(g=>g.lines.length).map(g=>({header:g.header,lines:g.lines}))};
+  groups.filter(g=>!g.lines.length).forEach(g=>left.push(g.header));
+  return {groups:groups.filter(g=>g.lines.length).map(g=>({header:g.header,lines:g.lines})),left:left.filter(x=>x&&x.length>2&&/[A-Za-z0-9]{2}/.test(x))};
 }
 async function readOldPM(file,st){
   if(/^image\//.test(file.type||'')||/\.(png|jpe?g|webp|gif|bmp)$/i.test(file.name||'')) return readOldImage(file,st);
@@ -1979,7 +2002,7 @@ async function readOldPM(file,st){
     const score=r.groups.reduce((a,g)=>a+g.lines.length,0);
     if(!best||score>best.score) best={groups:r.groups,score};
   }
-  if(!best||!best.groups.length){ const o=await ocrPdf(pdf,st); if(o&&o.groups.length) return {groups:o.groups,ocr:true,small:false}; }
+  if(!best||!best.groups.length){ const o=await ocrPdf(pdf,st); if(o&&o.groups.length) return {groups:o.groups,left:o.left,ocr:true,small:false}; }
   if(!best||!best.groups.length) throw new Error('No puzzle man lines found. Export the slide as a PDF from PowerPoint and try again, or type last year\u2019s lines into each piece.');
   return {groups:best.groups};
 }
@@ -2172,6 +2195,7 @@ function buildPieceList(){
     </div>
   </div>`).join('');
   buildSegbar(); renderStage();
+  if(state.cmp.on&&$('manualBox')&&!$('manualBox').hidden) buildManual();
 }
 function updateChips(){
   const r=state.report,m=$('chipR'),p=$('chipP');
@@ -2191,7 +2215,7 @@ $('pieces').addEventListener('input',e=>{
   if(c.contains('lbl')){p.label=e.target.value;buildSegbar();}
   else if(c.contains('hdr')) p.header=e.target.value;
   else if(c.contains('ov')) p.override=e.target.value;
-  else if(c.contains('pov')) p.prevOverride=e.target.value;
+  else if(c.contains('pov')){p.prevOverride=e.target.value; if(!$('manualBox').hidden) buildManual();}
   else return;
   renderStage();
 });
@@ -2297,6 +2321,46 @@ bindOpt('method','method',e=>e.value);
 $('figScale').addEventListener('input',e=>{state.figScale=e.target.value/100;$('figScaleV').textContent=e.target.value+'%';renderStage();});
 $('tTitle').value=state.text.title;$('tSub').value=state.text.sub;
 
+/* compare years: enter or fix last year's numbers by hand */
+function prevLinesFor(p){return p.prevOverride!=null?parsePrev(p.prevOverride):(prevAuto(p)||[]);}
+function mrow(t,i){return '<div class="mrow"><input class="txt mt" value="'+esc(t||'')+'" placeholder="Band, e.g. 46-57 or Married"><input class="txt mi" type="number" min="0" max="999" value="'+(i==null?'':i)+'" placeholder="Index"><span class="mcur"></span><button class="mx" type="button" title="Remove this line">&times;</button></div>';}
+function buildManual(){
+  const box=$('manualBox'); if(!box) return;
+  const vis=state.pieces.filter(p=>p.visible);
+  box.innerHTML=(vis.length?'<div class="hint" style="margin-top:8px">One line per band from last year\u2019s slide: the band as it was written, and its index. This year\u2019s index is worked out from this year\u2019s report and shown on the right.</div>':'<div class="hint">Load this year\u2019s report first.</div>')
+   +vis.map(p=>{
+    const rows=prevLinesFor(p), st=p.prevOverride!=null?'typed by hand':(prevAuto(p)?'read from file':'nothing yet');
+    return '<div class="mpc" data-uid="'+p.uid+'"><div class="mhead"><span>'+esc(p.header)+'</span><span class="mst">'+st+'</span><button class="mreset" type="button" title="Back to what was read from the file"'+(p.prevOverride==null?' hidden':'')+'>Reset</button></div>'
+      +rows.map(r=>mrow(r.text,r.bpi)).join('')+'<button class="madd" type="button">+ Add a line</button></div>';
+  }).join('');
+  mPreview();
+}
+function mPreview(){
+  document.querySelectorAll('#manualBox .mpc').forEach(el=>{
+    const p=state.pieces.find(x=>x.uid==el.dataset.uid); if(!p) return;
+    const cl=state.report?(cmpLines(p)||[]):[]; let k=0;
+    el.querySelectorAll('.mrow').forEach(r=>{
+      const sp=r.querySelector('.mcur'); if(!r.querySelector('.mt').value.trim()){sp.textContent='';return;}
+      const l=cl[k++]; sp.textContent=!state.report?'':l?(l.bpi!=null?'this year '+l.bpi:'not in this year\u2019s report'):'';
+    });
+  });
+}
+function commitManual(el,p){
+  const lines=[...el.querySelectorAll('.mrow')].map(r=>({t:r.querySelector('.mt').value.trim(),i:r.querySelector('.mi').value.trim()})).filter(x=>x.t).map(x=>x.i!==''?x.t+' | '+x.i:x.t);
+  p.prevOverride=lines.join('\n');
+  el.querySelector('.mst').textContent='typed by hand'; el.querySelector('.mreset').hidden=false;
+  const pov=document.querySelector('#pieces .pc[data-uid="'+p.uid+'"] .pov'); if(pov&&document.activeElement!==pov) pov.value=p.prevOverride;
+  renderStage(); mPreview();
+}
+function openManual(on){const b=$('manualBox'); b.hidden=!on; $('manualBtn').setAttribute('aria-expanded',on?'true':'false'); if(on) buildManual();}
+$('manualBtn').addEventListener('click',()=>openManual($('manualBox').hidden));
+$('manualBox').addEventListener('input',e=>{const el=e.target.closest('.mpc'); if(!el) return; const p=state.pieces.find(x=>x.uid==el.dataset.uid); if(p) commitManual(el,p);});
+$('manualBox').addEventListener('click',e=>{
+  const el=e.target.closest('.mpc'),b=e.target.closest('button'); if(!el||!b) return; const p=state.pieces.find(x=>x.uid==el.dataset.uid); if(!p) return;
+  if(b.classList.contains('madd')){b.insertAdjacentHTML('beforebegin',mrow('',null)); const rs=el.querySelectorAll('.mrow'); rs[rs.length-1].querySelector('.mt').focus();}
+  else if(b.classList.contains('mx')){b.closest('.mrow').remove(); commitManual(el,p);}
+  else if(b.classList.contains('mreset')){p.prevOverride=null; buildPieceList();}
+});
 /* compare years: panel */
 const KIND_TXT={
   pm:{ph:'Choose last year\u2019s puzzle man (.pdf or image)',acc:'.pdf,.json,image/*',hint:'Reads each heading and its lines (index in parentheses) from last year\u2019s slide: a PDF export, or a picture. To use a picture, choose the PNG or paste a screenshot with Ctrl+V (\u2318V on a Mac). Pictures are read with text recognition, so double-check the numbers.'},
@@ -2307,7 +2371,16 @@ function cmpInfo(){
   const have=C.kind==='pm'?C.pm:C.report;
   if(!have){m.textContent=C.kind==='pm'?'No file yet. You can also type last year\u2019s lines into each piece in the list below.':'No file yet.';return;}
   const vis=state.pieces.filter(p=>p.visible&&p.src>=0), n=vis.filter(p=>prevAuto(p)).length;
-  m.textContent=(C.kind==='pm'?'Read '+C.pm.groups.length+' groups ('+C.pm.groups.reduce((a,g)=>a+g.lines.length,0)+' lines). '+(C.pm.ocr?'Read from a picture, so please check the numbers in each piece\u2019s \u201CLast year\u2019s lines\u201D box. '+(C.pm.small?'This picture is small, so reading may be less accurate; a larger screenshot (1000+ px wide) works better. ':''):''):'Read '+C.report.elements.length+' elements. ')+(state.report?'Matched '+n+' of '+vis.length+' pieces.':'');
+  let extra='';
+  if(state.report&&C.kind==='pm'){
+    const miss=vis.filter(p=>!prevAuto(p)).map(p=>p.header);
+    const used=new Set(vis.map(p=>pmGroupFor(p)).filter(Boolean)), unused=C.pm.groups.filter(g=>!used.has(g)).map(g=>g.header);
+    if(miss.length) extra+=' No match for: '+miss.join(', ')+' (use the button below to enter them by hand).';
+    if(unused.length) extra+=' Headings in the old slide not used: '+unused.join(', ')+'.';
+    const lf=(C.pm.left||[]).filter(x=>/\d/.test(x)&&/[A-Za-z]{3}/.test(x));
+    if(lf.length) extra+=' Could not read these lines: '+lf.slice(0,6).map(x=>'\u201C'+(x.length>48?x.slice(0,45)+'\u2026':x)+'\u201D').join(', ')+'. Use \u201CEnter or fix last year\u2019s numbers by hand\u201D below to add them.';
+  }
+  m.textContent=(C.kind==='pm'?'Read '+C.pm.groups.length+' groups ('+C.pm.groups.reduce((a,g)=>a+g.lines.length,0)+' lines). '+(C.pm.ocr?'Read from a picture, so please check the numbers in each piece\u2019s \u201CLast year\u2019s lines\u201D box. '+(C.pm.small?'This picture is small, so reading may be less accurate; a larger screenshot (1000+ px wide) works better. ':''):''):'Read '+C.report.elements.length+' elements. ')+(state.report?'Matched '+n+' of '+vis.length+' pieces.'+extra:'');
 }
 function setKindUI(){
   const C=state.cmp;
@@ -2332,6 +2405,7 @@ async function loadPrevFile(f){
     C.fname[kind]=f.name&&!/^image\.\w+$/i.test(f.name)?f.name:'Pasted image'; setKindUI();
     state.pieces.forEach(p=>{p.prevOverride=null;});
     buildPieceList(); cmpInfo();
+    if(state.report&&state.pieces.some(p=>p.visible&&p.src>=0&&!prevAuto(p))) openManual(true);
   }catch(err){ m.textContent=err.message||String(err); }
 }
 $('pfile').addEventListener('change',async e=>{const f=e.target.files[0]; if(!f) return; await loadPrevFile(f); e.target.value='';});
