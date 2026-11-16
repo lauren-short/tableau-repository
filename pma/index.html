@@ -1791,6 +1791,12 @@ function cmpLines(p){
   });
 }
 /* ---- reading an old puzzle man (PDF text -> groups of lines) ---- */
+// position of a pdf.js text item as the page is DISPLAYED (handles rotated pages), y measured upward
+function pdfPos(vp,it){
+  const a=vp.transform,b=it.transform;
+  const e=a[0]*b[4]+a[2]*b[5]+a[4], f=a[1]*b[4]+a[3]*b[5]+a[5];
+  return {x:e,y:vp.height-f};
+}
 function parseOldPM(items){
   const END=/\((\d{1,4})\)(?:\s*\((\d{1,4})\))?\s*$/;
   const BULC='\u2022\u2023\u2043\u2219\u25AA\u25AB\u25B6\u25B8\u25BA\u25CF\u25E6\u25CB\uF000-\uF0FF\u00B7\u00A7';
@@ -1859,7 +1865,8 @@ async function readOldPM(file,st){
     for(const k of new Set(tc.items.map(i=>i.fontName))){
       try{const f=pg.commonObjs.has(k)?pg.commonObjs.get(k):null; bold[k]=/bold|black|heavy|semibold|demi/i.test((f&&(f.name||f.loadedName))||'');}catch(e){bold[k]=false;}
     }
-    const r=parseOldPM(tc.items.map(it=>({s:it.str,x:it.transform[4],y:it.transform[5],w:it.width,h:it.height,bold:!!bold[it.fontName]})));
+    const vp=pg.getViewport({scale:1});
+    const r=parseOldPM(tc.items.map(it=>{const q=pdfPos(vp,it);return {s:it.str,x:q.x,y:q.y,w:it.width,h:it.height,bold:!!bold[it.fontName]};}));
     const score=r.groups.reduce((a,g)=>a+g.lines.length,0);
     if(!best||score>best.score) best={groups:r.groups,score};
   }
@@ -2237,7 +2244,7 @@ async function readPdf(file,stEl){
   for(let p=1;p<=pdf.numPages;p++){
     st.textContent=`Reading page ${p} of ${pdf.numPages}…`;
     const pg=await pdf.getPage(p),tc=await pg.getTextContent();
-    lines=lines.concat(itemsToLines(tc.items.map(it=>({s:it.str,x:it.transform[4],y:it.transform[5],w:it.width}))));
+    const vp=pg.getViewport({scale:1}); lines=lines.concat(itemsToLines(tc.items.map(it=>{const q=pdfPos(vp,it);return {s:it.str,x:q.x,y:q.y,w:it.width};})));
     lines.push('');
     if(p%10===0) await new Promise(r=>setTimeout(r,0));
   }
