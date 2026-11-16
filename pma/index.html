@@ -1768,6 +1768,11 @@ function matchRowsByText(rows,text){
   const ok=rows.filter(r=>!isUnknown(r.desc));
   let hit=ok.filter(r=>NORM(displayDesc(r.desc))===t);
   if(!hit.length) hit=ok.filter(r=>NORM(r.desc)===t);
+  if(!hit.length){   // a hand-made roll-up, e.g. "Mid to Full-Size SUV" = Mid-Size SUV + Full-Size SUV
+    const STOP=['to','and','or','of','the','a','in','with','for'], tt=new Set(toks(text).filter(w=>!STOP.includes(w)));
+    const roll=ok.filter(r=>{const rt=toks(displayDesc(r.desc)).filter(w=>!STOP.includes(w)); return rt.length>=2&&rt.every(w=>tt.has(w));});
+    if(roll.length>1) hit=roll;
+  }
   if(!hit.length) hit=ok.filter(r=>{const d=NORM(displayDesc(r.desc)); return d&&Math.min(d.length,t.length)>=4&&(d.includes(t)||t.includes(d));});
   return hit;
 }
@@ -1790,6 +1795,55 @@ function cmpLines(p){
     return {text:l.text,bpi:cur,prev:l.bpi,approx:r.approx};
   });
 }
+
+/* ---- reading a pasted / uploaded picture of an old puzzle man (OCR) ---- */
+function ocrToItems(words){
+  const ws=words.filter(w=>w&&w.bbox&&String(w.text).trim()&&(w.confidence==null||w.confidence>=35));
+  const hs=ws.map(w=>w.bbox.y1-w.bbox.y0).sort((a,b)=>a-b), mh=hs[Math.floor(hs.length*0.6)]||20, items=[];
+  for(const w of ws){
+    let s=String(w.text).trim(); const h=w.bbox.y1-w.bbox.y0;
+    if(h<mh*0.5&&!/[A-Za-z0-9]/.test(s)) continue;                         // stray bullet marks
+    s=s.replace(/^[\u00BB\u203A>\u25B6\u25B8\u25BA\u2023\u2022*\u00AB]+(?=\S)/,'');   // bullet glued to a word
+    const m=s.match(/^[\[\(\{]?(\d{1,4})[\]\)\}]?$/); if(m&&/[\[\(\{\]\)\}]/.test(s)) s='('+m[1]+')';
+    items.push({s,x:w.bbox.x0,y:-(w.bbox.y0+w.bbox.y1)/2,w:w.bbox.x1-w.bbox.x0,h:Math.max(h,mh),bold:false});
+  }
+  return {items,k:mh/14,rowTol:mh*0.4,gapF:1.1};
+}
+async function loadTesseract(){
+  if(window.Tesseract) return;
+  for(const u of ['https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js','https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js']){
+    try{await loadScript(u); if(window.Tesseract) return;}catch(e){}
+  }
+  throw new Error('Could not load the text reader (needs an internet connection).');
+}
+async function prepImage(file){
+  let bmp; try{bmp=await createImageBitmap(file);}catch(e){
+    bmp=await new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>rej(new Error('Could not open that image.'));im.src=URL.createObjectURL(file);});
+  }
+  const w0=bmp.width||bmp.naturalWidth, h0=bmp.height||bmp.naturalHeight, sc=Math.max(1,Math.min(3,2000/w0));
+  const cv=document.createElement('canvas'); cv.width=Math.round(w0*sc); cv.height=Math.round(h0*sc);
+  const cx=cv.getContext('2d',{willReadFrequently:true}); cx.fillStyle='#fff'; cx.fillRect(0,0,cv.width,cv.height); cx.imageSmoothingQuality='high'; cx.drawImage(bmp,0,0,cv.width,cv.height);
+  const im=cx.getImageData(0,0,cv.width,cv.height),d=im.data;
+  for(let i=0;i<d.length;i+=4){ let v=Math.min(d[i],d[i+1],d[i+2]); if(v>215) v=255; d[i]=d[i+1]=d[i+2]=v; d[i+3]=255; }   // blue and gold text turn dark
+  cx.putImageData(im,0,0); cv.srcWidth=w0; return cv;
+}
+async function readOldImage(file,st){
+  st.textContent='Preparing image\u2026'; const cv=await prepImage(file);
+  st.textContent='Loading the text reader (first time only)\u2026'; await loadTesseract();
+  const worker=await Tesseract.createWorker('eng');
+  try{
+    await worker.setParameters({tessedit_pageseg_mode:(Tesseract.PSM&&Tesseract.PSM.SPARSE_TEXT)||'11'});
+    st.textContent='Reading the text in the image\u2026';
+    const res=await worker.recognize(cv), dt=res.data||{};
+    let words=dt.words;
+    if(!words&&dt.blocks){words=[];dt.blocks.forEach(b=>(b.paragraphs||[]).forEach(p=>(p.lines||[]).forEach(l=>(l.words||[]).forEach(w=>words.push(w)))));}
+    const o=ocrToItems((words||[]).map(w=>({text:w.text,bbox:w.bbox,confidence:w.confidence})));
+    const r=parseOldPM(o.items,{k:o.k,rowTol:o.rowTol,gapF:o.gapF,mode:'gap'});
+    if(!r.groups.length) throw new Error('Could not read any puzzle man lines from that image. Try a larger, sharper screenshot, or type last year\u2019s lines into each piece.');
+    return {groups:r.groups,ocr:true,small:(cv.srcWidth||9999)<1000};
+  } finally { try{await worker.terminate();}catch(e){} }
+}
+
 /* ---- reading an old puzzle man (PDF text -> groups of lines) ---- */
 // position of a pdf.js text item as the page is DISPLAYED (handles rotated pages), y measured upward
 function pdfPos(vp,it){
@@ -1797,7 +1851,8 @@ function pdfPos(vp,it){
   const e=a[0]*b[4]+a[2]*b[5]+a[4], f=a[1]*b[4]+a[3]*b[5]+a[5];
   return {x:e,y:vp.height-f};
 }
-function parseOldPM(items){
+function parseOldPM(items,opt){
+  const k=(opt&&opt.k)||1, RT=(opt&&opt.rowTol)||2.5*k, GF=(opt&&opt.gapF)||0.6;
   const END=/\((\d{1,4})\)(?:\s*\((\d{1,4})\))?\s*$/;
   const BULC='\u2022\u2023\u2043\u2219\u25AA\u25AB\u25B6\u25B8\u25BA\u25CF\u25E6\u25CB\uF000-\uF0FF\u00B7\u00A7';
   const BUL=new RegExp('^['+BULC+']+$'), BULP=new RegExp('^\\s*['+BULC+']');
@@ -1810,27 +1865,27 @@ function parseOldPM(items){
   }
   // rows first (items within a couple of points vertically), then left to right inside each row
   const sorted=real.sort((a,b)=>(b.y-a.y)||(a.x-b.x)), rows=[];
-  for(const it of sorted){const r=rows[rows.length-1]; if(r&&r.minY-it.y<=2.5){r.items.push(it);r.minY=Math.min(r.minY,it.y);} else rows.push({minY:it.y,items:[it]});}
+  for(const it of sorted){const r=rows[rows.length-1]; if(r&&r.minY-it.y<=RT){r.items.push(it);r.minY=Math.min(r.minY,it.y);} else rows.push({minY:it.y,items:[it]});}
   const lines=[];
   for(const r of rows){
     let L=null;
     for(const it of r.items.sort((a,b)=>a.x-b.x)){
       const raw=String(it.s), fs=it.h||12, x1=it.x+it.w, gap=L?it.x-L.endX:0;
-      if(L&&gap>=-3&&gap<=fs*0.6){
-        L.s+=((gap>1.2&&!/\s$/.test(L.s)&&!/^\s/.test(raw))?' ':'')+raw; L.endX=x1; L.bold=L.bold&&!!it.bold;
+      if(L&&gap>=-3*k&&gap<=fs*GF){
+        L.s+=((gap>1.2*k&&!/\s$/.test(L.s)&&!/^\s/.test(raw))?' ':'')+raw; L.endX=x1; L.bold=L.bold&&!!it.bold;
       } else { L={s:raw,y:it.y,x:it.x,endX:x1,bold:!!it.bold}; lines.push(L); }
     }
   }
   lines.forEach(L=>{
-    L.bul=BULP.test(L.s)||bullets.some(b=>Math.abs(b.y-L.y)<=3&&b.x<L.x&&L.x-b.x<=18);
+    L.bul=BULP.test(L.s)||bullets.some(b=>Math.abs(b.y-L.y)<=3*k&&b.x<L.x&&L.x-b.x<=18*k);
     L.t=L.s.replace(/\s+/g,' ').trim().replace(/^[^\w$<("']+\s*/,'');
   });
   const all=lines.filter(L=>L.t);
   // 2. columns = clusters of left edges; read each column top to bottom
   const byX=all.slice().sort((a,b)=>a.x-b.x),cols=[];
-  for(const L of byX){const c=cols[cols.length-1]; if(c&&L.x-c.x1<=40){c.items.push(L);c.x1=L.x;} else cols.push({x1:L.x,items:[L]});}
+  for(const L of byX){const c=cols[cols.length-1]; if(c&&L.x-c.x1<=40*k){c.items.push(L);c.x1=L.x;} else cols.push({x1:L.x,items:[L]});}
   // headings are marked by a bullet if the slide has them, otherwise by bold type, otherwise by spacing
-  const nBul=all.filter(L=>L.bul).length, mode=nBul>=2?'bullet':(all.some(L=>L.bold)?'bold':'gap');
+  const nBul=all.filter(L=>L.bul).length, mode=(opt&&opt.mode)||(nBul>=2?'bullet':(all.some(L=>L.bold)?'bold':'gap'));
   const groups=[];
   for(const c of cols.sort((a,b)=>a.items[0].x-b.items[0].x)){
     const seq=c.items.slice().sort((a,b)=>b.y-a.y||a.x-b.x);
@@ -1838,9 +1893,9 @@ function parseOldPM(items){
     let g=null,pend='',prevHdr=false,prevTerm=true,prevY=null;
     for(const L of seq){
       const t=L.t,term=END.test(t), big=prevY!==null&&(prevY-L.y)>pitch*1.3;
-      const hdr=!term&&(mode==='bullet'?L.bul:mode==='bold'?L.bold:(big||(!pend&&prevTerm)));
+      const hdr=!term&&(mode==='bullet'?L.bul:mode==='bold'?L.bold:(big||(!pend&&prevTerm&&!/[\d$]/.test(t))));
       if(hdr){
-        if(mode!=='bullet'&&prevHdr&&g&&!g.lines.length&&Math.abs(g.x-L.x)<5&&g.y-L.y>0&&g.y-L.y<30){g.header+=' '+t;g.y=L.y;}
+        if(mode!=='bullet'&&prevHdr&&g&&!g.lines.length&&Math.abs(g.x-L.x)<5*k&&g.y-L.y>0&&g.y-L.y<30*k){g.header+=' '+t;g.y=L.y;}
         else{g={header:t,lines:[],x:L.x,y:L.y};groups.push(g);}
         pend='';prevHdr=true;
       } else {
@@ -1854,6 +1909,7 @@ function parseOldPM(items){
   return {groups:groups.filter(g=>g.lines.length).map(g=>({header:g.header,lines:g.lines}))};
 }
 async function readOldPM(file,st){
+  if(/^image\//.test(file.type||'')||/\.(png|jpe?g|webp|gif|bmp)$/i.test(file.name||'')) return readOldImage(file,st);
   if(/\.json$/i.test(file.name)){const j=JSON.parse(await file.text()); if(!j||!Array.isArray(j.groups)) throw new Error('That JSON is not a puzzle man file.'); return j;}
   st.textContent='Loading PDF reader\u2026'; await loadPdfJs();
   const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise; let best=null;
@@ -2189,20 +2245,20 @@ $('tTitle').value=state.text.title;$('tSub').value=state.text.sub;
 
 /* compare years: panel */
 const KIND_TXT={
-  pm:{ph:'Choose last year\u2019s puzzle man (.pdf)',hint:'Reads each heading and its lines (index in parentheses) from last year\u2019s slide. Export the slide to PDF from PowerPoint first.'},
-  lal:{ph:'Choose last year\u2019s LAL report (.pdf)',hint:'Last year\u2019s bands are rebuilt from that report with the same rules as this year, then re-scored from this year\u2019s report.'}
+  pm:{ph:'Choose last year\u2019s puzzle man (.pdf or image)',acc:'.pdf,.json,image/*',hint:'Reads each heading and its lines (index in parentheses) from last year\u2019s slide: a PDF export, or a picture. To use a picture, choose the PNG or paste a screenshot with Ctrl+V (\u2318V on a Mac). Pictures are read with text recognition, so double-check the numbers.'},
+  lal:{ph:'Choose last year\u2019s LAL report (.pdf)',acc:'.pdf,.json',hint:'Last year\u2019s bands are rebuilt from that report with the same rules as this year, then re-scored from this year\u2019s report.'}
 };
 function cmpInfo(){
   const C=state.cmp,m=$('cmpMsg'); if(!m||!C.on) return;
   const have=C.kind==='pm'?C.pm:C.report;
   if(!have){m.textContent=C.kind==='pm'?'No file yet. You can also type last year\u2019s lines into each piece in the list below.':'No file yet.';return;}
   const vis=state.pieces.filter(p=>p.visible&&p.src>=0), n=vis.filter(p=>prevAuto(p)).length;
-  m.textContent=(C.kind==='pm'?'Read '+C.pm.groups.length+' groups ('+C.pm.groups.reduce((a,g)=>a+g.lines.length,0)+' lines). ':'Read '+C.report.elements.length+' elements. ')+(state.report?'Matched '+n+' of '+vis.length+' pieces.':'');
+  m.textContent=(C.kind==='pm'?'Read '+C.pm.groups.length+' groups ('+C.pm.groups.reduce((a,g)=>a+g.lines.length,0)+' lines). '+(C.pm.ocr?'Read from a picture, so please check the numbers in each piece\u2019s \u201CLast year\u2019s lines\u201D box. '+(C.pm.small?'This picture is small, so reading may be less accurate; a larger screenshot (1000+ px wide) works better. ':''):''):'Read '+C.report.elements.length+' elements. ')+(state.report?'Matched '+n+' of '+vis.length+' pieces.':'');
 }
 function setKindUI(){
   const C=state.cmp;
   document.querySelectorAll('#cmpKind .btn').forEach(b=>b.classList.toggle('on',b.dataset.kind===C.kind));
-  $('pfname').textContent=C.fname[C.kind]||KIND_TXT[C.kind].ph; $('cmpKindHint').textContent=KIND_TXT[C.kind].hint;
+  $('pfname').textContent=C.fname[C.kind]||KIND_TXT[C.kind].ph; $('pfile').accept=KIND_TXT[C.kind].acc; $('cmpKindHint').textContent=KIND_TXT[C.kind].hint;
 }
 $('cmpToggle').addEventListener('click',()=>{
   const C=state.cmp; C.on=!C.on; const b=$('cmpToggle');
@@ -2214,16 +2270,22 @@ $('cmpKind').addEventListener('click',e=>{
 });
 $('plabel').value=state.cmp.plabel; $('clabel').value=state.cmp.clabel;
 [['plabel','PREVIOUS'],['clabel','CURRENT']].forEach(([k,d])=>$(k).addEventListener('input',e=>{state.cmp[k]=e.target.value.trim()||d; syncCmpText(); renderStage();}));
-$('pfile').addEventListener('change',async e=>{
-  const f=e.target.files[0]; if(!f) return; const C=state.cmp,kind=C.kind,m=$('cmpMsg');
+async function loadPrevFile(f){
+  const C=state.cmp,kind=C.kind,m=$('cmpMsg');
   try{
     if(kind==='lal'){ C.report=/\.json$/i.test(f.name)?JSON.parse(await f.text()):await readPdf(f,m); if(!C.report||!C.report.elements) throw new Error('That file is not a look-alike report.'); }
     else C.pm=await readOldPM(f,m);
-    C.fname[kind]=f.name; setKindUI();
+    C.fname[kind]=f.name&&!/^image\.\w+$/i.test(f.name)?f.name:'Pasted image'; setKindUI();
     state.pieces.forEach(p=>{p.prevOverride=null;});
     buildPieceList(); cmpInfo();
   }catch(err){ m.textContent=err.message||String(err); }
-  e.target.value='';
+}
+$('pfile').addEventListener('change',async e=>{const f=e.target.files[0]; if(!f) return; await loadPrevFile(f); e.target.value='';});
+document.addEventListener('paste',e=>{
+  const C=state.cmp; if(!C.on) return;
+  const it=[...((e.clipboardData&&e.clipboardData.items)||[])].find(i=>/^image\//.test(i.type)); if(!it) return;
+  const f=it.getAsFile(); if(!f) return; e.preventDefault();
+  C.kind='pm'; setKindUI(); loadPrevFile(f);
 });
 $('newpm').addEventListener('click',()=>{const C=state.cmp; C.report=null;C.pm=null;C.fname={pm:'',lal:''}; setKindUI(); cmpInfo();});
 
