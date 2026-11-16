@@ -1277,6 +1277,10 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
   .band.unk{opacity:.45;cursor:default} .band input{margin:0;accent-color:var(--navy);width:14px;height:14px}
   .bsplit{font-size:11px;padding:1px 6px;border:1px solid #c9cfdd;border-radius:6px;background:#fff;color:var(--navy);cursor:pointer} .bsplit.on{background:var(--navy);color:#fff;border-color:var(--navy)}
   .band .bd{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .grip{flex:none;display:grid;place-items:center;width:22px;height:30px;color:#9aa6b8;cursor:grab;touch-action:none;border-radius:6px;user-select:none}
+  .grip:hover{color:var(--navy);background:#f0f3f8}
+  .pc.dragging{border-color:var(--navy);box-shadow:0 8px 24px rgba(16,24,40,.22);background:#f8fbff;position:relative;z-index:3}
+  body.reordering,body.reordering *{cursor:grabbing!important;user-select:none!important}
 </style>
 </head>
 <body class="standalone">
@@ -1308,7 +1312,7 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
     <div class="subbar">
       <button class="morelink" id="moreBtn" type="button" aria-expanded="false" aria-controls="opts"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M2 1l6 4-6 4z"/></svg>More options</button>
     </div>
-    <div class="meta"><div id="status"></div></div>
+    <div class="meta"><div id="status"></div><div id="fitnote" class="adj"></div></div>
   </div>
   <div id="msg"></div>
   <div class="work">
@@ -1340,8 +1344,13 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
           <label class="lbl" for="tSlide">Slide number <span class="mut">(optional)</span></label><input type="text" id="tSlide" class="txt" style="width:100px">
         </div>
         <div class="osec">
+          <label class="lbl" for="figScale">Figure size <span class="mut" id="figScaleV">100%</span></label>
+          <input type="range" id="figScale" min="60" max="100" step="5" value="100" style="width:100%;accent-color:var(--navy)">
+          <div class="hint">Wording automatically wraps and shrinks so it never runs into the puzzle man. Make the figure smaller if you want more room for text.</div>
+        </div>
+        <div class="osec">
           <div class="lbl">Puzzle pieces</div>
-          <div class="hint">Tick to show or hide, use the arrows to reorder, and &hellip; to change the source, location or lines.</div>
+          <div class="hint">Tick to show or hide, drag the handle on the left to reorder, and &hellip; to change the source, location or lines.</div>
           <div class="pcs" id="pieces"></div>
           <div><button class="btn" id="resetAll" type="button">Reset pieces to default</button></div>
         </div>
@@ -1614,6 +1623,7 @@ const state={
   report:null,fileName:'',
   pieces:[],
   opts:{thr:120,excl:true,minShare:2,method:'pct'},
+  figScale:1,
   text:{title:'CUSTOMER TRAITS AT A GLANCE',sub:'NOTE: BRAND PREFERENCE INDEX (BPI) IS DISPLAYED IN BLUE\nPARENTHESIS.',slide:''},
   open:new Set()
 };
@@ -1666,8 +1676,8 @@ function partition(heights,k){
   const cols=[];let i=n;for(let j=k;j>=1;j--){const m=cut[j][i];cols.unshift([m,i]);i=m;}
   return {cols,max:dp[k][n]};
 }
-function buildColumns(groups){
-  const colX=[110,458,806],maxW=318,availH=535;
+function buildColumns(groups,limitR){
+  const colX=[110,458,806],maxW=Math.max(150,Math.min(318,(limitR||1e9)-colX[2]-16)),availH=535;
   let best=null;
   for(let s=1;s>=0.5;s-=0.03){
     const fs=21*s,lh=28.5*s,gap=17*s;
@@ -1678,27 +1688,52 @@ function buildColumns(groups){
       return {hl,vl,h:n*lh+gap};
     });
     const part=partition(built.map(b=>b.h),3);
-    best={s,fs,lh,gap,built,part,colX};
+    best={s,fs,lh,gap,built,part,colX,over:part.max-gap>availH};
     if(part.max-gap<=availH) break;
   }
   return best;
 }
+function wrapFn(text,wfn,maxW){
+  const words=String(text).split(/\s+/).filter(Boolean),lines=[];let cur='';
+  for(const w of words){const t=cur?cur+' '+w:w; if(!cur||wfn(t)<=maxW) cur=t; else {lines.push(cur);cur=w;}}
+  if(cur) lines.push(cur); return lines.length?lines:[''];
+}
+const FIG_PAD=30;
 function renderSlide(forExport){
   const vis=state.pieces.filter(p=>p.visible);
-  const T=state.text;
+  const T=state.text, fit={notes:[]};
+  // figure geometry first, so the wording can be laid out around it
+  const plan=planMan(vis),tp=plan.tpl;
+  const sc=Math.min(300/tp.w,640/tp.h)*(state.figScale||1),X0=1267-tp.w*sc/2,Y0=150;
+  const textRight=X0-FIG_PAD;            // wording may never cross this x
   let o='';
   o+=`<rect width="${SW}" height="${SH}" fill="#fff"/>`;
-  o+=`<text x="108" y="120" font-size="64" font-weight="700" fill="${NAVY}" textLength="" >${esc(T.title)}</text>`.replace(' textLength=""','');
-  // subtitle
-  const subLines=String(T.sub).split('\n');
+  // title: shrink to stay on the slide
+  let tSize=64; const tMax=SW-60-108;
+  while(tSize>28&&measure(T.title,tSize,'bold')>tMax) tSize-=1;
+  if(tSize<64) fit.notes.push('title');
+  o+=`<text x="108" y="120" font-size="${tSize}" font-weight="700" fill="${NAVY}">${esc(T.title)}</text>`;
+  // note: wrap, then shrink, so it stays left of the figure and above the columns
+  const subMax=textRight-110;
+  let subLines=[],subSize=23;
+  for(subSize=23;subSize>=13;subSize--){
+    const ls=subSize/23*2.2, wfn=t=>measure(t,subSize,'normal')+ls*t.length, lh=27*subSize/23;
+    subLines=[]; String(T.sub).split('\n').forEach(ln=>wrapFn(ln,wfn,subMax).forEach(x=>subLines.push(x)));
+    if(156+(subLines.length-1)*lh<=228) break;
+  }
+  if(subSize<23) fit.notes.push('note');
+  const subLH=27*subSize/23;
   subLines.forEach((ln,i)=>{
     const parts=ln.split(/(\bBLUE\b)/);
-    o+=`<text x="110" y="${156+i*27}" font-size="23" letter-spacing="2.2" fill="${NAVY}">`+parts.map(pt=>pt==='BLUE'?`<tspan fill="${BLUE}">BLUE</tspan>`:esc(pt)).join('')+`</text>`;
+    o+=`<text x="110" y="${(156+i*subLH).toFixed(1)}" font-size="${subSize}" letter-spacing="${(subSize/23*2.2).toFixed(2)}" fill="${NAVY}">`+parts.map(pt=>pt==='BLUE'?`<tspan fill="${BLUE}">BLUE</tspan>`:esc(pt)).join('')+`</text>`;
   });
   // columns
   const groups=vis.map(p=>({header:p.header,lines:linesOf(p)}));
   if(groups.length){
-    const cb=buildColumns(groups);
+    const cb=buildColumns(groups,textRight);
+    if(cb.s<0.98) fit.notes.push('columns');
+    if(cb.over) fit.overflow=true;
+    fit.scale=cb.s;
     cb.part.cols.forEach(([a,b],ci)=>{
       let y=252*(cb.s<1?1:1);
       const x=cb.colX[ci];
@@ -1719,8 +1754,6 @@ function renderSlide(forExport){
     });
   }
   // figure (exact shapes from the Puzzleman_Master_2026 templates)
-  const plan=planMan(vis),tp=plan.tpl;
-  const sc=Math.min(300/tp.w,640/tp.h),X0=1267-tp.w*sc/2,Y0=150;
   let shapes='',labels='';
   plan.items.forEach(it=>{
     shapes+=it.r.d.split(/(?=M)/).map(dd=>`<path d="${dd}" fill="${NAVY}"${it.r.m?` stroke="${NAVY}" stroke-width="0.7" stroke-linejoin="round"`:''}/>`).join('');
@@ -1736,6 +1769,7 @@ function renderSlide(forExport){
   o+=`<g transform="translate(${X0.toFixed(2)},${Y0}) scale(${sc.toFixed(4)}) translate(${-tp.x0},${-tp.y0})">${shapes}</g>${labels}`;
   // footer
   o+=`<text x="48" y="790" font-size="13" fill="#222">${esc(T.slide)}</text>`;
+  window.__fit=fit;
   const dims=forExport?` width="${SW}" height="${SH}"`:'';
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${SH}"${dims} font-family="Arial, Helvetica, sans-serif">${o}</svg>`;
 }
@@ -1747,6 +1781,9 @@ const EMPTY=()=>`<label for="file" class="drop"><div class="ic"><svg width="30" 
 function renderStage(){
   if(!state.report){ stage.innerHTML=EMPTY(); ['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=true); $('segbar').hidden=true; return; }
   stage.innerHTML=`<div class="card">${renderSlide(false)}</div>`;
+  {const f=window.__fit||{notes:[]},n=$('fitnote'),pc=Math.round((f.scale||1)*100);
+   n.textContent=f.overflow?'The wording is too long to fit even at the smallest size. Remove a piece, shorten the lines, or make the figure smaller in More options.'
+     :f.notes.length?'Wording was resized to stay clear of the puzzle man ('+f.notes.map(k=>k==='columns'?'lists at '+pc+'%':k==='note'?'note':'title').join(', ')+'). Lists too small? Remove a piece or reduce lines.':'';}
   ['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=false);
   document.querySelectorAll('.pc').forEach(el=>{
     const p=state.pieces.find(x=>x.uid==el.dataset.uid); if(!p) return;
@@ -1788,10 +1825,9 @@ function buildPieceList(){
   $('pieces').innerHTML=state.pieces.map((p,i)=>`
   <div class="pc${p.visible?'':' off'}" data-uid="${p.uid}">
     <div class="pc-top">
+      <span class="grip" title="Drag to reorder" aria-label="Drag to reorder"><svg width="12" height="18" viewBox="0 0 12 18" fill="currentColor"><circle cx="3" cy="3" r="1.6"/><circle cx="9" cy="3" r="1.6"/><circle cx="3" cy="9" r="1.6"/><circle cx="9" cy="9" r="1.6"/><circle cx="3" cy="15" r="1.6"/><circle cx="9" cy="15" r="1.6"/></svg></span>
       <input type="checkbox" class="vis" ${p.visible?'checked':''} title="Show on the figure">
       <input class="txt lbl" value="${esc(p.label)}" title="Text on the puzzle piece">
-      <button class="iconbtn up" type="button" ${i===0?'disabled':''} title="Move up">&uarr;</button>
-      <button class="iconbtn dn" type="button" ${i===state.pieces.length-1?'disabled':''} title="Move down">&darr;</button>
       <button class="iconbtn tg" type="button" title="Details">&hellip;</button>
     </div>
     <div class="pc-sub"></div>
@@ -1874,6 +1910,33 @@ $('pieces').addEventListener('click',e=>{
   else return;
   buildPieceList();
 });
+
+/* drag-and-drop reordering of puzzle pieces (pointer events: mouse, pen and touch) */
+(function(){
+  const box=$('pieces'); let drag=null;
+  box.addEventListener('pointerdown',e=>{
+    const g=e.target.closest('.grip'); if(!g||(e.button!==undefined&&e.button>0)) return;
+    const el=g.closest('.pc'); e.preventDefault();
+    drag={el,start:[...box.children].map(c=>c.dataset.uid).join(',')};
+    el.classList.add('dragging'); document.body.classList.add('reordering');
+    try{box.setPointerCapture(e.pointerId);}catch(_){}
+  });
+  box.addEventListener('pointermove',e=>{
+    if(!drag) return;
+    const sc=$('opts'),r=sc.getBoundingClientRect();
+    if(e.clientY<r.top+56) sc.scrollTop-=14; else if(e.clientY>r.bottom-56) sc.scrollTop+=14;
+    let before=null;
+    for(const s of [...box.children]){ if(s===drag.el) continue; const b=s.getBoundingClientRect(); if(e.clientY<b.top+b.height/2){before=s;break;} }
+    if(before!==drag.el.nextElementSibling) box.insertBefore(drag.el,before);
+  });
+  const end=()=>{
+    if(!drag) return;
+    const order=[...box.children].map(c=>c.dataset.uid), changed=order.join(',')!==drag.start;
+    drag.el.classList.remove('dragging'); document.body.classList.remove('reordering'); drag=null;
+    if(changed){ state.pieces.sort((a,b)=>order.indexOf(String(a.uid))-order.indexOf(String(b.uid))); buildPieceList(); }
+  };
+  box.addEventListener('pointerup',end); box.addEventListener('pointercancel',end);
+})();
 $('segchips').addEventListener('click',e=>{
   const b=e.target.closest('.sx'); if(!b) return; const p=state.pieces.find(x=>x.uid==b.dataset.uid);
   if(p){ if(p.src>=0) p.visible=false; else state.pieces.splice(state.pieces.indexOf(p),1); buildPieceList(); }
@@ -1905,6 +1968,7 @@ bindOpt('excl','excl',e=>e.checked);
 bindOpt('minShare','minShare',e=>parseFloat(e.value)||0);
 bindOpt('method','method',e=>e.value);
 [['tTitle','title'],['tSub','sub'],['tSlide','slide']].forEach(([id,k])=>$(id).addEventListener('input',e=>{state.text[k]=e.target.value;renderStage();}));
+$('figScale').addEventListener('input',e=>{state.figScale=e.target.value/100;$('figScaleV').textContent=e.target.value+'%';renderStage();});
 $('tTitle').value=state.text.title;$('tSub').value=state.text.sub;
 
 /* loading */
