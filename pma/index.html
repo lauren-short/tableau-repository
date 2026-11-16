@@ -1340,9 +1340,30 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
         </div>
         <div class="osec">
           <label class="lbl" for="tTitle">Slide title</label><input type="text" id="tTitle" class="txt">
-          <label class="lbl" for="tSub">Note <span class="mut">&ndash; the word BLUE is colored</span></label><textarea id="tSub" spellcheck="false" style="height:56px"></textarea>
+          <label class="lbl" for="tSub">Note <span class="mut">&ndash; BLUE, GOLD and the year labels are colored</span></label><textarea id="tSub" spellcheck="false" style="height:56px"></textarea>
           <label class="lbl" for="tSlide">Slide number <span class="mut">(optional)</span></label><input type="text" id="tSlide" class="txt" style="width:100px">
         </div>
+        <div class="osec swrow">
+          <div><div class="lbl">Compare years</div><div class="sub">Show last year&rsquo;s index (gold) next to this year&rsquo;s (blue).</div></div>
+          <button id="cmpToggle" class="switch" type="button" role="switch" aria-checked="false" aria-pressed="false" title="Compare against last year's puzzle man or LAL report"><span></span></button>
+        </div>
+        <section class="compare" id="cmpPanel" hidden>
+          <div class="osec">
+            <div class="lbl">Last year&rsquo;s data comes from</div>
+            <div class="seg full" id="cmpKind"><button class="btn on" data-kind="pm" type="button">Old puzzle man</button><button class="btn" data-kind="lal" type="button">Old LAL report</button></div>
+            <div class="hint" id="cmpKindHint"></div>
+          </div>
+          <div class="osec">
+            <label class="filebtn" for="pfile" title="Choose last year's file"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#002855" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V2M4.5 5.5L8 2l3.5 3.5M2 10v3.5h12V10"/></svg><span id="pfname">Choose last year&rsquo;s puzzle man (.pdf)</span></label>
+            <input type="file" id="pfile" accept=".pdf,.json" hidden>
+            <div class="hint" id="cmpMsg"></div>
+          </div>
+          <div class="osec two">
+            <label class="field"><span>Previous label</span><input type="text" id="plabel" class="txt" maxlength="14"></label>
+            <label class="field"><span>Current label</span><input type="text" id="clabel" class="txt" maxlength="14"></label>
+          </div>
+          <div class="hint">Last year&rsquo;s bands stay exactly as they were. This year&rsquo;s index is recalculated for those same bands from this year&rsquo;s report, so last year&rsquo;s Age 24-36 is re-scored with this year&rsquo;s ages 24-36.</div>
+        </section>
         <div class="osec">
           <label class="lbl" for="figScale">Figure size <span class="mut" id="figScaleV">100%</span></label>
           <input type="range" id="figScale" min="60" max="100" step="5" value="100" style="width:100%;accent-color:var(--navy)">
@@ -1525,11 +1546,11 @@ function computeLines(piece,els,T,opts){
     const sp=new Set(piece.splits||[]);
     for(const i of sel){ if(run.length&&(pos[i]!==pos[run[run.length-1]]+1||sp.has(i))){runs.push(run);run=[];} run.push(i); }
     if(run.length) runs.push(run);
-    return runs.map(rn=>{const rr=rn.map(i=>rows[i]);return {text:labelRun(piece.fmt,rr),bpi:bpiOf(rr,T,opts.method)};});
+    return runs.map(rn=>{const rr=rn.map(i=>rows[i]);return {text:labelRun(piece.fmt,rr),bpi:bpiOf(rr,T,opts.method),rows:rr};});
   }
   let out=sel.map(i=>({i,r:rows[i]}));
   if(piece.sort!=='report') out.sort((a,b)=>b.r.mpi-a.r.mpi);
-  return out.map(o=>({text:displayDesc(o.r.desc),bpi:o.r.mpi}));
+  return out.map(o=>({text:displayDesc(o.r.desc),bpi:o.r.mpi,rows:[o.r]}));
 }
 
 /* ---- Piece catalog (mirrors the standard Reflex Blu puzzle man) ---- */
@@ -1593,6 +1614,7 @@ const mctx=document.createElement('canvas').getContext('2d');
 function measure(t,size,weight){mctx.font=`${weight||'normal'} ${size}px Arial, Helvetica, sans-serif`;return mctx.measureText(t).width;}
 function wrap(text,size,weight,maxW){
   const words=String(text).split(/\s+/).filter(Boolean),lines=[];let cur='';
+  if(words.length>=2&&/^\(\d+\)$/.test(words[words.length-1])&&/^\(\d+\)$/.test(words[words.length-2])){const b2=words.pop(),a2=words.pop();words.push(a2+' '+b2);}
   for(const w of words){const t=cur?cur+' '+w:w; if(!cur||measure(t,size,weight)<=maxW) cur=t; else {lines.push(cur);cur=w;}}
   if(cur) lines.push(cur); return lines.length?lines:[''];
 }
@@ -1624,6 +1646,8 @@ const state={
   pieces:[],
   opts:{thr:120,excl:true,minShare:2,method:'pct'},
   figScale:1,
+  cmp:{on:false,kind:'pm',report:null,pm:null,plabel:String(new Date().getFullYear()-1),clabel:String(new Date().getFullYear()),fname:{pm:'',lal:''}},
+  edited:{},
   text:{title:'CUSTOMER TRAITS AT A GLANCE',sub:'NOTE: BRAND PREFERENCE INDEX (BPI) IS DISPLAYED IN BLUE\nPARENTHESIS.',slide:''},
   open:new Set()
 };
@@ -1631,13 +1655,18 @@ let uidN=1;
 const elsOf=()=>state.report?state.report.elements:[];
 function parseOverride(txt){
   return String(txt).split('\n').map(s=>s.trim()).filter(Boolean).map(s=>{
-    const m=s.match(/^(.*?)\s*(?:\||\()\s*(\d+)\s*\)?\s*$/);
+    let m=s.match(/^(.*?)\s*\|\s*(\d*)\s*\|\s*(\d*)\s*$/);
+    if(m) return {text:m[1].trim(),bpi:m[2]?parseInt(m[2],10):null,prev:m[3]?parseInt(m[3],10):null};
+    m=s.match(/^(.*?)\s*\((\d+)\)\s*\((\d+)\)\s*$/);
+    if(m) return {text:m[1].trim(),bpi:parseInt(m[2],10),prev:parseInt(m[3],10)};
+    m=s.match(/^(.*?)\s*(?:\||\()\s*(\d+)\s*\)?\s*$/);
     return m?{text:m[1].trim(),bpi:parseInt(m[2],10)}:{text:s,bpi:null};
   });
 }
 function linesOf(p){
   if(p.override!=null) return parseOverride(p.override);
   if(!state.report||p.src<0) return [];
+  const cl=cmpLines(p); if(cl) return cl;
   return computeLines(p,elsOf(),state.report.totals,state.opts);
 }
 function initPieces(){
@@ -1667,6 +1696,165 @@ function addPiece(src){
   state.open.add(state.pieces[state.pieces.length-1].uid);
 }
 
+/* ---- compare years: last year's bands, re-scored from this year's report ---- */
+const GOLD='#E8BE56';
+const NORM=s=>String(s||'').toLowerCase().replace(/&/g,' and ').replace(/[^a-z0-9]+/g,' ').trim();
+const lineStr=l=>l.text+(l.bpi!=null?' ('+l.bpi+')':'')+(l.prev!=null?' ('+l.prev+')':'');
+const escRe=s=>String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+const DEF_TEXT={title:state.text.title,sub:state.text.sub};
+function noteRe(){const C=state.cmp; if(!C.on) return /(\bBLUE\b)/; const k=['\\bBLUE,?','\\bGOLD\\.?'].concat([C.clabel,C.plabel].filter(Boolean).map(escRe)); return new RegExp('('+k.join('|')+')');}
+function tokCol(t){const C=state.cmp; return (/^BLUE/.test(t)||(C.on&&t===C.clabel))?BLUE:(/^GOLD/.test(t)||(C.on&&t===C.plabel))?GOLD:NAVY;}
+function syncCmpText(){
+  const C=state.cmp,ed=state.edited;
+  if(C.on){
+    if(!ed.title) state.text.title=(C.plabel+' VS. '+C.clabel+' CUSTOMER TRAITS').toUpperCase();
+    if(!ed.sub) state.text.sub='NOTE: '+C.clabel+' BRAND PREFERENCE INDEX (BPI) IS DISPLAYED IN BLUE, '+C.plabel+' IN GOLD.';
+  } else {
+    if(!ed.title) state.text.title=DEF_TEXT.title;
+    if(!ed.sub) state.text.sub=DEF_TEXT.sub;
+  }
+  $('tTitle').value=state.text.title; $('tSub').value=state.text.sub;
+}
+function toks(s){return NORM(s).split(' ').filter(Boolean);}
+function sameHeader(a,b){const x=toks(a),y=toks(b); if(!x.length||!y.length) return false; const [s,l]=x.length<=y.length?[x,y]:[y,x]; return s.every(t=>l.includes(t));}
+function pmGroupFor(p){
+  const G=(state.cmp.pm&&state.cmp.pm.groups)||[];
+  return G.find(g=>NORM(g.header)===NORM(p.header)||NORM(g.header)===NORM(p.label))||G.find(g=>sameHeader(g.header,p.header)||sameHeader(g.header,p.label));
+}
+function prevElFor(p){
+  const R=state.cmp.report,cur=elsOf()[p.src]; if(!R||!cur) return -1;
+  const n=NORM(cur.name); let i=R.elements.findIndex(e=>NORM(e.name)===n);
+  if(i<0&&cur.code) i=R.elements.findIndex(e=>e.code&&e.code===cur.code);
+  return i;
+}
+// last year's lines for a piece: [{text, bpi, rows?}] or null when nothing is known about it
+function prevAuto(p){
+  const C=state.cmp;
+  if(C.kind==='pm'){const g=pmGroupFor(p); return g?g.lines.map(l=>({text:l.text,bpi:l.bpi})):null;}
+  const i=prevElFor(p); if(i<0) return null;
+  const q=Object.assign({},p,{src:i,bands:null,splits:[],override:null});
+  return computeLines(q,C.report.elements,C.report.totals,state.opts);
+}
+function parsePrev(txt){
+  return String(txt).split('\n').map(s=>s.trim()).filter(Boolean).map(s=>{
+    const m=s.match(/^(.*?)\s*(?:\||\()\s*(\d+)\s*\)?\s*$/);
+    return m?{text:m[1].trim(),bpi:parseInt(m[2],10)}:{text:s,bpi:null};
+  });
+}
+function prevText(p){return (prevAuto(p)||[]).map(l=>l.bpi!=null?l.text+' | '+l.bpi:l.text).join('\n');}
+const OPEN_RE=/or more|\+|and over|and above|or greater|or older/i;
+function rowExt(desc){
+  const n=numsOf(desc); if(!n.length) return null;
+  const less=/^\s*less than (one|1)\b/i.test(desc);
+  return {lo:less?0:n[0],hi:OPEN_RE.test(desc)?Infinity:(less?0:n[n.length-1]),open:OPEN_RE.test(desc)};
+}
+function textExt(t){
+  const n=numsOf(t); if(!n.length) return null;
+  const less=/^\s*<|less than/i.test(t);
+  return {lo:less?0:n[0],hi:n.length>1?n[n.length-1]:n[0],open:/\+|or more/i.test(t)};
+}
+function rowsByRange(rows,e){
+  const out=[],ex=[];
+  rows.forEach(r=>{
+    if(isUnknown(r.desc)) return; const x=rowExt(r.desc); if(!x) return;
+    if(e.open?x.lo>=e.lo:(x.lo>=e.lo&&x.hi<=e.hi)){out.push(r);ex.push(x);}
+  });
+  let approx=false;
+  if(out.length){const lo=Math.min(...ex.map(x=>x.lo)),hi=Math.max(...ex.map(x=>x.hi)); approx=lo!==e.lo||(!e.open&&hi!==e.hi);}
+  return {rows:out,approx};
+}
+function matchRowsByText(rows,text){
+  const t=NORM(text); if(!t) return [];
+  const ok=rows.filter(r=>!isUnknown(r.desc));
+  let hit=ok.filter(r=>NORM(displayDesc(r.desc))===t);
+  if(!hit.length) hit=ok.filter(r=>NORM(r.desc)===t);
+  if(!hit.length) hit=ok.filter(r=>{const d=NORM(displayDesc(r.desc)); return d&&Math.min(d.length,t.length)>=4&&(d.includes(t)||t.includes(d));});
+  return hit;
+}
+function rowsForLine(p,rows,l){
+  if(l.rows){const set=new Set(l.rows.map(r=>NORM(r.desc))); return {rows:rows.filter(r=>!isUnknown(r.desc)&&set.has(NORM(r.desc))),approx:false};}
+  const e=textExt(l.text);
+  if(p.mode==='range'&&e){const r=rowsByRange(rows,e); if(r.rows.length) return r;}
+  const t=matchRowsByText(rows,l.text); if(t.length) return {rows:t,approx:false};
+  if(e){const r=rowsByRange(rows,e); if(r.rows.length) return r;}
+  return {rows:[],approx:false};
+}
+function cmpLines(p){
+  const C=state.cmp; if(!C.on||!state.report) return null;
+  const el=elsOf()[p.src]; if(!el) return null;
+  const prev=p.prevOverride!=null?parsePrev(p.prevOverride):prevAuto(p);
+  if(!prev||!prev.length) return null;
+  return prev.map(l=>{
+    const r=rowsForLine(p,el.rows,l);
+    const cur=!r.rows.length?null:(r.rows.length===1&&p.mode!=='range'?r.rows[0].mpi:bpiOf(r.rows,state.report.totals,state.opts.method));
+    return {text:l.text,bpi:cur,prev:l.bpi,approx:r.approx};
+  });
+}
+/* ---- reading an old puzzle man (PDF text -> groups of lines) ---- */
+function parseOldPM(items){
+  const END=/\((\d{1,4})\)(?:\s*\((\d{1,4})\))?\s*$/;
+  // 1. glue items into lines in reading order (a wide gap starts a new line so neighbouring columns never merge)
+  const BUL=/^[\u2022\u2023\u2043\u2219\u25AA\u25AB\u25B6\u25B8\u25BA\u25CF\u25E6\u25CB\uF000-\uF0FF\u00B7\u00A7]+$/;
+  const sorted=items.filter(it=>String(it.s).trim()&&!BUL.test(String(it.s).trim())).sort((a,b)=>(b.y-a.y)||(a.x-b.x));
+  const lines=[];
+  for(const it of sorted){
+    const raw=String(it.s), fs=it.h||12; let L=null;
+    for(let k=lines.length-1;k>=0&&k>=lines.length-8;k--){
+      const c=lines[k]; if(Math.abs(c.y-it.y)>2.5) continue;
+      const gap=it.x-c.endX; if(gap>=-3&&gap<=fs*0.6){L=c;break;}
+    }
+    if(L){
+      const gap=it.x-L.endX;
+      L.s+=((gap>1.2&&!/\s$/.test(L.s)&&!/^\s/.test(raw))?' ':'')+raw; L.endX=it.x+it.w; L.bold=L.bold&&!!it.bold;
+    } else lines.push({s:raw,y:it.y,x:it.x,endX:it.x+it.w,bold:!!it.bold});
+  }
+  lines.forEach(L=>{L.t=L.s.replace(/\s+/g,' ').trim().replace(/^[^\w$<("']+\s*/,'');});
+  const all=lines.filter(L=>L.t);
+  // 2. columns = clusters of left edges; read each column top to bottom
+  const byX=all.slice().sort((a,b)=>a.x-b.x),cols=[];
+  for(const L of byX){const c=cols[cols.length-1]; if(c&&L.x-c.x1<=40){c.items.push(L);c.x1=L.x;} else cols.push({x1:L.x,items:[L]});}
+  const anyBold=all.some(L=>L.bold), groups=[];
+  for(const c of cols.sort((a,b)=>a.items[0].x-b.items[0].x)){
+    const seq=c.items.slice().sort((a,b)=>b.y-a.y||a.x-b.x);
+    const ds=seq.slice(1).map((L,i)=>seq[i].y-L.y).filter(d=>d>0).sort((a,b)=>a-b), pitch=ds.length?ds[Math.floor(ds.length/2)]:20;
+    let g=null,pend='',prevHdr=false,prevTerm=true,prevY=null;
+    for(const L of seq){
+      const t=L.t,term=END.test(t), big=prevY!==null&&(prevY-L.y)>pitch*1.3;
+      const hdr=!term&&(anyBold?L.bold:(big||(!pend&&prevTerm)));
+      if(hdr){
+        if(prevHdr&&g&&!g.lines.length&&Math.abs(g.x-L.x)<5&&g.y-L.y>0&&g.y-L.y<30){g.header+=' '+t;g.y=L.y;}
+        else{g={header:t,lines:[],x:L.x,y:L.y};groups.push(g);}
+        pend='';prevHdr=true;
+      } else {
+        prevHdr=false; pend=pend?pend+' '+t:t;
+        const m=pend.match(END);
+        if(m){ if(g) g.lines.push({text:pend.replace(END,'').trim(),bpi:parseInt(m[1],10)}); pend=''; }
+      }
+      prevTerm=term; prevY=L.y;
+    }
+  }
+  return {groups:groups.filter(g=>g.lines.length).map(g=>({header:g.header,lines:g.lines}))};
+}
+async function readOldPM(file,st){
+  if(/\.json$/i.test(file.name)){const j=JSON.parse(await file.text()); if(!j||!Array.isArray(j.groups)) throw new Error('That JSON is not a puzzle man file.'); return j;}
+  st.textContent='Loading PDF reader\u2026'; await loadPdfJs();
+  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise; let best=null;
+  for(let n=1;n<=pdf.numPages;n++){
+    st.textContent='Reading page '+n+' of '+pdf.numPages+'\u2026';
+    const pg=await pdf.getPage(n),tc=await pg.getTextContent();
+    try{await pg.getOperatorList();}catch(e){}
+    const bold={};
+    for(const k of new Set(tc.items.map(i=>i.fontName))){
+      try{const f=pg.commonObjs.has(k)?pg.commonObjs.get(k):null; bold[k]=/bold|black|heavy|semibold|demi/i.test((f&&(f.name||f.loadedName))||'');}catch(e){bold[k]=false;}
+    }
+    const r=parseOldPM(tc.items.map(it=>({s:it.str,x:it.transform[4],y:it.transform[5],w:it.width,h:it.height,bold:!!bold[it.fontName]})));
+    const score=r.groups.reduce((a,g)=>a+g.lines.length,0);
+    if(!best||score>best.score) best={groups:r.groups,score};
+  }
+  if(!best||!best.groups.length) throw new Error('No puzzle man lines found. Export the slide as a PDF from PowerPoint and try again, or type last year\u2019s lines into each piece.');
+  return {groups:best.groups};
+}
+
 /* ---- slide renderer ---- */
 function partition(heights,k){
   const n=heights.length,pre=[0];heights.forEach(h=>pre.push(pre[pre.length-1]+h));
@@ -1683,7 +1871,7 @@ function buildColumns(groups,limitR){
     const fs=21*s,lh=28.5*s,gap=17*s;
     const built=groups.map(g=>{
       const hl=wrap(g.header,fs,'bold',maxW);
-      const vl=g.lines.length?g.lines.map(l=>({wr:wrap(l.bpi!=null?`${l.text} (${l.bpi})`:l.text,fs,'normal',maxW),bpi:l.bpi})):[{wr:['—'],bpi:null}];
+      const vl=g.lines.length?g.lines.map(l=>({wr:wrap(lineStr(l),fs,'normal',maxW),bpi:l.bpi,prev:l.prev})):[{wr:['—'],bpi:null}];
       const n=hl.length+vl.reduce((a,v)=>a+v.wr.length,0);
       return {hl,vl,h:n*lh+gap};
     });
@@ -1724,11 +1912,12 @@ function renderSlide(forExport){
   if(subSize<23) fit.notes.push('note');
   const subLH=27*subSize/23;
   subLines.forEach((ln,i)=>{
-    const parts=ln.split(/(\bBLUE\b)/);
-    o+=`<text x="110" y="${(156+i*subLH).toFixed(1)}" font-size="${subSize}" letter-spacing="${(subSize/23*2.2).toFixed(2)}" fill="${NAVY}">`+parts.map(pt=>pt==='BLUE'?`<tspan fill="${BLUE}">BLUE</tspan>`:esc(pt)).join('')+`</text>`;
+    const parts=ln.split(noteRe());
+    o+=`<text x="110" y="${(156+i*subLH).toFixed(1)}" font-size="${subSize}" letter-spacing="${(subSize/23*2.2).toFixed(2)}" fill="${NAVY}"${state.cmp.on?' font-style="italic"':''}>`+parts.map((pt,k)=>k%2?`<tspan fill="${tokCol(pt)}">${esc(pt)}</tspan>`:esc(pt)).join('')+`</text>`;
   });
   // columns
   const groups=vis.map(p=>({header:p.header,lines:linesOf(p)}));
+  if(state.cmp.on){const ls=groups.flatMap(g=>g.lines); fit.miss=ls.filter(l=>l.prev!=null&&l.bpi==null).length; fit.approx=ls.filter(l=>l.approx).length;}
   if(groups.length){
     const cb=buildColumns(groups,textRight);
     if(cb.s<0.98) fit.notes.push('columns');
@@ -1744,8 +1933,8 @@ function renderSlide(forExport){
         g.vl.forEach(v=>{
           v.wr.forEach((l,li)=>{
             const last=li===v.wr.length-1;
-            const m=last&&v.bpi!=null?l.match(/^(.*?)(\s*\(\d+\))$/):null;
-            o+=`<text x="${x+16}" y="${y}" font-size="${cb.fs}" fill="#555">`+(m?`${esc(m[1])}<tspan fill="${BLUE}">${esc(m[2])}</tspan>`:esc(l))+`</text>`;
+            const m=last&&(v.bpi!=null||v.prev!=null)?l.match(/^(.*?)((?:\s*\(\d+\)){1,2})$/):null;
+            o+=`<text x="${x+16}" y="${y}" font-size="${cb.fs}" fill="#555">`+(m?esc(m[1])+(m[2].match(/\s*\(\d+\)/g)||[]).map((n,k)=>`<tspan fill="${[v.bpi!=null?BLUE:null,v.prev!=null?GOLD:null].filter(Boolean)[k]||BLUE}">${esc(n)}</tspan>`).join(''):esc(l))+`</text>`;
             y+=cb.lh;
           });
         });
@@ -1781,18 +1970,22 @@ const EMPTY=()=>`<label for="file" class="drop"><div class="ic"><svg width="30" 
 function renderStage(){
   if(!state.report){ stage.innerHTML=EMPTY(); ['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=true); $('segbar').hidden=true; return; }
   stage.innerHTML=`<div class="card">${renderSlide(false)}</div>`;
-  {const f=window.__fit||{notes:[]},n=$('fitnote'),pc=Math.round((f.scale||1)*100);
-   n.textContent=f.overflow?'The wording is too long to fit even at the smallest size. Remove a piece, shorten the lines, or make the figure smaller in More options.'
-     :f.notes.length?'Wording was resized to stay clear of the puzzle man ('+f.notes.map(k=>k==='columns'?'lists at '+pc+'%':k==='note'?'note':'title').join(', ')+'). Lists too small? Remove a piece or reduce lines.':'';}
+  {const f=window.__fit||{notes:[]},n=$('fitnote'),pc=Math.round((f.scale||1)*100),msg=[];
+   if(f.overflow) msg.push('The wording is too long to fit even at the smallest size. Remove a piece, shorten the lines, or make the figure smaller in More options.');
+   else if(f.notes.length) msg.push('Wording was resized to stay clear of the puzzle man ('+f.notes.map(k=>k==='columns'?'lists at '+pc+'%':k==='note'?'note':'title').join(', ')+'). Lists too small? Remove a piece or reduce lines.');
+   if(f.miss) msg.push(f.miss+' of last year\u2019s bands could not be found in this year\u2019s report, so only last year\u2019s number (gold) is shown.');
+   if(f.approx) msg.push(f.approx+' band'+(f.approx>1?'s':'')+' did not line up exactly with this year\u2019s report rows; the closest rows were used.');
+   n.textContent=msg.join(' ');}
+  if(state.cmp.on) cmpInfo();
   ['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=false);
   document.querySelectorAll('.pc').forEach(el=>{
     const p=state.pieces.find(x=>x.uid==el.dataset.uid); if(!p) return;
     const ls=linesOf(p);
-    el.querySelector('.pc-sub').textContent=ls.length?ls.map(l=>l.bpi!=null?`${l.text} (${l.bpi})`:l.text).join(' · '):(p.src<0&&p.override===''?'Add lines in the box below':'Nothing above the receptive cutoff');
+    el.querySelector('.pc-sub').textContent=ls.length?ls.map(lineStr).join(' · '):(p.src<0&&p.override===''?'Add lines in the box below':'Nothing above the receptive cutoff');
   });
 }
 function optSel(list,val){return list.map(([v,t])=>`<option value="${esc(v)}"${String(v)===String(val)?' selected':''}>${esc(t)}</option>`).join('');}
-function autoLines(p){return linesOf(p).map(l=>l.bpi!=null?`${l.text} | ${l.bpi}`:l.text).join('\n');}
+function autoLines(p){return linesOf(p).map(l=>l.prev!=null?l.text+' | '+(l.bpi!=null?l.bpi:'')+' | '+l.prev:(l.bpi!=null?l.text+' | '+l.bpi:l.text)).join('\n');}
 function buildSegbar(){
   const vis=state.pieces.filter(p=>p.visible);
   {const n=vis.length,cnt=templateFor(n);
@@ -1844,8 +2037,9 @@ function buildPieceList(){
       </div>
       <label class="field"><span class="lbl2">Location on the figure</span><select class="zone">${optSel(ZONES,p.zone)}</select></label>
       <div class="field"><span class="lbl2">Bands in this piece <span class="mut">&ndash; tick a band to add or drop it; use <b>+ split</b> to break a range into separate lines (<b class="bmode">${bandMode(p)}</b>). Blue index = meets the cutoff.</span></span><div class="bands">${bandsHTML(p)}</div></div>
-      <label class="field"><span class="lbl2">Lines <span class="mut">(one per line: text | index) &ndash; ${p.override!=null?'edited':'auto'}</span></span><textarea class="ov" spellcheck="false">${esc(p.override!=null?p.override:autoLines(p))}</textarea></label>
-      <div class="pcbtns"><button class="btn rb" type="button">Auto bands</button><button class="btn reset" type="button">Reset lines to auto</button><button class="btn rm" type="button">Remove piece</button></div>
+      <label class="field"><span class="lbl2">Lines <span class="mut">(one per line: ${state.cmp.on?'text | this year | last year':'text | index'}) &ndash; ${p.override!=null?'edited':'auto'}</span></span><textarea class="ov" spellcheck="false">${esc(p.override!=null?p.override:autoLines(p))}</textarea></label>
+      ${state.cmp.on?`<label class="field"><span class="lbl2">Last year&rsquo;s lines <span class="mut">(one per line: text | index) &ndash; ${p.prevOverride!=null?'edited':'from file'}</span></span><textarea class="pov" spellcheck="false" style="height:70px">${esc(p.prevOverride!=null?p.prevOverride:prevText(p))}</textarea></label>`:''}
+      <div class="pcbtns"><button class="btn rb" type="button">Auto bands</button><button class="btn reset" type="button">Reset lines to auto</button>${state.cmp.on?'<button class="btn preset" type="button">Reset prior-year lines</button>':''}<button class="btn rm" type="button">Remove piece</button></div>
     </div>
   </div>`).join('');
   buildSegbar(); renderStage();
@@ -1868,6 +2062,7 @@ $('pieces').addEventListener('input',e=>{
   if(c.contains('lbl')){p.label=e.target.value;buildSegbar();}
   else if(c.contains('hdr')) p.header=e.target.value;
   else if(c.contains('ov')) p.override=e.target.value;
+  else if(c.contains('pov')) p.prevOverride=e.target.value;
   else return;
   renderStage();
 });
@@ -1905,6 +2100,7 @@ $('pieces').addEventListener('click',e=>{
   else if(c.contains('dn')&&i<state.pieces.length-1) [state.pieces[i+1],state.pieces[i]]=[state.pieces[i],state.pieces[i+1]];
   else if(c.contains('tg')){state.open.has(p.uid)?state.open.delete(p.uid):state.open.add(p.uid);}
   else if(c.contains('reset')) p.override=null;
+  else if(c.contains('preset')) p.prevOverride=null;
   else if(c.contains('rb')){p.bands=null;p.splits=[];p.override=null;}
   else if(c.contains('rm')) state.pieces.splice(i,1);
   else return;
@@ -1959,6 +2155,7 @@ function refreshAuto(){
   document.querySelectorAll('.pc').forEach(el=>{
     const p=state.pieces.find(x=>x.uid==el.dataset.uid); if(!p) return;
     if(p.override==null){const ta=el.querySelector('.ov'); if(ta&&document.activeElement!==ta) ta.value=autoLines(p);}
+    if(state.cmp.on&&p.prevOverride==null){const pv=el.querySelector('.pov'); if(pv&&document.activeElement!==pv) pv.value=prevText(p);}
     const bx=el.querySelector('.bands'); if(bx&&!bx.parentNode.parentNode.hidden){const st=bx.scrollTop; bx.innerHTML=bandsHTML(p); bx.scrollTop=st;}
   });
 }
@@ -1967,9 +2164,49 @@ bindOpt('thr','thr',e=>parseFloat(e.value)||0);
 bindOpt('excl','excl',e=>e.checked);
 bindOpt('minShare','minShare',e=>parseFloat(e.value)||0);
 bindOpt('method','method',e=>e.value);
-[['tTitle','title'],['tSub','sub'],['tSlide','slide']].forEach(([id,k])=>$(id).addEventListener('input',e=>{state.text[k]=e.target.value;renderStage();}));
+[['tTitle','title'],['tSub','sub'],['tSlide','slide']].forEach(([id,k])=>$(id).addEventListener('input',e=>{state.text[k]=e.target.value;state.edited[k]=true;renderStage();}));
 $('figScale').addEventListener('input',e=>{state.figScale=e.target.value/100;$('figScaleV').textContent=e.target.value+'%';renderStage();});
 $('tTitle').value=state.text.title;$('tSub').value=state.text.sub;
+
+/* compare years: panel */
+const KIND_TXT={
+  pm:{ph:'Choose last year\u2019s puzzle man (.pdf)',hint:'Reads each heading and its lines (index in parentheses) from last year\u2019s slide. Export the slide to PDF from PowerPoint first.'},
+  lal:{ph:'Choose last year\u2019s LAL report (.pdf)',hint:'Last year\u2019s bands are rebuilt from that report with the same rules as this year, then re-scored from this year\u2019s report.'}
+};
+function cmpInfo(){
+  const C=state.cmp,m=$('cmpMsg'); if(!m||!C.on) return;
+  const have=C.kind==='pm'?C.pm:C.report;
+  if(!have){m.textContent=C.kind==='pm'?'No file yet. You can also type last year\u2019s lines into each piece in the list below.':'No file yet.';return;}
+  const vis=state.pieces.filter(p=>p.visible&&p.src>=0), n=vis.filter(p=>prevAuto(p)).length;
+  m.textContent=(C.kind==='pm'?'Read '+C.pm.groups.length+' groups ('+C.pm.groups.reduce((a,g)=>a+g.lines.length,0)+' lines). ':'Read '+C.report.elements.length+' elements. ')+(state.report?'Matched '+n+' of '+vis.length+' pieces.':'');
+}
+function setKindUI(){
+  const C=state.cmp;
+  document.querySelectorAll('#cmpKind .btn').forEach(b=>b.classList.toggle('on',b.dataset.kind===C.kind));
+  $('pfname').textContent=C.fname[C.kind]||KIND_TXT[C.kind].ph; $('cmpKindHint').textContent=KIND_TXT[C.kind].hint;
+}
+$('cmpToggle').addEventListener('click',()=>{
+  const C=state.cmp; C.on=!C.on; const b=$('cmpToggle');
+  b.classList.toggle('on',C.on); b.setAttribute('aria-checked',C.on); b.setAttribute('aria-pressed',C.on);
+  $('cmpPanel').hidden=!C.on; syncCmpText(); setKindUI(); buildPieceList(); cmpInfo();
+});
+$('cmpKind').addEventListener('click',e=>{
+  const b=e.target.closest('.btn'); if(!b) return; state.cmp.kind=b.dataset.kind; setKindUI(); buildPieceList(); cmpInfo();
+});
+$('plabel').value=state.cmp.plabel; $('clabel').value=state.cmp.clabel;
+[['plabel','PREVIOUS'],['clabel','CURRENT']].forEach(([k,d])=>$(k).addEventListener('input',e=>{state.cmp[k]=e.target.value.trim()||d; syncCmpText(); renderStage();}));
+$('pfile').addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f) return; const C=state.cmp,kind=C.kind,m=$('cmpMsg');
+  try{
+    if(kind==='lal'){ C.report=/\.json$/i.test(f.name)?JSON.parse(await f.text()):await readPdf(f,m); if(!C.report||!C.report.elements) throw new Error('That file is not a look-alike report.'); }
+    else C.pm=await readOldPM(f,m);
+    C.fname[kind]=f.name; setKindUI();
+    state.pieces.forEach(p=>{p.prevOverride=null;});
+    buildPieceList(); cmpInfo();
+  }catch(err){ m.textContent=err.message||String(err); }
+  e.target.value='';
+});
+$('newpm').addEventListener('click',()=>{const C=state.cmp; C.report=null;C.pm=null;C.fname={pm:'',lal:''}; setKindUI(); cmpInfo();});
 
 /* loading */
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Could not load '+src+' (needs an internet connection)'));document.head.appendChild(s);});}
@@ -1981,8 +2218,8 @@ async function loadPdfJs(){
   try{const t=await (await fetch(worker)).text(); worker=URL.createObjectURL(new Blob([t],{type:'text/javascript'}));}catch(e){}
   pdfjsLib.GlobalWorkerOptions.workerSrc=worker;
 }
-async function readPdf(file){
-  const st=$('status'); st.textContent='Loading PDF reader…'; await loadPdfJs();
+async function readPdf(file,stEl){
+  const st=stEl||$('status'); st.textContent='Loading PDF reader…'; await loadPdfJs();
   const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
   let lines=[];
   for(let p=1;p<=pdf.numPages;p++){
