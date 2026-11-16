@@ -1760,7 +1760,7 @@ function rowsByRange(rows,e){
     if(e.open?x.lo>=e.lo:(x.lo>=e.lo&&x.hi<=e.hi)){out.push(r);ex.push(x);}
   });
   let approx=false;
-  if(out.length){const lo=Math.min(...ex.map(x=>x.lo)),hi=Math.max(...ex.map(x=>x.hi)); approx=lo!==e.lo||(!e.open&&hi!==e.hi);}
+  if(out.length){const lo=Math.min(...ex.map(x=>x.lo)),hi=Math.max(...ex.map(x=>x.hi)); approx=Math.abs(lo-e.lo)>1||(!e.open&&Math.abs(hi-e.hi)>1);}
   return {rows:out,approx};
 }
 function matchRowsByText(rows,text){
@@ -1793,36 +1793,48 @@ function cmpLines(p){
 /* ---- reading an old puzzle man (PDF text -> groups of lines) ---- */
 function parseOldPM(items){
   const END=/\((\d{1,4})\)(?:\s*\((\d{1,4})\))?\s*$/;
-  // 1. glue items into lines in reading order (a wide gap starts a new line so neighbouring columns never merge)
-  const BUL=/^[\u2022\u2023\u2043\u2219\u25AA\u25AB\u25B6\u25B8\u25BA\u25CF\u25E6\u25CB\uF000-\uF0FF\u00B7\u00A7]+$/;
-  const sorted=items.filter(it=>String(it.s).trim()&&!BUL.test(String(it.s).trim())).sort((a,b)=>(b.y-a.y)||(a.x-b.x));
-  const lines=[];
-  for(const it of sorted){
-    const raw=String(it.s), fs=it.h||12; let L=null;
-    for(let k=lines.length-1;k>=0&&k>=lines.length-8;k--){
-      const c=lines[k]; if(Math.abs(c.y-it.y)>2.5) continue;
-      const gap=it.x-c.endX; if(gap>=-3&&gap<=fs*0.6){L=c;break;}
-    }
-    if(L){
-      const gap=it.x-L.endX;
-      L.s+=((gap>1.2&&!/\s$/.test(L.s)&&!/^\s/.test(raw))?' ':'')+raw; L.endX=it.x+it.w; L.bold=L.bold&&!!it.bold;
-    } else lines.push({s:raw,y:it.y,x:it.x,endX:it.x+it.w,bold:!!it.bold});
+  const BULC='\u2022\u2023\u2043\u2219\u25AA\u25AB\u25B6\u25B8\u25BA\u25CF\u25E6\u25CB\uF000-\uF0FF\u00B7\u00A7';
+  const BUL=new RegExp('^['+BULC+']+$'), BULP=new RegExp('^\\s*['+BULC+']');
+  // 1. glue items into lines. Items may arrive in any order, so an item can join a line from either side
+  //    (a wide gap still starts a new line, so neighbouring columns never merge)
+  const bullets=[], real=[];
+  for(const it of items){
+    const t=String(it.s).trim(); if(!t) continue;
+    if(BUL.test(t)) bullets.push(it); else real.push(it);
   }
-  lines.forEach(L=>{L.t=L.s.replace(/\s+/g,' ').trim().replace(/^[^\w$<("']+\s*/,'');});
+  // rows first (items within a couple of points vertically), then left to right inside each row
+  const sorted=real.sort((a,b)=>(b.y-a.y)||(a.x-b.x)), rows=[];
+  for(const it of sorted){const r=rows[rows.length-1]; if(r&&r.minY-it.y<=2.5){r.items.push(it);r.minY=Math.min(r.minY,it.y);} else rows.push({minY:it.y,items:[it]});}
+  const lines=[];
+  for(const r of rows){
+    let L=null;
+    for(const it of r.items.sort((a,b)=>a.x-b.x)){
+      const raw=String(it.s), fs=it.h||12, x1=it.x+it.w, gap=L?it.x-L.endX:0;
+      if(L&&gap>=-3&&gap<=fs*0.6){
+        L.s+=((gap>1.2&&!/\s$/.test(L.s)&&!/^\s/.test(raw))?' ':'')+raw; L.endX=x1; L.bold=L.bold&&!!it.bold;
+      } else { L={s:raw,y:it.y,x:it.x,endX:x1,bold:!!it.bold}; lines.push(L); }
+    }
+  }
+  lines.forEach(L=>{
+    L.bul=BULP.test(L.s)||bullets.some(b=>Math.abs(b.y-L.y)<=3&&b.x<L.x&&L.x-b.x<=18);
+    L.t=L.s.replace(/\s+/g,' ').trim().replace(/^[^\w$<("']+\s*/,'');
+  });
   const all=lines.filter(L=>L.t);
   // 2. columns = clusters of left edges; read each column top to bottom
   const byX=all.slice().sort((a,b)=>a.x-b.x),cols=[];
   for(const L of byX){const c=cols[cols.length-1]; if(c&&L.x-c.x1<=40){c.items.push(L);c.x1=L.x;} else cols.push({x1:L.x,items:[L]});}
-  const anyBold=all.some(L=>L.bold), groups=[];
+  // headings are marked by a bullet if the slide has them, otherwise by bold type, otherwise by spacing
+  const nBul=all.filter(L=>L.bul).length, mode=nBul>=2?'bullet':(all.some(L=>L.bold)?'bold':'gap');
+  const groups=[];
   for(const c of cols.sort((a,b)=>a.items[0].x-b.items[0].x)){
     const seq=c.items.slice().sort((a,b)=>b.y-a.y||a.x-b.x);
     const ds=seq.slice(1).map((L,i)=>seq[i].y-L.y).filter(d=>d>0).sort((a,b)=>a-b), pitch=ds.length?ds[Math.floor(ds.length/2)]:20;
     let g=null,pend='',prevHdr=false,prevTerm=true,prevY=null;
     for(const L of seq){
       const t=L.t,term=END.test(t), big=prevY!==null&&(prevY-L.y)>pitch*1.3;
-      const hdr=!term&&(anyBold?L.bold:(big||(!pend&&prevTerm)));
+      const hdr=!term&&(mode==='bullet'?L.bul:mode==='bold'?L.bold:(big||(!pend&&prevTerm)));
       if(hdr){
-        if(prevHdr&&g&&!g.lines.length&&Math.abs(g.x-L.x)<5&&g.y-L.y>0&&g.y-L.y<30){g.header+=' '+t;g.y=L.y;}
+        if(mode!=='bullet'&&prevHdr&&g&&!g.lines.length&&Math.abs(g.x-L.x)<5&&g.y-L.y>0&&g.y-L.y<30){g.header+=' '+t;g.y=L.y;}
         else{g={header:t,lines:[],x:L.x,y:L.y};groups.push(g);}
         pend='';prevHdr=true;
       } else {
