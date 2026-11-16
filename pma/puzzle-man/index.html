@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Puzzle Man Builder · Reflex Blu</title>
+<style>
+:root{--navy:#0E2A5C;--blue:#0029C4;--line:#e3e6ee;--mut:#6b7385;--bg:#f5f6fa}
+*{box-sizing:border-box}body{margin:0;font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#1c2333;background:var(--bg)}
+header{display:flex;align-items:center;gap:14px;padding:12px 20px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.logo{border:3px solid #1B4B91;color:#1B4B91;font-weight:700;font-size:18px;padding:0 8px;line-height:28px}
+h1{font-size:16px;margin:0;color:var(--navy);font-weight:700}.sp{flex:1}
+button,select,input,textarea{font:inherit}
+.btn{background:var(--blue);color:#fff;border:0;border-radius:7px;padding:8px 14px;font-weight:600;cursor:pointer}.btn.alt{background:#fff;color:var(--navy);border:1px solid #c9cfdd}
+.btn:hover{filter:brightness(.95)}
+main{display:grid;grid-template-columns:380px 1fr;gap:18px;padding:18px 20px;align-items:start}
+aside{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;max-height:calc(100vh - 92px);overflow:auto}
+aside h2{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:16px 0 8px}aside h2:first-child{margin-top:0}
+#drop{border:2px dashed #c3cadb;border-radius:9px;padding:14px;text-align:center;color:var(--mut);cursor:pointer}#drop.hot{border-color:var(--blue);background:#eef2ff}
+#drop b{color:var(--navy)}#stats{margin:8px 0;font-size:12.5px;color:#333}#status{font-size:12.5px;color:#b42318;min-height:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+label{display:block;font-size:12px;color:var(--mut);margin-top:6px}label input,label select,label textarea{display:block;width:100%;margin-top:2px;padding:6px 8px;border:1px solid #cfd5e3;border-radius:6px;color:#1c2333;background:#fff}
+label.chk{display:flex;gap:6px;align-items:center;color:#333}label.chk input{width:auto;margin:0}
+.pc{border:1px solid var(--line);border-radius:8px;padding:7px 8px;margin-bottom:6px;background:#fff}.pc.off{opacity:.55}
+.pc-top{display:flex;gap:5px;align-items:center}.pc-top .lbl{flex:1;min-width:0;padding:4px 6px;border:1px solid transparent;border-radius:5px;font-weight:700;font-size:12px;letter-spacing:.02em}.pc-top .lbl:hover,.pc-top .lbl:focus{border-color:#cfd5e3}
+.ib{border:1px solid #d5dae6;background:#fff;border-radius:5px;width:26px;height:26px;cursor:pointer;color:var(--navy)}.ib:disabled{opacity:.3;cursor:default}
+.pc-sub{font-size:12px;color:var(--mut);margin:3px 0 0 24px}
+.pc-more{margin-top:6px;padding-top:4px;border-top:1px dashed var(--line)}.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.hint{font-weight:400}
+.btns{display:flex;gap:8px;margin-top:8px}.sm{font-size:12px;padding:5px 9px;border-radius:6px;border:1px solid #c9cfdd;background:#fff;cursor:pointer}.sm.danger{color:#b42318;border-color:#f0c4c0}
+#addsel{width:100%;padding:8px;border:1px solid #c9cfdd;border-radius:7px;background:#fff;margin-top:4px}
+#stageWrap{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px}#stage svg{width:100%;height:auto;display:block;border:1px solid #eef0f5}
+.cap{font-size:12px;color:var(--mut);margin-top:8px}
+.tools{display:flex;gap:8px;align-items:center}.tools select{padding:7px;border:1px solid #c9cfdd;border-radius:7px;background:#fff}
+@media(max-width:980px){main{grid-template-columns:1fr}aside{max-height:none}}
+</style></head><body>
+<header><div class="logo">blü</div><h1>Puzzle Man Builder</h1><div class="sp"></div>
+<div class="tools"><select id="pngScale" title="PNG resolution"><option value="1">PNG 1504×846</option><option value="2" selected>PNG 3008×1692</option><option value="3">PNG 4512×2538</option></select>
+<button class="btn" id="exPng">PNG</button><button class="btn alt" id="exSvg">SVG</button><button class="btn alt" id="exPdf">PDF</button></div></header>
+<main>
+<aside>
+<h2>1 · Look-alike report</h2>
+<div id="drop"><b>Drop the look-alike PDF here</b><br>or click to choose<input type="file" id="file" accept=".pdf,.json" hidden></div>
+<div style="margin-top:8px"><button class="sm" id="sample">Load Montgomery Whitewater sample</button></div>
+<div id="stats">No report loaded yet.</div><div id="status"></div>
+<h2>2 · Receptive rules</h2>
+<div class="grid2"><label>Receptive at index ≥<input type="number" id="thr" value="120" step="5"></label>
+<label>Min. share of customers (%)<input type="number" id="minShare" value="2" step="0.5" min="0"></label></div>
+<label>Roll-up index math<select id="method"><option value="pct" selected>Sum of report % (matches current decks)</option><option value="counts">Exact customer / prospect counts</option></select></label>
+<label class="chk"><input type="checkbox" id="excl" checked> Ignore values flagged * by Acxiom</label>
+<h2>3 · Puzzle pieces</h2>
+<div id="pieces"></div>
+<select id="addsel"><option value="">＋ Add a puzzle piece…</option></select>
+<div style="margin-top:8px"><button class="sm" id="resetAll">Reset pieces to default</button></div>
+<h2>4 · Slide text</h2>
+<label>Title<input id="tTitle"></label><label>Note (BLUE is colored)<textarea id="tSub" rows="2"></textarea></label>
+<div class="grid2"><label>Slide #<input id="tSlide"></label><label>Footer<input id="tFoot"></label></div>
+</aside>
+<section id="stageWrap"><div id="stage"></div><div class="cap">16:9 slide (1504×846). PNG/PDF are for Keynote; SVG keeps text and shapes editable if you ungroup it.</div></section>
+</main>
+<script>
+/* ===== CORE (pure functions: parsing, roll-ups, layout) ===== */
+const NUMW={zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20};
+const toInt=s=>parseInt(String(s).replace(/,/g,''),10);
+
+/* ---- PDF text items -> text lines ---- */
+function itemsToLines(items){
+  items=items.filter(i=>i.s&&i.s.trim()!=='');
+  items.sort((a,b)=>(b.y-a.y)||(a.x-b.x));
+  const lines=[];
+  for(const it of items){
+    let ln=null;
+    for(let k=lines.length-1;k>=0&&k>=lines.length-4;k--){ if(Math.abs(lines[k].y-it.y)<=2.6){ln=lines[k];break;} }
+    if(!ln){ln={y:it.y,items:[]};lines.push(ln);}
+    ln.items.push(it);
+  }
+  lines.sort((a,b)=>b.y-a.y);
+  return lines.map(ln=>{
+    ln.items.sort((a,b)=>a.x-b.x);
+    let s='',end=null;
+    for(const it of ln.items){
+      if(end!==null){const gap=it.x-end; s+= gap>12?'   ':(gap>1.2?' ':'');}
+      s+=it.s.trim(); end=it.x+it.w;
+    }
+    return s;
+  });
+}
+
+/* ---- Report parser ---- */
+const TAIL=String.raw`([\d,]+)\s+([\d.]+)\s*%\s+([\d,]+)\s+([\d.]+)\s*%\s+(\d+)(\*?)\s+(-?[\d.]+)`;
+const ROW_RE=new RegExp(String.raw`^\s*(\S+)\s+(.+?)\s+${TAIL}\s*$`);
+const TAIL_ONLY=new RegExp(String.raw`^\s*${TAIL}\s*$`);
+const HAS_TAIL=new RegExp(TAIL+String.raw`\s*$`);
+const SECTION_LABELS=/^(INDIVIDUAL|HOUSEHOLD|GEOGRAPHY|HOME|WEALTH|AUTO|BUYING BEHAVIOR|PERSONICX SEGMENT|PERSONICX)$/;
+
+function isTitle(t){
+  return /^[A-Z][A-Z0-9 \/&,'.()+\-–#%]*$/.test(t) && /[A-Z]{3}/.test(t) && t.length<90 &&
+    !/MPI VIEW|BEST PERFORMERS|UNDECIDED|BACK TO|REPORT|WHAT |HOW |SPECIAL|LEARN|FOLLOWING|DESCRIPTION/.test(t) && !SECTION_LABELS.test(t);
+}
+function titleCase(s){
+  return s.toLowerCase().replace(/\b([a-z])/g,m=>m.toUpperCase()).replace(/\b(Of|In|And|The|Or)\b/g,m=>m.toLowerCase())
+    .replace(/\bScf\b/,'SCF').replace(/\bHh\b/,'HH').replace(/\b(\d)(St|Nd|Rd)\b/g,(m,a,b)=>a+b.toLowerCase());
+}
+function mergeWrapped(lines){
+  const out=[];
+  for(let i=0;i<lines.length;i++){
+    const a=lines[i];
+    if(a.trim() && !HAS_TAIL.test(a) && /^\s*\S+\s+\S/.test(a) && i+1<lines.length && TAIL_ONLY.test(lines[i+1])){
+      out.push(a.replace(/\s+$/,'')+'   '+lines[i+1].trim()); i++;
+    } else out.push(a);
+  }
+  return out;
+}
+function cleanDesc(d){return d.replace(/\s+\(\d{3,5}\)\s*$/,'').replace(/\s+/g,' ').trim();}
+
+function parseReport(lines){
+  const res={client:'',totals:{uploaded:0,matched:0,prospects:0},elements:[]};
+  const head=lines.slice(0,120).join('\n');
+  const g=re=>{const m=head.match(re);return m?toInt(m[1]):0;};
+  res.totals.uploaded=g(/Total records uploaded:\s*([\d,]+)/i);
+  res.totals.matched=g(/Total uploaded records matched:\s*([\d,]+)/i);
+  res.totals.prospects=g(/Total analyzed prospects:\s*([\d,]+)/i);
+  const first=lines.find(l=>l.trim());
+  if(first){const m=first.trim().match(/^(.*?)\s+REPORT\b/i); if(m) res.client=titleCase(m[1]);}
+  let lastTitle=null,cur=null,prev=null;
+  for(const raw of mergeWrapped(lines)){
+    const t=raw.trim(); if(!t) continue;
+    if(/DESCRIPTION/.test(t)&&/CUSTOMER\s*#/.test(t)&&/MPI/.test(t)){
+      if(lastTitle){cur={name:lastTitle.name,code:lastTitle.code,rows:[]};res.elements.push(cur);prev=null;}
+      continue;
+    }
+    const m=raw.match(ROW_RE);
+    if(m){
+      if(cur){prev={idx:m[1],desc:cleanDesc(m[2]),custN:toInt(m[3]),custPct:parseFloat(m[4]),prosN:toInt(m[5]),prosPct:parseFloat(m[6]),mpi:parseInt(m[7],10),flagged:m[8]==='*',z:parseFloat(m[9])};cur.rows.push(prev);}
+      continue;
+    }
+    if(isTitle(t)){
+      const mm=t.match(/^(.*?)\s*\(((?:PX)?\d+)\)\s*$/);
+      lastTitle=mm?{name:titleCase(mm[1].trim()),code:mm[2]}:{name:titleCase(t),code:''};
+      cur=null;prev=null;continue;
+    }
+    if(prev && (prev.desc.split('(').length>prev.desc.split(')').length) && !/^\*|^Back to|^No attributes|^Acxiom/.test(t)){
+      prev.desc=cleanDesc(prev.desc+' '+t);
+    }
+  }
+  // infer totals if overview missing
+  if(!res.totals.matched||!res.totals.prospects){
+    const el=res.elements.find(e=>e.rows.length>2);
+    if(el){const r=el.rows.slice().sort((a,b)=>b.custN-a.custN)[0]; if(r.custPct) res.totals.matched=Math.round(r.custN/(r.custPct/100)); if(r.prosPct) res.totals.prospects=Math.round(r.prosN/(r.prosPct/100));}
+  }
+  return res;
+}
+
+/* ---- Roll-ups ---- */
+const isUnknown=d=>/unknown|uncoded|null/i.test(d);
+function numsOf(desc){
+  const out=[];
+  const re=/\$?\d[\d,]*(?:\.\d+)?|\b(zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/gi;
+  let m; while((m=re.exec(desc))){ out.push(m[1]?NUMW[m[1].toLowerCase()]:toInt(m[0].replace('$',''))); }
+  return out;
+}
+const fmtN=n=>Number(n).toLocaleString('en-US');
+function labelRun(fmt,rows){
+  const first=rows[0],last=rows[rows.length-1];
+  const f=numsOf(first.desc),l=numsOf(last.desc);
+  const open=/or more|\+|and over|and above|or greater|or older/i.test(last.desc);
+  const lessThan=/^less than (one|1)\b/i.test(first.desc);
+  if(!f.length||!l.length||!fmt) return rows.length===1?cleanDesc(first.desc):`${first.desc} – ${last.desc}`;
+  let lo=lessThan?'<1':f[0];
+  let hi=open?l[0]:(l.length>1?l[l.length-1]:l[0]);
+  const single=(rows.length===1&&!open&&(f.length===1||fmt==='age'&&false));
+  const same=!open&&lo===hi;
+  if(open&&rows.length===1&&f[0]===l[0]&&(fmt==='adults'||fmt==='years'||fmt==='children')){
+    return fmt==='adults'?`${lo}+ Adults`:fmt==='years'?`${lo}+ Years`:`${lo}+ in home`;
+  }
+  const money=(n,tight)=>'$'+fmtN(n);
+  switch(fmt){
+    case 'age': return same?`${lo}`:`${lo}-${hi}${open?'+':''}`;
+    case 'money': return (rows.length===1&&f.length>1&&!open)?`$${fmtN(f[0])} - $${fmtN(l[l.length-1])}`:`$${fmtN(lo)} - $${fmtN(hi)}${open?'+':''}`;
+    case 'moneytight': return (rows.length===1&&f.length>1&&!open)?`$${fmtN(f[0])}-$${fmtN(l[l.length-1])}`:`$${fmtN(lo)}-$${fmtN(hi)}${open?'+':''}`;
+    case 'years': return same?`${lo} Year${lo===1?'':'s'}`:`${lo}-${hi}${open?'+':''} Years`;
+    case 'children': return same?`${lo} in home`:`${lo} to ${hi}${open?'+':''} in home`;
+    case 'adults': return same?`${lo} Adult${lo===1?'':'s'}`:`${lo}-${hi}${open?'+':''} Adults`;
+    default: return rows.length===1?cleanDesc(first.desc):`${first.desc} – ${last.desc}`;
+  }
+}
+function displayDesc(d){
+  d=cleanDesc(d).replace(/^Completed\s+/i,'');
+  d=d.replace(/\bSuv\b/g,'SUV').replace(/\bHh\b/g,'HH').replace(/\bTv\b/g,'TV');
+  if(/^homeowner$/i.test(d)) return 'Homeowners';
+  if(/^renter$/i.test(d)) return 'Renters';
+  return d;
+}
+function bpiOf(rows,T,method){
+  if(method==='pct'){const a=rows.reduce((x,r)=>x+r.custPct,0),b=rows.reduce((x,r)=>x+r.prosPct,0); if(b>0) return Math.round(a/b*100);}
+  const c=rows.reduce((a,r)=>a+r.custN,0), p=rows.reduce((a,r)=>a+r.prosN,0);
+  if(!p||!T.matched||!T.prospects) return Math.round(rows.reduce((a,r)=>a+r.custPct,0)/Math.max(0.0001,rows.reduce((a,r)=>a+r.prosPct,0))*100);
+  return Math.round((c/T.matched)/(p/T.prospects)*100);
+}
+function computeLines(piece,els,T,opts){
+  const el=els[piece.src]; if(!el) return [];
+  const qual=r=>!isUnknown(r.desc)&&r.mpi>=opts.thr&&!(opts.excl&&r.flagged);
+  if(piece.mode==='range'){
+    const rows=el.rows.filter(r=>!isUnknown(r.desc));
+    let runs=[];let run=[];
+    for(const r of rows){ if(qual(r)) run.push(r); else {if(run.length) runs.push(run); run=[];} }
+    if(run.length) runs.push(run);
+    const minC=(opts.minShare||0)/100*T.matched;
+    runs=runs.filter(rn=>rn.reduce((a,r)=>a+r.custN,0)>=minC);
+    let out=runs.map(rn=>({text:labelRun(piece.fmt,rn),bpi:bpiOf(rn,T,opts.method)}));
+    if(piece.topN&&out.length>piece.topN) out=out.sort((a,b)=>b.bpi-a.bpi).slice(0,piece.topN);
+    return out;
+  }
+  let cand=el.rows.map((r,i)=>({r,i})).filter(o=>qual(o.r)).sort((a,b)=>b.r.mpi-a.r.mpi).slice(0,piece.topN||3);
+  if(piece.sort==='report') cand.sort((a,b)=>a.i-b.i);
+  return cand.map(o=>({text:displayDesc(o.r.desc),bpi:o.r.mpi}));
+}
+
+/* ---- Piece catalog (mirrors the standard Reflex Blu puzzle man) ---- */
+const CATALOG=[
+ {id:'homeowner',label:'HOMEOWNER',header:'Homeowner',match:/^Homeowner/i,mode:'items',topN:1,sort:'mpi',zone:'head'},
+ {id:'age',label:'AGE',header:'Age',match:/^Age\b/i,mode:'range',fmt:'age',zone:'head'},
+ {id:'marital',label:'MARITAL STATUS',header:'Marital Status',match:/^Marital/i,mode:'items',topN:2,sort:'mpi',zone:'torso'},
+ {id:'equity',label:'HOME EQUITY',header:'Home Equity',match:/Home Equity/i,mode:'range',fmt:'moneytight',zone:'leftArm'},
+ {id:'children',label:'CHILDREN',header:'Children In the HH',match:/Number of Children/i,mode:'range',fmt:'children',zone:'rightArm'},
+ {id:'education',label:'EDUCATION',header:'Education',match:/^Education/i,mode:'items',topN:4,sort:'report',zone:'leftArm'},
+ {id:'vehicle',label:'VEHICLE',header:'Vehicle Type',match:/Vehicle Type - 1st/i,mode:'items',topN:2,sort:'mpi',zone:'rightArm'},
+ {id:'income',label:'INCOME',header:'Household Salary',match:/Income High/i,mode:'range',fmt:'money',zone:'torso'},
+ {id:'networth',label:'NET WORTH',header:'Net Worth',match:/Net ?Worth/i,mode:'range',fmt:'money',zone:'torso'},
+ {id:'buying',label:'BUYING ACTIVITY',header:'Buying Activity',match:/Buying Activity/i,mode:'items',topN:2,sort:'mpi',zone:'torso'},
+ {id:'interests',label:'INTERESTS',header:'Interests',match:/^Interest$/i,mode:'items',topN:4,sort:'mpi',zone:'leftLeg'},
+ {id:'hmv',label:'HOME MARKET VALUE',header:'Home Market Value',match:/Home Market Value/i,mode:'range',fmt:'money',zone:'rightLeg'},
+ {id:'length',label:'LENGTH OF RESIDENCE',header:'Length of Residence',match:/Length of Residence/i,mode:'range',fmt:'years',zone:'leftLeg'},
+ {id:'adults',label:'ADULTS IN HH',header:'Adults in the HH',match:/Number of Adults/i,mode:'range',fmt:'adults',zone:'rightLeg'}
+];
+const ZONES=[['head','Head'],['torso','Torso'],['leftArm','Left arm'],['rightArm','Right arm'],['leftLeg','Left leg'],['rightLeg','Right leg']];
+const FMT_HINT=[
+  [/^age\b/i,'age'],[/home equity/i,'moneytight'],[/income|net ?worth|market value/i,'money'],[/length of res/i,'years'],[/children/i,'children'],[/adults/i,'adults']
+];
+function guessFmt(name){for(const [re,f] of FMT_HINT) if(re.test(name)) return f; return '';}
+
+/* ---- Man geometry (local units; slide scales/centres it) ---- */
+const KN={R:9,NL:6,NW:11,ST:3.4,PAD:26};
+const G={headX:85,headW:110,headH:116,torsoX:60,torsoW:160,torsoY:116,torsoH:234,armW:60,armH:289,legY:350,legH:290};
+function torsoRows(n){
+  if(n<=0) return [];
+  if(n===1) return [1]; if(n===2) return [1,1]; if(n===4) return [1,2,1];
+  const rows=[]; let left=n; if(n%2){rows.push(1);left--;} while(left>0){rows.push(2);left-=2;} return rows;
+}
+function layoutMan(pieces){
+  const by=z=>pieces.filter(p=>p.zone===z);
+  const rects=[];
+  const stackV=(list,x,y,w,h,zone)=>{const hh=h/list.length;list.forEach((p,i)=>rects.push({p,zone,x,y:y+i*hh,w,h:hh}));};
+  // head
+  const head=by('head');
+  if(head.length) stackV(head,G.headX,0,G.headW,G.headH,'head'); else rects.push({p:null,zone:'head',x:G.headX,y:0,w:G.headW,h:G.headH});
+  // torso
+  const torso=by('torso'), rows=torsoRows(torso.length);
+  if(torso.length){
+    const rh=G.torsoH/rows.length; let k=0;
+    rows.forEach((c,ri)=>{for(let j=0;j<c;j++){rects.push({p:torso[k++],zone:'torso',x:G.torsoX+j*G.torsoW/c,y:G.torsoY+ri*rh,w:G.torsoW/c,h:rh});}});
+  } else rects.push({p:null,zone:'torso',x:G.torsoX,y:G.torsoY,w:G.torsoW,h:G.torsoH});
+  // arms
+  const la=by('leftArm'), ra=by('rightArm');
+  if(la.length) stackV(la,0,G.torsoY,G.armW,G.armH,'leftArm');
+  if(ra.length) stackV(ra,G.torsoX+G.torsoW,G.torsoY,G.armW,G.armH,'rightArm');
+  // legs
+  const ll=by('leftLeg'), rl=by('rightLeg'), lw=G.torsoW/2;
+  if(ll.length) stackV(ll,G.torsoX,G.legY,lw,G.legH,'leftLeg'); else rects.push({p:null,zone:'leftLeg',x:G.torsoX,y:G.legY,w:lw,h:G.legH});
+  if(rl.length) stackV(rl,G.torsoX+lw,G.legY,lw,G.legH,'rightLeg'); else rects.push({p:null,zone:'rightLeg',x:G.torsoX+lw,y:G.legY,w:lw,h:G.legH});
+  // clip shapes (silhouette)
+  const rr=(x,y,w,h,[tl,tr,br,bl])=>`M${x+tl},${y}H${x+w-tr}${tr?`A${tr},${tr} 0 0 1 ${x+w},${y+tr}`:''}V${y+h-br}${br?`A${br},${br} 0 0 1 ${x+w-br},${y+h}`:''}H${x+bl}${bl?`A${bl},${bl} 0 0 1 ${x},${y+h-bl}`:''}V${y+tl}${tl?`A${tl},${tl} 0 0 1 ${x+tl},${y}`:''}Z`;
+  const clip=[];
+  const r=G.headW/2;
+  clip.push(`M${G.headX},${G.headH}V${r}A${r},${r} 0 0 1 ${G.headX+G.headW},${r}V${G.headH}Z`);
+  clip.push(rr(G.torsoX,G.torsoY,G.torsoW,G.torsoH+1,[la.length?0:30,ra.length?0:30,0,0]));
+  if(la.length) clip.push(rr(0,G.torsoY,G.armW+1,G.armH,[40,0,16,16]));
+  if(ra.length) clip.push(rr(G.torsoX+G.torsoW-1,G.torsoY,G.armW+1,G.armH,[0,40,16,16]));
+  clip.push(rr(G.torsoX,G.legY-1,G.torsoW,G.legH+1,[0,0,22,22]));
+  // knobs on shared edges (tab goes into one neighbour; text boxes avoid the tabs)
+  const KN_MIN=40,KN_DEPTH=44,knobs=[];
+  const recv=rects.map(()=>({v:0,h:0}));
+  const cap=(r,axis)=>axis==='v'?(r.h>=130?2:1):(r.w>=130?2:1);
+  for(let i=0;i<rects.length;i++)for(let j=i+1;j<rects.length;j++){
+    const a=rects[i],b=rects[j],e=.6;
+    let edge=null;
+    const aRightB=Math.abs(a.x+a.w-b.x)<e,bRightA=Math.abs(b.x+b.w-a.x)<e;
+    const aAboveB=Math.abs(a.y+a.h-b.y)<e,bAboveA=Math.abs(b.y+b.h-a.y)<e;
+    if(aRightB||bRightA){
+      const y1=Math.max(a.y,b.y),y2=Math.min(a.y+a.h,b.y+b.h);
+      if(y2-y1>=KN_MIN){const L=aRightB?i:j,Rr=aRightB?j:i;edge={o:'v',x:aRightB?b.x:a.x,y:(y1+y2)/2,c:[{ri:Rr,dir:1,side:'l',depth:rects[Rr].w},{ri:L,dir:-1,side:'r',depth:rects[L].w}]};}
+    } else if(aAboveB||bAboveA){
+      const x1=Math.max(a.x,b.x),x2=Math.min(a.x+a.w,b.x+b.w);
+      if(x2-x1>=KN_MIN){const T=aAboveB?i:j,B=aAboveB?j:i;edge={o:'h',y:rects[B].y,x:(x1+x2)/2,c:[{ri:B,dir:1,side:'t',depth:rects[B].h},{ri:T,dir:-1,side:'b',depth:rects[T].h}]};}
+    }
+    if(!edge) continue;
+    const axis=edge.o==='v'?'h':'v'; // axis of the receiving piece that gets consumed
+    let cands=edge.c.filter(c=>c.depth>=KN_DEPTH&&recv[c.ri][axis]<cap(rects[c.ri],axis));
+    if(!cands.length) continue;
+    const flip=((i*7+j*13)%2)===1;
+    cands.sort((p,q)=>(recv[p.ri][axis]-recv[q.ri][axis])||(q.depth-p.depth)||(flip?-1:1)*(p.dir-q.dir));
+    const pick=cands[0]; recv[pick.ri][axis]++;
+    knobs.push({o:edge.o,x:edge.x,y:edge.y,dir:pick.dir,ri:pick.ri,side:pick.side});
+  }
+  const bb={x1:Math.min(...rects.map(r=>r.x)),y1:0,x2:Math.max(...rects.map(r=>r.x+r.w)),y2:G.legY+G.legH};
+  return {rects,clip,knobs,bbox:bb};
+}
+if(typeof module!=='undefined'&&typeof window==='undefined') module.exports={itemsToLines,parseReport,computeLines,labelRun,bpiOf,CATALOG,layoutMan,torsoRows,numsOf,guessFmt};
+
+/* ===== APP ===== */
+const NAVY='#0E2A5C',BLUE='#3C9AD8',GRAYT='#4a4a4a',LOGO='#1B4B91';
+const SW=1504,SH=846;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const mctx=document.createElement('canvas').getContext('2d');
+function measure(t,size,weight){mctx.font=`${weight||'normal'} ${size}px Arial, Helvetica, sans-serif`;return mctx.measureText(t).width;}
+function wrap(text,size,weight,maxW){
+  const words=String(text).split(/\s+/).filter(Boolean),lines=[];let cur='';
+  for(const w of words){const t=cur?cur+' '+w:w; if(!cur||measure(t,size,weight)<=maxW) cur=t; else {lines.push(cur);cur=w;}}
+  if(cur) lines.push(cur); return lines.length?lines:[''];
+}
+function balance(words,n,size){
+  // split words into n lines minimising the widest line
+  const memo={};
+  const w=(a,b)=>measure(words.slice(a,b).join(' '),size,'bold');
+  function best(i,k){
+    const key=i+','+k; if(memo[key]) return memo[key];
+    if(k===1) return memo[key]={m:w(i,words.length),cuts:[words.length]};
+    let res={m:Infinity,cuts:[]};
+    for(let j=i+1;j<=words.length-(k-1);j++){const r=best(j,k-1),m=Math.max(w(i,j),r.m); if(m<res.m) res={m,cuts:[j,...r.cuts]};}
+    return memo[key]=res;
+  }
+  const r=best(0,n),out=[];let a=0;for(const c of r.cuts){out.push(words.slice(a,c).join(' '));a=c;} return out;
+}
+function fitLabel(label,bw,bh){
+  const words=label.split(/\s+/).filter(Boolean);
+  for(let size=15;size>=7;size-=0.5){
+    const g=wrap(label,size,'bold',bw-18);
+    let lines=g.length>1&&words.length<=8?balance(words,g.length,size):g;
+    if(lines.every(l=>measure(l,size,'bold')<=bw-14)&&lines.length*size*1.15<=bh-6) return {size,lines};
+  }
+  return {size:7,lines:wrap(label,7,'bold',bw-4)};
+}
+
+const state={
+  report:null,
+  pieces:[],
+  opts:{thr:120,excl:true,minShare:2,method:'pct'},
+  text:{title:'CUSTOMER TRAITS AT A GLANCE',sub:'NOTE: BRAND PREFERENCE INDEX (BPI) IS DISPLAYED IN BLUE\nPARENTHESIS.',slide:'',foot:'© Reflex Blu '+new Date().getFullYear()},
+  open:new Set()
+};
+let uidN=1;
+const elsOf=()=>state.report?state.report.elements:[];
+function parseOverride(txt){
+  return String(txt).split('\n').map(s=>s.trim()).filter(Boolean).map(s=>{
+    const m=s.match(/^(.*?)\s*(?:\||\()\s*(\d+)\s*\)?\s*$/);
+    return m?{text:m[1].trim(),bpi:parseInt(m[2],10)}:{text:s,bpi:null};
+  });
+}
+function linesOf(p){
+  if(p.override!=null) return parseOverride(p.override);
+  if(!state.report||p.src<0) return [];
+  return computeLines(p,elsOf(),state.report.totals,state.opts);
+}
+function initPieces(){
+  const els=elsOf();
+  state.pieces=CATALOG.map(c=>{
+    const src=els.findIndex(e=>c.match.test(e.name));
+    return {uid:uidN++,id:c.id,label:c.label,header:c.header,src,mode:c.mode,fmt:c.fmt||'',topN:c.topN||0,sort:c.sort||'mpi',zone:c.zone,visible:src>=0,override:null};
+  });
+  state.open.clear();
+}
+function autoZone(){
+  const order=['leftArm','rightArm','leftLeg','rightLeg','torso'];
+  const vis=state.pieces.filter(p=>p.visible);
+  let best=order[0],bc=1e9;
+  for(const z of order){const c=vis.filter(p=>p.zone===z).length*(z==='torso'?0.5:1); if(c<bc){bc=c;best=z;}}
+  return best;
+}
+function addPiece(src){
+  if(src==='custom'){
+    state.pieces.push({uid:uidN++,id:'custom',label:'CUSTOM',header:'Custom',src:-1,mode:'items',fmt:'',topN:3,sort:'mpi',zone:autoZone(),visible:true,override:''});
+  } else {
+    const e=elsOf()[src]; const fmt=guessFmt(e.name);
+    const short=e.name.replace(/\s*\([^)]*\)/g,'').replace(/\s*-\s*$/,'').replace(/^Acxiom /i,'').trim();
+    state.pieces.push({uid:uidN++,id:'x',label:short.toUpperCase(),header:short,src:+src,mode:fmt?'range':'items',fmt,topN:fmt?0:3,sort:'mpi',zone:autoZone(),visible:true,override:null});
+  }
+  state.open.add(state.pieces[state.pieces.length-1].uid);
+}
+
+/* ---- slide renderer ---- */
+function partition(heights,k){
+  const n=heights.length,pre=[0];heights.forEach(h=>pre.push(pre[pre.length-1]+h));
+  const dp=Array.from({length:k+1},()=>Array(n+1).fill(Infinity)),cut=Array.from({length:k+1},()=>Array(n+1).fill(0));
+  dp[0][0]=0;
+  for(let j=1;j<=k;j++)for(let i=0;i<=n;i++)for(let m=0;m<=i;m++){const v=Math.max(dp[j-1][m],pre[i]-pre[m]); if(v<dp[j][i]){dp[j][i]=v;cut[j][i]=m;}}
+  const cols=[];let i=n;for(let j=k;j>=1;j--){const m=cut[j][i];cols.unshift([m,i]);i=m;}
+  return {cols,max:dp[k][n]};
+}
+function buildColumns(groups){
+  const colX=[110,458,806],maxW=318,availH=535;
+  let best=null;
+  for(let s=1;s>=0.5;s-=0.03){
+    const fs=21*s,lh=28.5*s,gap=17*s;
+    const built=groups.map(g=>{
+      const hl=wrap(g.header,fs,'bold',maxW);
+      const vl=g.lines.length?g.lines.map(l=>({wr:wrap(l.bpi!=null?`${l.text} (${l.bpi})`:l.text,fs,'normal',maxW),bpi:l.bpi})):[{wr:['—'],bpi:null}];
+      const n=hl.length+vl.reduce((a,v)=>a+v.wr.length,0);
+      return {hl,vl,h:n*lh+gap};
+    });
+    const part=partition(built.map(b=>b.h),3);
+    best={s,fs,lh,gap,built,part,colX};
+    if(part.max-gap<=availH) break;
+  }
+  return best;
+}
+function renderSlide(forExport){
+  const vis=state.pieces.filter(p=>p.visible);
+  const T=state.text;
+  let o='';
+  o+=`<rect width="${SW}" height="${SH}" fill="#fff"/>`;
+  o+=`<text x="108" y="120" font-size="64" font-weight="700" fill="${NAVY}" textLength="" >${esc(T.title)}</text>`.replace(' textLength=""','');
+  // subtitle
+  const subLines=String(T.sub).split('\n');
+  subLines.forEach((ln,i)=>{
+    const parts=ln.split(/(\bBLUE\b)/);
+    o+=`<text x="110" y="${156+i*27}" font-size="23" letter-spacing="2.2" fill="${NAVY}">`+parts.map(pt=>pt==='BLUE'?`<tspan fill="${BLUE}">BLUE</tspan>`:esc(pt)).join('')+`</text>`;
+  });
+  // columns
+  const groups=vis.map(p=>({header:p.header,lines:linesOf(p)}));
+  if(groups.length){
+    const cb=buildColumns(groups);
+    cb.part.cols.forEach(([a,b],ci)=>{
+      let y=252*(cb.s<1?1:1);
+      const x=cb.colX[ci];
+      for(let gi=a;gi<b;gi++){
+        const g=cb.built[gi];
+        o+=`<polygon points="${x},${y-cb.fs*0.78} ${x+7*cb.s+2},${y-cb.fs*0.5} ${x},${y-cb.fs*0.22}" fill="#777"/>`;
+        g.hl.forEach(l=>{o+=`<text x="${x+16}" y="${y}" font-size="${cb.fs}" font-weight="700" fill="${GRAYT}">${esc(l)}</text>`;y+=cb.lh;});
+        g.vl.forEach(v=>{
+          v.wr.forEach((l,li)=>{
+            const last=li===v.wr.length-1;
+            const m=last&&v.bpi!=null?l.match(/^(.*?)(\s*\(\d+\))$/):null;
+            o+=`<text x="${x+16}" y="${y}" font-size="${cb.fs}" fill="#555">`+(m?`${esc(m[1])}<tspan fill="${BLUE}">${esc(m[2])}</tspan>`:esc(l))+`</text>`;
+            y+=cb.lh;
+          });
+        });
+        y+=cb.gap;
+      }
+    });
+  }
+  // man
+  const lay=layoutMan(vis);
+  const bb=lay.bbox,bw=bb.x2-bb.x1,bh=bb.y2-bb.y1;
+  const sc=Math.min(1,290/bw,640/bh);
+  const tx=1267-((bb.x1+bb.x2)/2)*sc,ty=150;
+  const R=KN.R,NL=KN.NL,NW=KN.NW,ST=KN.ST;
+  let strokes='',fills='';
+  lay.knobs.forEach(k=>{
+    if(k.o==='v'){
+      const bx=k.x+k.dir*(NL+R),nx=Math.min(k.x,k.x+k.dir*NL);
+      strokes+=`<rect x="${nx}" y="${k.y-NW/2}" width="${NL}" height="${NW}" fill="${NAVY}" stroke="#fff" stroke-width="${ST}"/><circle cx="${bx}" cy="${k.y}" r="${R}" fill="${NAVY}" stroke="#fff" stroke-width="${ST}"/>`;
+      const fx=Math.min(k.x-k.dir*3,bx),fw=Math.abs(bx-(k.x-k.dir*3));
+      fills+=`<rect x="${fx}" y="${k.y-NW/2+0.6}" width="${fw}" height="${NW-1.2}" fill="${NAVY}"/><circle cx="${bx}" cy="${k.y}" r="${R}" fill="${NAVY}"/>`;
+    } else {
+      const by=k.y+k.dir*(NL+R),ny=Math.min(k.y,k.y+k.dir*NL);
+      strokes+=`<rect x="${k.x-NW/2}" y="${ny}" width="${NW}" height="${NL}" fill="${NAVY}" stroke="#fff" stroke-width="${ST}"/><circle cx="${k.x}" cy="${by}" r="${R}" fill="${NAVY}" stroke="#fff" stroke-width="${ST}"/>`;
+      const fy=Math.min(k.y-k.dir*3,by),fh=Math.abs(by-(k.y-k.dir*3));
+      fills+=`<rect x="${k.x-NW/2+0.6}" y="${fy}" width="${NW-1.2}" height="${fh}" fill="${NAVY}"/><circle cx="${k.x}" cy="${by}" r="${R}" fill="${NAVY}"/>`;
+    }
+  });
+  const rectsSvg=lay.rects.map(r=>`<rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" fill="${NAVY}" stroke="#fff" stroke-width="4"/>`).join('');
+  let labels='';
+  lay.rects.forEach((r,ri)=>{
+    if(!r.p) return;
+    const m={t:0,b:0,l:0,r:0};
+    lay.knobs.forEach(k=>{if(k.ri===ri) m[k.side]=KN.PAD;});
+    let x1=r.x+m.l,x2=r.x+r.w-m.r,y1=r.y+m.t,y2=r.y+r.h-m.b;
+    if(r.zone==='head'&&r.y===0){y1+=8;}              // dome: keep text off the curved edge
+    const side=r.zone==='leftArm'||r.zone==='leftLeg'?-90:(r.zone==='rightArm'||r.zone==='rightLeg'?90:0);
+    const rot=side&&r.h>r.w*1.1?side:0;
+    let bw2=x2-x1,bh2=y2-y1;
+    if(r.zone==='head'&&r.y===0) bw2=Math.min(bw2,80);
+    if(rot){const t=bw2;bw2=bh2;bh2=t;}
+    const f=fitLabel(r.p.label,bw2,bh2);
+    const cx=(x1+x2)/2,cy=(y1+y2)/2,n=f.lines.length,lh=f.size*1.18;
+    labels+=`<g transform="translate(${cx},${cy}) rotate(${rot})">`+f.lines.map((l,i)=>`<text x="0" y="${(i-(n-1)/2)*lh+f.size*0.35}" text-anchor="middle" font-size="${f.size}" font-weight="700" fill="#fff" letter-spacing="0.3">${esc(l)}</text>`).join('')+`</g>`;
+  });
+  o+=`<defs><clipPath id="manclip">${lay.clip.map(d=>`<path d="${d}"/>`).join('')}</clipPath></defs>`;
+  o+=`<g transform="translate(${tx},${ty}) scale(${sc})"><g clip-path="url(#manclip)">${rectsSvg}${strokes}${fills}</g>${labels}</g>`;
+  // footer
+  o+=`<text x="48" y="790" font-size="13" fill="#222">${esc(T.slide)}</text>`;
+  o+=`<g transform="translate(1357,704)"><rect x="2" y="2" width="98" height="68" fill="none" stroke="${LOGO}" stroke-width="4"/><text x="51" y="50" text-anchor="middle" font-size="40" font-weight="700" fill="${LOGO}" letter-spacing="-1">bl\u00fc</text></g>`;
+  o+=`<text x="1458" y="800" text-anchor="end" font-size="12" fill="#222">${esc(T.foot)}</text>`;
+  const dims=forExport?` width="${SW}" height="${SH}"`:'';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${SH}"${dims} font-family="Arial, Helvetica, sans-serif">${o}</svg>`;
+}
+
+/* ---- UI ---- */
+function renderStage(){
+  $('stage').innerHTML=renderSlide(false);
+  document.querySelectorAll('.pc').forEach(el=>{
+    const p=state.pieces.find(x=>x.uid==el.dataset.uid); if(!p) return;
+    const ls=linesOf(p);
+    el.querySelector('.pc-sub').textContent=state.report?(ls.length?ls.map(l=>l.bpi!=null?`${l.text} (${l.bpi})`:l.text).join(' · '):(p.src<0&&p.override===''?'Add lines under ⋯':'No values above threshold')):'';
+  });
+}
+function optSel(list,val){return list.map(([v,t])=>`<option value="${esc(v)}"${String(v)===String(val)?' selected':''}>${esc(t)}</option>`).join('');}
+function buildPieceList(){
+  const els=elsOf();
+  const srcOpts=[['-1','— none / custom —'],...els.map((e,i)=>[String(i),e.name])];
+  $('pieces').innerHTML=state.pieces.map((p,i)=>`
+  <div class="pc${p.visible?'':' off'}" data-uid="${p.uid}">
+    <div class="pc-top">
+      <input type="checkbox" class="vis" ${p.visible?'checked':''} title="Show on puzzle man">
+      <input class="lbl" value="${esc(p.label)}" title="Text on the puzzle piece">
+      <button class="ib up" ${i===0?'disabled':''} title="Move up">↑</button>
+      <button class="ib dn" ${i===state.pieces.length-1?'disabled':''} title="Move down">↓</button>
+      <button class="ib tg" title="Details">⋯</button>
+    </div>
+    <div class="pc-sub"></div>
+    <div class="pc-more"${state.open.has(p.uid)?'':' hidden'}>
+      <label>List heading<input class="hdr" value="${esc(p.header)}"></label>
+      <label>Source element<select class="src">${optSel(srcOpts,p.src)}</select></label>
+      <div class="row2">
+        <label>Method<select class="mode">${optSel([['range','Roll up ranges'],['items','List top items']],p.mode)}</select></label>
+        <label>Max lines<input type="number" class="topn" min="0" max="12" value="${p.topN||0}"></label>
+      </div>
+      <div class="row2">
+        <label>Range style<select class="fmt">${optSel([['','Plain'],['age','Age 34-53'],['money','$ range ( - )'],['moneytight','$ range (-)'],['years','Years'],['children','Children'],['adults','Adults']],p.fmt)}</select></label>
+        <label>Items order<select class="sort">${optSel([['mpi','Highest index first'],['report','Report order']],p.sort)}</select></label>
+      </div>
+      <label>Location on figure<select class="zone">${optSel(ZONES,p.zone)}</select></label>
+      <label>Lines <span class="hint">(one per line: <i>text | index</i>) ${p.override!=null?'— edited':'— auto'}</span>
+        <textarea class="ov" rows="4" placeholder="Auto-filled from the report">${esc(p.override!=null?p.override:linesOf(p).map(l=>l.bpi!=null?`${l.text} | ${l.bpi}`:l.text).join('\n'))}</textarea></label>
+      <div class="btns"><button class="sm reset">Reset to auto</button><button class="sm danger rm">Remove piece</button></div>
+    </div>
+  </div>`).join('');
+  renderStage();
+}
+function updateStats(){
+  const r=state.report;
+  $('stats').innerHTML=r?`<b>${esc(r.client||'Report')}</b><br>${r.totals.matched.toLocaleString()} matched customers · ${r.totals.prospects.toLocaleString()} analyzed prospects · ${r.elements.length} elements`:'No report loaded yet.';
+}
+function setReport(rep,msg){
+  state.report=rep; initPieces(); updateStats();
+  const sel=$('addsel');
+  sel.innerHTML='<option value="">＋ Add a puzzle piece…</option>'+rep.elements.map((e,i)=>`<option value="${i}">${esc(e.name)}</option>`).join('')+'<option value="custom">Custom (type your own lines)</option>';
+  buildPieceList(); $('status').textContent=msg||'';
+}
+$('pieces').addEventListener('input',e=>{
+  const el=e.target.closest('.pc'); if(!el) return; const p=state.pieces.find(x=>x.uid==el.dataset.uid);
+  if(e.target.classList.contains('lbl')) p.label=e.target.value;
+  else if(e.target.classList.contains('hdr')) p.header=e.target.value;
+  else if(e.target.classList.contains('topn')) p.topN=parseInt(e.target.value)||0;
+  else if(e.target.classList.contains('ov')) p.override=e.target.value;
+  else return;
+  renderStage();
+});
+$('pieces').addEventListener('change',e=>{
+  const el=e.target.closest('.pc'); if(!el) return; const p=state.pieces.find(x=>x.uid==el.dataset.uid);
+  const c=e.target.classList;
+  if(c.contains('vis')) p.visible=e.target.checked;
+  else if(c.contains('src')){p.src=parseInt(e.target.value);const f=guessFmt(elsOf()[p.src]?.name||'');if(f){p.fmt=f;p.mode='range';}p.override=null;}
+  else if(c.contains('mode')) {p.mode=e.target.value;p.override=null;}
+  else if(c.contains('fmt')) {p.fmt=e.target.value;p.override=null;}
+  else if(c.contains('sort')) {p.sort=e.target.value;p.override=null;}
+  else if(c.contains('zone')) p.zone=e.target.value;
+  else if(c.contains('topn')) {p.topN=parseInt(e.target.value)||0;p.override=null;}
+  else return;
+  buildPieceList();
+});
+$('pieces').addEventListener('click',e=>{
+  const el=e.target.closest('.pc'); if(!el) return; const p=state.pieces.find(x=>x.uid==el.dataset.uid);
+  const i=state.pieces.indexOf(p),c=e.target.classList;
+  if(c.contains('up')&&i>0) [state.pieces[i-1],state.pieces[i]]=[state.pieces[i],state.pieces[i-1]];
+  else if(c.contains('dn')&&i<state.pieces.length-1) [state.pieces[i+1],state.pieces[i]]=[state.pieces[i],state.pieces[i+1]];
+  else if(c.contains('tg')){state.open.has(p.uid)?state.open.delete(p.uid):state.open.add(p.uid);}
+  else if(c.contains('reset')) p.override=null;
+  else if(c.contains('rm')) state.pieces.splice(i,1);
+  else return;
+  buildPieceList();
+});
+$('addsel').addEventListener('change',e=>{ if(e.target.value==='') return; addPiece(e.target.value==='custom'?'custom':parseInt(e.target.value)); e.target.value=''; buildPieceList(); });
+$('resetAll').addEventListener('click',()=>{ if(state.report){initPieces();buildPieceList();} });
+function bindOpt(id,key,conv){ $(id).addEventListener('input',e=>{ state.opts[key]=conv(e.target); state.pieces.forEach(p=>{}); renderStage(); refreshAutoText(); }); }
+function refreshAutoText(){ // refresh textareas of non-overridden pieces
+  document.querySelectorAll('.pc').forEach(el=>{
+    const p=state.pieces.find(x=>x.uid==el.dataset.uid); if(p&&p.override==null){
+      const ta=el.querySelector('.ov'); if(ta&&document.activeElement!==ta) ta.value=linesOf(p).map(l=>l.bpi!=null?`${l.text} | ${l.bpi}`:l.text).join('\n');
+    }});
+}
+bindOpt('thr','thr',e=>parseFloat(e.value)||0);
+bindOpt('excl','excl',e=>e.checked);
+bindOpt('minShare','minShare',e=>parseFloat(e.value)||0);
+bindOpt('method','method',e=>e.value);
+[['tTitle','title'],['tSub','sub'],['tSlide','slide'],['tFoot','foot']].forEach(([id,k])=>$(id).addEventListener('input',e=>{state.text[k]=e.target.value;renderStage();}));
+
+/* ---- loading ---- */
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Could not load '+src));document.head.appendChild(s);});}
+const PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+async function loadPdfJs(){
+  if(window.pdfjsLib) return;
+  await loadScript(PDFJS+'pdf.min.js');
+  let worker=PDFJS+'pdf.worker.min.js';
+  try{const t=await (await fetch(worker)).text(); worker=URL.createObjectURL(new Blob([t],{type:'text/javascript'}));}catch(e){}
+  pdfjsLib.GlobalWorkerOptions.workerSrc=worker;
+}
+async function readPdf(file){
+  const st=$('status');
+  st.textContent='Loading PDF reader…'; await loadPdfJs();
+  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+  let lines=[];
+  for(let p=1;p<=pdf.numPages;p++){
+    st.textContent=`Reading page ${p} of ${pdf.numPages}…`;
+    const pg=await pdf.getPage(p), tc=await pg.getTextContent();
+    lines=lines.concat(itemsToLines(tc.items.map(it=>({s:it.str,x:it.transform[4],y:it.transform[5],w:it.width}))));
+    lines.push('');
+    if(p%10===0) await new Promise(r=>setTimeout(r,0));
+  }
+  const rep=parseReport(lines);
+  if(!rep.elements.length) throw new Error('No look-alike tables found. Is this an Acxiom Enhanced Look Alike Report?');
+  return rep;
+}
+async function handleFile(f){
+  if(!f) return;
+  try{
+    let rep;
+    if(/\.json$/i.test(f.name)) rep=JSON.parse(await f.text()); else rep=await readPdf(f);
+    setReport(rep,`Loaded ${f.name}`);
+  }catch(err){ $('status').textContent='⚠ '+err.message; }
+}
+$('file').addEventListener('change',e=>handleFile(e.target.files[0]));
+const dz=$('drop');
+['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('hot');}));
+['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('hot');}));
+dz.addEventListener('drop',e=>handleFile(e.dataTransfer.files[0]));
+$('sample').addEventListener('click',async()=>{
+  try{const r=await fetch('sample_mww.json');if(!r.ok) throw new Error('sample_mww.json not found next to this page');setReport(await r.json(),'Loaded Montgomery Whitewater sample');}
+  catch(err){$('status').textContent='⚠ '+err.message;}
+});
+
+/* ---- export ---- */
+function fname(ext){return ((state.report&&state.report.client)||'puzzle_man').replace(/[^\w]+/g,'_')+'_puzzle_man.'+ext;}
+function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
+function toCanvas(scale){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    img.onload=()=>{const c=document.createElement('canvas');c.width=SW*scale;c.height=SH*scale;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);res(c);};
+    img.onerror=()=>rej(new Error('Could not rasterize the slide'));
+    img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(renderSlide(true));
+  });
+}
+$('exSvg').addEventListener('click',()=>download(new Blob([renderSlide(true)],{type:'image/svg+xml'}),fname('svg')));
+$('exPng').addEventListener('click',async()=>{try{const c=await toCanvas(parseInt($('pngScale').value));c.toBlob(b=>download(b,fname('png')),'image/png');}catch(e){$('status').textContent='⚠ '+e.message;}});
+$('exPdf').addEventListener('click',async()=>{
+  try{
+    $('status').textContent='Building PDF…';
+    if(!window.jspdf) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    const c=await toCanvas(3);
+    const pdf=new window.jspdf.jsPDF({orientation:'landscape',unit:'in',format:[16,9]});
+    pdf.addImage(c.toDataURL('image/png'),'PNG',0,0,16,9,undefined,'FAST');
+    pdf.save(fname('pdf')); $('status').textContent='';
+  }catch(e){$('status').textContent='⚠ '+e.message;}
+});
+$('tTitle').value=state.text.title;$('tSub').value=state.text.sub;$('tFoot').value=state.text.foot;
+renderStage();
+
+document.getElementById('drop').addEventListener('click',()=>document.getElementById('file').click());
+</script></body></html>
