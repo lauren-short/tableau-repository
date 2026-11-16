@@ -402,8 +402,8 @@ const FMT_HINT=[
 function guessFmt(name){for(const [re,f] of FMT_HINT) if(re.test(name)) return f; return '';}
 
 /* ---- Man geometry (local units; slide scales/centres it) ---- */
-const KN={R:12,NL:6,NW:10,ST:3.4,PAD:36};
-const G={headX:86,headW:116,headH:116,torsoX:56,torsoW:176,torsoY:116,torsoH:236,armW:56,armH:290,legY:352,legH:288};
+const KN={R:10.5,NL:6,NW:9,ST:3.2,PAD:31};
+const G={headX:86,headW:116,headH:116,torsoX:50,torsoW:188,torsoY:116,torsoH:246,armW:50,armH:290,legY:362,legH:278,legInset:9};
 function torsoRows(n){
   if(n<=0) return [];
   if(n===1) return [1]; if(n===2) return [1,1]; if(n===4) return [1,2,1];
@@ -419,28 +419,29 @@ function layoutMan(pieces){
   // torso
   const torso=by('torso'), rows=torsoRows(torso.length);
   if(torso.length){
-    const rh=G.torsoH/rows.length; let k=0;
-    rows.forEach((c,ri)=>{for(let j=0;j<c;j++){rects.push({p:torso[k++],zone:'torso',x:G.torsoX+j*G.torsoW/c,y:G.torsoY+ri*rh,w:G.torsoW/c,h:rh});}});
+    const wts=rows.length===3&&rows.join()==='1,2,1'?[1,0.9,1]:rows.map(()=>1),sw=wts.reduce((a,b)=>a+b,0);
+    let k=0,yy=G.torsoY;
+    rows.forEach((c,ri)=>{const rh=G.torsoH*wts[ri]/sw;for(let j=0;j<c;j++){rects.push({p:torso[k++],zone:'torso',x:G.torsoX+j*G.torsoW/c,y:yy,w:G.torsoW/c,h:rh});}yy+=rh;});
   } else rects.push({p:null,zone:'torso',x:G.torsoX,y:G.torsoY,w:G.torsoW,h:G.torsoH});
   // arms
   const la=by('leftArm'), ra=by('rightArm');
   if(la.length) stackV(la,0,G.torsoY,G.armW,G.armH,'leftArm');
   if(ra.length) stackV(ra,G.torsoX+G.torsoW,G.torsoY,G.armW,G.armH,'rightArm');
   // legs
-  const ll=by('leftLeg'), rl=by('rightLeg'), lw=G.torsoW/2;
-  if(ll.length) stackV(ll,G.torsoX,G.legY,lw,G.legH,'leftLeg'); else rects.push({p:null,zone:'leftLeg',x:G.torsoX,y:G.legY,w:lw,h:G.legH});
-  if(rl.length) stackV(rl,G.torsoX+lw,G.legY,lw,G.legH,'rightLeg'); else rects.push({p:null,zone:'rightLeg',x:G.torsoX+lw,y:G.legY,w:lw,h:G.legH});
+  const ll=by('leftLeg'), rl=by('rightLeg'), LI=G.legInset,lx=G.torsoX+LI,lw=(G.torsoW-2*LI)/2;
+  if(ll.length) stackV(ll,lx,G.legY,lw,G.legH,'leftLeg'); else rects.push({p:null,zone:'leftLeg',x:lx,y:G.legY,w:lw,h:G.legH});
+  if(rl.length) stackV(rl,lx+lw,G.legY,lw,G.legH,'rightLeg'); else rects.push({p:null,zone:'rightLeg',x:lx+lw,y:G.legY,w:lw,h:G.legH});
   // clip shapes (silhouette)
   const rr=(x,y,w,h,[tl,tr,br,bl])=>`M${x+tl},${y}H${x+w-tr}${tr?`A${tr},${tr} 0 0 1 ${x+w},${y+tr}`:''}V${y+h-br}${br?`A${br},${br} 0 0 1 ${x+w-br},${y+h}`:''}H${x+bl}${bl?`A${bl},${bl} 0 0 1 ${x},${y+h-bl}`:''}V${y+tl}${tl?`A${tl},${tl} 0 0 1 ${x+tl},${y}`:''}Z`;
   const clip=[];
   const r=G.headW/2,cy=G.headH/2,cx=G.headX+r;
   clip.push(`M${cx-r},${cy}A${r},${r} 0 1 1 ${cx+r},${cy}A${r},${r} 0 1 1 ${cx-r},${cy}Z`);
   clip.push(rr(G.torsoX,G.torsoY,G.torsoW,G.torsoH+1,[la.length?0:34,ra.length?0:34,0,0]));
-  if(la.length) clip.push(rr(0,G.torsoY,G.armW+1,G.armH,[38,0,27,27]));
-  if(ra.length) clip.push(rr(G.torsoX+G.torsoW-1,G.torsoY,G.armW+1,G.armH,[0,38,27,27]));
-  clip.push(rr(G.torsoX,G.legY-1,G.torsoW,G.legH+1,[0,0,26,26]));
+  if(la.length) clip.push(rr(0,G.torsoY,G.armW+1,G.armH,[44,0,25,25]));
+  if(ra.length) clip.push(rr(G.torsoX+G.torsoW-1,G.torsoY,G.armW+1,G.armH,[0,44,25,25]));
+  clip.push(rr(lx,G.legY-1,lw*2,G.legH+1,[0,0,26,26]));
   // knobs on shared edges (tab goes into one neighbour; text boxes avoid the tabs)
-  const KN_MIN=44,KN_DEPTH=50,knobs=[];
+  const KN_MIN=44,KN_DEPTH=56,knobs=[];
   const recv=rects.map(()=>({v:0,h:0}));
   const cap=(r,axis)=>axis==='v'?(r.h>=130?2:1):(r.w>=130?2:1);
   for(let i=0;i<rects.length;i++)for(let j=i+1;j<rects.length;j++){
@@ -496,7 +497,7 @@ function balance(words,n,size){
 }
 function fitLabel(label,bw,bh){
   const words=label.split(/\s+/).filter(Boolean);
-  for(let size=15;size>=7;size-=0.5){
+  for(let size=13;size>=7;size-=0.5){
     const g=wrap(label,size,'bold',bw-18);
     let lines=g.length>1&&words.length<=8?balance(words,g.length,size):g;
     if(lines.every(l=>measure(l,size,'bold')<=bw-14)&&lines.length*size*1.15<=bh-6) return {size,lines};
@@ -508,7 +509,7 @@ const state={
   report:null,fileName:'',
   pieces:[],
   opts:{thr:120,excl:true,minShare:2,method:'pct'},
-  text:{title:'PUZZLE MAN',sub:'NOTE: BRAND PREFERENCE INDEX (BPI) IS DISPLAYED IN BLUE\nPARENTHESIS.',slide:''},
+  text:{title:'CUSTOMER TRAITS AT A GLANCE',sub:'NOTE: BRAND PREFERENCE INDEX (BPI) IS DISPLAYED IN BLUE\nPARENTHESIS.',slide:''},
   open:new Set()
 };
 let uidN=1;
