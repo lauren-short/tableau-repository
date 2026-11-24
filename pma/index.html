@@ -131,6 +131,12 @@
   .okbox{padding:10px 14px;border-radius:9px;background:var(--okbg);color:var(--ok);font-size:13px;font-weight:600}
   .deck{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
   .deck:empty{display:none}
+  .selbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 14px;margin:0 0 14px;background:#eaf0fa;border:1px solid #c9d8ef;border-radius:12px}
+  .selbar[hidden]{display:none}.selbar .sc{font-weight:700;color:var(--navy);margin-right:6px}.selbar .grow{flex:1}
+  .pick{all:unset;box-sizing:border-box;flex:none;width:22px;height:22px;border-radius:50%;border:2px solid #b8c6dc;background:#fff;cursor:pointer;display:grid;place-items:center;color:transparent;font-size:13px;font-weight:700;line-height:1}
+  .pick:hover{border-color:var(--navy)}.pick:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .picked>.pick,.picked .pick{background:var(--navy);border-color:var(--navy);color:#fff}
+  .dcard.picked{border-color:var(--navy);box-shadow:0 0 0 2px #cfd9ea}.ritem.picked{border-color:var(--navy);background:#f4f7fc}
   .dcard{border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden;display:flex;flex-direction:column;cursor:grab}
   .dcard.over{border-color:var(--accent);box-shadow:0 0 0 2px #cfe0f7}
   .dcard.drag{opacity:.4}
@@ -152,7 +158,7 @@
   .ritem{display:grid;grid-template-columns:22px 1fr 28px;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:grab}
   .ritem.on{border-color:var(--navy);box-shadow:0 0 0 2px #cfd9ea}
   .ritem.over{border-color:var(--accent);box-shadow:0 0 0 2px #cfe0f7} .ritem.drag{opacity:.4}
-  .ritem .n{font-size:12px;font-weight:700;color:var(--mut);text-align:center}
+  .ritem .n{font-size:12px;font-weight:700;color:var(--mut);text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px}
   .ritem .th{min-width:0;display:flex;flex-direction:column;gap:5px} .ritem img{display:block;width:100%;aspect-ratio:16/9;object-fit:contain;border:1px solid var(--line);border-radius:6px;background:#fff;pointer-events:none}
   .ritem .rt{font-size:11.5px;font-weight:600;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ritem .ab{display:flex;flex-direction:column;gap:4px}
@@ -277,6 +283,7 @@
         <button class="btn primary" id="startDeck" type="button">Start building presentation</button>
       </div>
       <div class="rowbtns" id="deckView" hidden><div class="seg" id="dkView"><button class="btn on" data-v="grid" type="button">Grid</button><button class="btn" data-v="slides" type="button">Slides</button></div><span class="note">Drag slides to reorder them, or use the arrows. In Slides view the arrow keys step through; hold Alt to move the slide.</span></div>
+      <div class="selbar" id="selBar" hidden><span class="sc" id="selCount"></span><button class="btn" data-g="start" type="button" title="Move the selected slides to the beginning">&#8676; To start</button><button class="btn" data-g="up" type="button">&larr; Earlier</button><button class="btn" data-g="dn" type="button">Later &rarr;</button><button class="btn" data-g="end" type="button" title="Move the selected slides to the end">To end &#8677;</button><span class="grow"></span><button class="btn" data-g="all" type="button">Select all</button><button class="btn" data-g="none" type="button">Clear selection</button><button class="btn danger" data-g="rm" type="button">Remove</button></div>
       <div class="deck" id="deckList"></div>
       <div class="split" id="deckSplit" hidden><div class="stagecol" id="stageCol"></div><div class="rail" id="rail"></div></div>
       <div class="rowbtns" id="deckMore" hidden><button class="btn ghost" id="startDeck2" type="button">Add all current slides again</button><button class="btn ghost" id="dkClear" type="button">Clear deck</button><span class="note" id="dkCount"></span></div>
@@ -3105,7 +3112,7 @@ function extractPersonicx(rep){
 /* ============================== app state: one "analysis" per look-alike report ============================== */
 const uid=()=>Math.random().toString(36).slice(2);
 const mkAn=()=>({id:uid(),name:'',lal:null,loading:'',progress:'',lalErr:'',cust:{src:'lal',file:null},mkt:{src:'lal',file:null},cerr:{cust:'',mkt:''},wb:null,plan:null,frames:{},engine:null,opened:false,cmpWith:'',peerIn:{},tok:0});
-const S={view:'chart',deck:[],list:[],a:null,dragI:null,deckView:'grid',selId:null,projectId:null,title:'',restoring:false,histUrls:[],histEdit:false,histSel:new Set(),histIds:[]};
+const S={view:'chart',deck:[],list:[],a:null,dragI:null,deckView:'grid',selId:null,projectId:null,title:'',restoring:false,histUrls:[],histEdit:false,histSel:new Set(),histIds:[],msel:new Set(),anchor:null,dragGroup:false};
 S.list.push(S.a=mkAn());
 ['lal','cust','mkt','wb','plan','frames','engine','opened'].forEach(k=>Object.defineProperty(S,k,{get(){return S.a[k];},set(v){S.a[k]=v;}}));
 const viewer=$('viewer'),picker=$('picker');
@@ -3458,20 +3465,55 @@ function addSlides(list){
   renderDeck();
 }
 const selIdx=()=>{let i=S.deck.findIndex(d=>d.id===S.selId);if(i<0&&S.deck.length){i=0;S.selId=S.deck[0].id;}return i;};
+const mids=()=>S.deck.filter(d=>S.msel.has(d.id));
+function moveGroup(k){
+  const n=S.deck.length,sel=S.deck.map(d=>S.msel.has(d.id));if(!sel.some(Boolean))return;
+  if(k==='start'||k==='end'){const a=S.deck.filter(d=>S.msel.has(d.id)),b=S.deck.filter(d=>!S.msel.has(d.id));S.deck=k==='start'?a.concat(b):b.concat(a);}
+  else if(k==='up'){for(let i=1;i<n;i++)if(S.msel.has(S.deck[i].id)&&!S.msel.has(S.deck[i-1].id)){[S.deck[i-1],S.deck[i]]=[S.deck[i],S.deck[i-1]];}}
+  else{for(let i=n-2;i>=0;i--)if(S.msel.has(S.deck[i].id)&&!S.msel.has(S.deck[i+1].id)){[S.deck[i+1],S.deck[i]]=[S.deck[i],S.deck[i+1]];}}
+  renderDeck();
+}
+function dropGroup(targetI){
+  const t=S.deck[targetI];if(!t||S.msel.has(t.id))return;
+  const first=S.deck.findIndex(d=>S.msel.has(d.id)),grp=S.deck.filter(d=>S.msel.has(d.id)),rest=S.deck.filter(d=>!S.msel.has(d.id));
+  const ti=rest.indexOf(t),at=targetI>first?ti+1:ti;rest.splice(at,0,...grp);S.deck=rest;renderDeck();
+}
+function pickToggle(i,e){
+  const d=S.deck[i];
+  if(e&&e.shiftKey&&S.anchor!=null){const a=S.deck.findIndex(x=>x.id===S.anchor),[lo,hi]=[Math.min(a,i),Math.max(a,i)];for(let k=lo;k<=hi;k++)S.msel.add(S.deck[k].id);}
+  else{if(S.msel.has(d.id))S.msel.delete(d.id);else S.msel.add(d.id);S.anchor=d.id;}
+  renderDeck();
+}
+function groupHere(i){return S.msel.size>1&&S.msel.has(S.deck[i].id);}
+function selBar(){
+  const n=S.msel.size,b=$('selBar');b.hidden=!n;if(!n)return;
+  $('selCount').textContent=n+' selected';
+  const sel=S.deck.map(d=>S.msel.has(d.id)),first=sel.indexOf(true),last=sel.lastIndexOf(true),contiguousTop=sel.slice(0,n).every(Boolean),contiguousBot=sel.slice(sel.length-n).every(Boolean);
+  b.querySelector('[data-g=start]').disabled=b.querySelector('[data-g=up]').disabled=contiguousTop;
+  b.querySelector('[data-g=end]').disabled=b.querySelector('[data-g=dn]').disabled=contiguousBot;
+  b.querySelector('[data-g=all]').textContent=n===S.deck.length?'Select none':'Select all';
+}
+$('selBar').addEventListener('click',e=>{const g=e.target.closest('[data-g]');if(!g)return;const k=g.dataset.g;
+  if(k==='all'){S.msel=S.msel.size===S.deck.length?new Set():new Set(S.deck.map(d=>d.id));renderDeck();}
+  else if(k==='none'){S.msel=new Set();renderDeck();}
+  else if(k==='rm'){const n=S.msel.size;if(!confirm('Remove '+n+' selected slide'+(n>1?'s':'')+' from the presentation?'))return;S.deck=S.deck.filter(d=>{if(S.msel.has(d.id)){URL.revokeObjectURL(d.url);return false;}return true;});S.msel=new Set();if(!S.deck.some(d=>d.id===S.selId))S.selId=(S.deck[0]||{}).id;renderDeck();}
+  else moveGroup(k);
+});
 function moveSlide(from,to){if(to<0||to>=S.deck.length||from===to)return;const [m]=S.deck.splice(from,1);S.deck.splice(to,0,m);S.selId=m.id;renderDeck();}
 function removeSlide(i){const d=S.deck[i];URL.revokeObjectURL(d.url);S.deck.splice(i,1);if(S.selId===d.id)S.selId=(S.deck[i]||S.deck[i-1]||{}).id;renderDeck();}
 function dnd(el,i){
   el.draggable=true;
-  el.addEventListener('dragstart',e=>{S.dragI=i;el.classList.add('drag');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain','slide');});
-  el.addEventListener('dragend',()=>{el.classList.remove('drag');document.querySelectorAll('.over').forEach(x=>x.classList.remove('over'));S.dragI=null;});
+  el.addEventListener('dragstart',e=>{S.dragI=i;S.dragGroup=groupHere(i);if(S.dragGroup)document.querySelectorAll('.picked').forEach(x=>x.classList.add('drag'));el.classList.add('drag');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain','slide');});
+  el.addEventListener('dragend',()=>{el.classList.remove('drag');document.querySelectorAll('.over').forEach(x=>x.classList.remove('over'));S.dragI=null;S.dragGroup=false;document.querySelectorAll('.drag').forEach(x=>x.classList.remove('drag'));});
   el.addEventListener('dragover',e=>{if(S.dragI==null)return;e.preventDefault();e.stopPropagation();el.classList.add('over');});
   el.addEventListener('dragleave',()=>el.classList.remove('over'));
-  el.addEventListener('drop',e=>{if(S.dragI==null)return;e.preventDefault();e.stopPropagation();const from=S.dragI;S.dragI=null;moveSlide(from,i);});
+  el.addEventListener('drop',e=>{if(S.dragI==null)return;e.preventDefault();e.stopPropagation();const from=S.dragI,grp=S.dragGroup;S.dragI=null;S.dragGroup=false;if(grp)dropGroup(i);else moveSlide(from,i);});
 }
 function renderDeck(){
   const n=S.deck.length;
   $('deckExport').hidden=!n;$('dkCount').textContent=n?n+' slide'+(n>1?'s':''):'';
   $('deckEmpty').hidden=!!n;$('deckMore').hidden=!n;$('deckView').hidden=!n;
+  S.msel=new Set([...S.msel].filter(id=>S.deck.some(d=>d.id===id)));selBar();
   document.querySelectorAll('.cnt').forEach(c=>c.textContent=n);
   const grid=S.deckView!=='slides';
   document.querySelectorAll('#dkView .btn').forEach(b=>b.classList.toggle('on',(b.dataset.v==='grid')===grid));
@@ -3484,10 +3526,11 @@ function renderGrid(){
   const L=$('deckList'),n=S.deck.length;L.innerHTML='';
   S.deck.forEach((d,i)=>{
     const c=document.createElement('div');c.className='dcard';
-    c.innerHTML='<img alt=""><div class="dmeta"><span class="n">'+(i+1)+'</span><input aria-label="Slide title"><button class="ib" data-a="up" type="button" title="Move earlier">&larr;</button><button class="ib" data-a="dn" type="button" title="Move later">&rarr;</button><button class="ib" data-a="rm" type="button" title="Remove from deck">&times;</button></div>';
+    c.innerHTML='<img alt=""><div class="dmeta"><button class="pick" type="button" data-p="1" aria-label="Select slide" title="Select (Shift-click for a range)">&#10003;</button><span class="n">'+(i+1)+'</span><input aria-label="Slide title"><button class="ib" data-a="up" type="button" title="Move earlier">&larr;</button><button class="ib" data-a="dn" type="button" title="Move later">&rarr;</button><button class="ib" data-a="rm" type="button" title="Remove from deck">&times;</button></div>';
     c.querySelector('img').src=d.url;const inp=c.querySelector('input');inp.value=d.title;inp.oninput=()=>{d.title=inp.value;touch();};
     c.querySelector('[data-a=up]').disabled=i===0;c.querySelector('[data-a=dn]').disabled=i===n-1;
-    c.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;if(k==='rm')removeSlide(i);else moveSlide(i,k==='up'?i-1:i+1);});
+    c.classList.toggle('picked',S.msel.has(d.id));
+    c.addEventListener('click',e=>{if(e.target.closest('[data-p]')||((e.ctrlKey||e.metaKey||e.shiftKey)&&!e.target.closest('input,button'))){pickToggle(i,e);return;}const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;if(k==='rm')removeSlide(i);else if(groupHere(i)&&k!=='rm')moveGroup(k);else moveSlide(i,k==='up'?i-1:i+1);});
     c.addEventListener('dblclick',e=>{if(e.target.closest('input,button'))return;S.selId=d.id;S.deckView='slides';renderDeck();});
     dnd(c,i);L.appendChild(c);
   });
@@ -3506,10 +3549,11 @@ function renderSplit(){
   rail.innerHTML='';
   S.deck.forEach((d,i)=>{
     const r=document.createElement('div');r.className='ritem'+(i===si?' on':'');
-    r.innerHTML='<span class="n">'+(i+1)+'</span><div class="th"><img alt=""><div class="rt"></div></div><div class="ab"><button class="ib" data-a="up" type="button" title="Move earlier">&uarr;</button><button class="ib" data-a="dn" type="button" title="Move later">&darr;</button></div>';
+    r.innerHTML='<span class="n"><button class="pick" type="button" data-p="1" aria-label="Select slide" title="Select (Shift-click for a range)">&#10003;</button>'+(i+1)+'</span><div class="th"><img alt=""><div class="rt"></div></div><div class="ab"><button class="ib" data-a="up" type="button" title="Move earlier">&uarr;</button><button class="ib" data-a="dn" type="button" title="Move later">&darr;</button></div>';
     r.querySelector('img').src=d.url;r.querySelector('.rt').textContent=d.title;
     r.querySelector('[data-a=up]').disabled=i===0;r.querySelector('[data-a=dn]').disabled=i===n-1;
-    r.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(a){moveSlide(i,a.dataset.a==='up'?i-1:i+1);return;}selectSlide(i);});
+    r.classList.toggle('picked',S.msel.has(d.id));
+    r.addEventListener('click',e=>{if(e.target.closest('[data-p]')||e.ctrlKey||e.metaKey||e.shiftKey){pickToggle(i,e);return;}const a=e.target.closest('[data-a]');if(a){if(groupHere(i))moveGroup(a.dataset.a);else moveSlide(i,a.dataset.a==='up'?i-1:i+1);return;}selectSlide(i);});
     dnd(r,i);rail.appendChild(r);
   });
   rail.scrollTop=keep;
@@ -3698,9 +3742,9 @@ document.addEventListener('keydown',e=>{
   if($('pgDeck').hidden||S.deckView!=='slides'||!S.deck.length)return;
   if(/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName))return;
   const prev=e.key==='ArrowUp'||e.key==='ArrowLeft',next=e.key==='ArrowDown'||e.key==='ArrowRight';if(!prev&&!next)return;
-  e.preventDefault();const i=selIdx();if(e.altKey)moveSlide(i,prev?i-1:i+1);else selectSlide(prev?i-1:i+1);
+  e.preventDefault();const i=selIdx();if(e.altKey){if(groupHere(i))moveGroup(prev?'up':'dn');else moveSlide(i,prev?i-1:i+1);}else selectSlide(prev?i-1:i+1);
 });
-$('dkClear').addEventListener('click',()=>{if(!S.deck.length||!confirm('Remove all slides from the presentation?'))return;S.deck.forEach(d=>URL.revokeObjectURL(d.url));S.deck=[];renderDeck();});
+$('dkClear').addEventListener('click',()=>{if(!S.deck.length||!confirm('Remove all slides from the presentation?'))return;S.deck.forEach(d=>URL.revokeObjectURL(d.url));S.deck=[];S.msel=new Set();renderDeck();});
 $('startOver').addEventListener('click',()=>{
   if(!confirm('Start over? The current project stays in History. This clears the screen so you can begin a new one.'))return;
   saveNow();S.projectId=null;S.title='';$('saveNote').textContent='';
