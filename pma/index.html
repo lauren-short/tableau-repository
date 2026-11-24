@@ -1451,6 +1451,7 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
   .pcs{display:flex;flex-direction:column;gap:8px}
   .segpick select{max-width:260px}
   #opts textarea{font-family:Consolas,Menlo,monospace}
+  #opts #tSub{font-family:inherit;font-size:13px;line-height:1.4}
   .bands{max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff}
   .bhead,.band{display:grid;grid-template-columns:20px 1fr 54px 42px 56px;gap:6px;align-items:center;padding:5px 8px;font-size:12px}
   .bhead{position:sticky;top:0;background:#f4f6fa;color:var(--mut);font-weight:600;border-bottom:1px solid var(--line);z-index:1}
@@ -1894,13 +1895,13 @@ const NORM=s=>String(s||'').toLowerCase().replace(/&/g,' and ').replace(/[^a-z0-
 const lineStr=l=>l.text+(l.bpi!=null?' ('+l.bpi+')':'')+(l.prev!=null?' ('+l.prev+')':'');
 const escRe=s=>String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 const DEF_TEXT={title:state.text.title,sub:state.text.sub};
-function noteRe(){const C=state.cmp; if(!C.on) return /(\bBLUE\b)/; const k=['\\bBLUE,?','\\bGOLD\\.?'].concat([C.clabel,C.plabel].filter(Boolean).map(escRe)); return new RegExp('('+k.join('|')+')');}
-function tokCol(t){const C=state.cmp; return (/^BLUE/.test(t)||(C.on&&t===C.clabel))?BLUE:(/^GOLD/.test(t)||(C.on&&t===C.plabel))?GOLD:NAVY;}
+function noteRe(){const C=state.cmp; if(!C.on) return /(\bBLUE\b)/i; const k=['\\bBLUE,?','\\bGOLD\\.?'].concat([C.clabel,C.plabel].filter(Boolean).map(escRe)); return new RegExp('('+k.join('|')+')','i');}
+function tokCol(t){const C=state.cmp,u=String(t).toLowerCase(),same=l=>u===String(l).toLowerCase(); return (/^blue/i.test(t)||(C.on&&same(C.clabel)))?BLUE:(/^gold/i.test(t)||(C.on&&same(C.plabel)))?GOLD:NAVY;}
 function syncCmpText(){
   const C=state.cmp,ed=state.edited;
   if(C.on){
     if(!ed.title) state.text.title=(C.plabel+' VS. '+C.clabel+' CUSTOMER TRAITS').toUpperCase();
-    if(!ed.sub) state.text.sub='NOTE: '+C.clabel+' BRAND PREFERENCE INDEX (BPI) IS DISPLAYED IN BLUE, '+C.plabel+' IN GOLD.';
+    if(!ed.sub) state.text.sub='NOTE: '+String(C.clabel).toUpperCase()+' BRAND PREFERENCE INDEX (BPI) IS DISPLAYED IN BLUE, '+String(C.plabel).toUpperCase()+' IN GOLD.';
   } else {
     if(!ed.title) state.text.title=DEF_TEXT.title;
     if(!ed.sub) state.text.sub=DEF_TEXT.sub;
@@ -2885,7 +2886,7 @@ function makeFrame(kind,an){
 function injectPeer(f,an,kind){
   try{
     const d=f.contentDocument,panel=d.getElementById('cmpPanel');if(!panel)return;
-    const st=d.createElement('style');st.textContent='#peerSec .peerHint{font-size:12.5px;color:#667085;margin-top:6px;line-height:1.4}#peerSec select{width:100%;margin-top:6px;height:38px;border:1px solid #e3e8ef;border-radius:9px;padding:0 10px;font:inherit;background:#fff;color:#1c2733}';d.head.appendChild(st);
+    const st=d.createElement('style');st.textContent='#peerSec .peerHint{font-size:12.5px;color:#667085;margin-top:6px;line-height:1.4}#peerSec select{margin-top:6px}';d.head.appendChild(st);
     const sec=d.createElement('div');sec.className='osec';sec.id='peerSec';sec.hidden=true;
     sec.innerHTML='<div class="lbl">Compare against</div><select id="peerSel"></select><div class="peerHint">Another look-alike in this project, or an earlier year\u2019s file.</div>';
     panel.insertBefore(sec,panel.firstChild);
