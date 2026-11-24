@@ -59,14 +59,42 @@
   details.prev{border:1px solid var(--line);border-radius:12px;background:#fff} details.prev summary{cursor:pointer;padding:10px 14px;font-size:13px;font-weight:600;color:var(--accent)}
   .tbl{max-height:320px;overflow:auto;border-top:1px solid var(--line)} .tbl table{width:100%;border-collapse:collapse;font-size:12.5px} .tbl th{position:sticky;top:0;background:#f4f6fa;text-align:right;padding:7px 10px;color:var(--mut);font-weight:600;border-bottom:1px solid var(--line)} .tbl th:nth-child(-n+2),.tbl td:nth-child(-n+2){text-align:left}
   .tbl td{padding:5px 10px;text-align:right;border-bottom:1px solid #f0f2f7;font-variant-numeric:tabular-nums} .tbl tr.zero td{color:#98a2b3}
-  .steps{max-width:1120px}
-  .step.wide .sbody{padding-left:26px}
+  .steps{max-width:880px}
+  .abar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;max-width:880px;margin:-8px 0 18px;text-align:left}
+  .achips{display:flex;gap:8px;flex-wrap:wrap}
+  .achip{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;background:#fff;overflow:hidden}
+  .achip button{border:0;background:transparent;font:600 13px/1 inherit;font-family:inherit;color:var(--ink);cursor:pointer;height:34px}
+  .achip .an{padding:0 14px}.achip .x{padding:0 11px 0 0;color:var(--mut);font-size:16px}
+  .achip.on{background:var(--navy);border-color:var(--navy)} .achip.on button{color:#fff}
+  .namerow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .namerow input,.cmpsel select{height:36px;border:1px solid var(--line);border-radius:9px;padding:0 12px;font:600 13px/1 inherit;font-family:inherit;color:var(--ink);background:#fff}
+  .namerow input{width:200px}
+  .cmpsel{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--navy)}
+  .contbar{display:flex;justify-content:flex-end}
+  .nav{display:flex;gap:4px;margin-left:22px;padding:3px;background:#f2f5f9;border-radius:999px}
+  .nav button{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 14px 0 8px;border:0;border-radius:999px;background:transparent;font:600 13px/1 inherit;font-family:inherit;color:var(--mut);cursor:pointer}
+  .nav button i{display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#d5dde8;color:#fff;font-style:normal;font-size:11px}
+  .nav button:hover:not(:disabled):not(.on){color:var(--navy)}
+  .nav button.on{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(16,24,40,.12)} .nav button.on i{background:var(--navy)}
+  .nav button:disabled{opacity:.5;cursor:not-allowed}
+  .cnt{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--navy);color:#fff;font-size:11px}
+  .nav .cnt{background:#d5dde8} .nav button.on .cnt{background:var(--navy)}
+  body.pg-render #picker,body.pg-deck #picker{height:100vh}
+  .page{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;padding:14px 20px 20px}
   .vbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .vbar .grow{flex:1}
-  #viewer{position:relative;height:min(940px,calc(100vh - 110px));min-height:660px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
+  .vbar .cnt{margin-left:4px;background:rgba(255,255,255,.28)}
+  #viewer{position:relative;flex:1;min-height:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
   #viewer iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:none}
+  #renderMsg .okbox,#renderMsg .errbox{padding:7px 12px}
+  .deckpage{overflow:auto}
+  .deckwrap{width:100%;max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px;padding:10px 0 40px}
+  .dhead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+  .dhead h2{margin:0;font-size:24px;color:var(--navy);letter-spacing:.04em;text-transform:uppercase} .dhead p{margin:4px 0 0;font-size:14px;color:var(--mut)}
+  .empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:56px 24px;text-align:center;background:#fff;border:1px dashed #b6c2d2;border-radius:18px}
+  .empty b{font-size:17px;color:var(--navy)} .empty span{max-width:520px;font-size:13.5px;color:var(--mut);line-height:1.5}
   .okbox{padding:10px 14px;border-radius:9px;background:var(--okbg);color:var(--ok);font-size:13px;font-weight:600}
-  .deck{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+  .deck{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
   .deck:empty{display:none}
   .dcard{border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden;display:flex;flex-direction:column;cursor:grab}
   .dcard.over{border-color:var(--accent);box-shadow:0 0 0 2px #cfe0f7}
@@ -94,13 +122,15 @@
 <div id="picker">
   <header class="top">
     <img class="logo" alt="blü" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALIAAAB4BAMAAACk17WJAAAAMFBMVEX////+///9/f/7/P7h5viMn+Ruhd4WO8kELMUDLMUCKsQCKcQAKcQAIsIAGsAAGMBW+rOoAAAFgklEQVR42u2af2wTZRjHv++1hkRJ+7bjhzGuvXXjh2Gb121oMGzAfqASo8YI/qHRaMQBLlFijMagMULwV0QTiKAyjf+gCUSmEBT3I2SIBGy7sg2cSsttBRFd27cFQ5Tevf7RK2u3Bnd4R2Jy7x+X997rffrk+z7P8z7v3ZEATGoCLPK1INsBqD1GUytEgAQAUmY0OcEAO6BObTWafOMiEXZA9e40mvyYLMIOgNUaTebaDCKsGAuWrEixyBbZIltki2zVSEUaoQBnE4ZdAJLa5aQL4Klch02WzJNFrUjmX07mRpJ6bLYvBkbDE4brKNAFwLYEvLuOIt6/BDxYQYsXhsXIdE4TI0MYj5YqvKAnGaNzaoF4E5A53sSgzHVCOaBO0mYsZ7HfJo7ObKE3fAAAK3Fp/5T7sIOsZJkjM+/Fj5P3DTV6qsik8FAk21FCAA/KwGgoiUR3VNbhdT5Ci/24bMx3QACAAoQQA/2ZAnCJgODWOsZGigxwVetM1uuu3FhkDSAfPgxVeRpgJ05of/DfyRjtQtaxswc9kfJvuUYEoj5AHcl1ZL1kNwU/VcwnAUShHaL6bRakUAIocUxg2yQgnjOT1ABqny6yzROqo+Ddcf/4+5RgfvgE9dosKKdX+FbiaG2gRxwn46wlwO/h7KAgPAGo7VwHWT3euj4RxOzb/1rXQQtCnbq3MbJWi1FCtjFy5mM95AsvPvNRmQ/xH6ZvUb4cd+3b8HVjJz93IKNHDc+5tt1NANxudcdGmRXq4ZvWm7fSNMtDesjeW/f41ahMfGVC/ZHmTUatgwAQkpSBxqVIfNEo3HJXd7GkerVkn3r6nk0MM57tkOyf+9FnHBkDd7TtAir+eC2GBa1TDVQjsmx1h03iIXnKQp/wdYMsG1bJzFr3lV8JhtyVWyVZYH7jaiR+tr26D0Cif94GhsonY4apcbBfSxdq7MTbMbi4YTaTdI6V9GyRhZEG0TCdHZcTyNQRmXxPqQm1aOpcAyhlJpCHe7xwlgybQCZODu4iZlTmyRQ895tR83OcByem2IwDMihMIWcf7ZlBpiAwLLoLWkNaTZphMyEOCGFuhhoEGO4zg+zwp8HiXhPI4ox+pBm9QvmvjzzmDVxiqGR5GakgOTHdvnHZGWzH98eUm3vHyvrURcA7oq2LVVNSOm12uAe0XlVjCnDkOTThTvBp2Rttg3f26yRXbajKrqolg7f1YnBTab5OHKWPpwBAKG1aI+okC98099W4QMrjTW0SWDB/ojgBSVf5KSn3nFm6V7fO8+rZdriSkflL90iZ1c/n7Z5UslkSD9e2E2fE/lK9oJtsO7Ye0R5b44KFNhza6c3bUvDKtCxW3p3qOt8y9+EBj6A7b3j3vfnWfLReGhAzy1YXRCA7VQ9h35Z3MfPRDiks6a5Fa6raV1ActYs4dLa3YCs58uvOQVTtfQqjHVJk4d7FOiOlMSw0RrqCFSIiawLVhcm6dOMBCNWB7piUmf2OXp3lzs3vNfoA8FBz28HCNzlcOfLpd6JQDpycve+TIaaHHB3+M/Lcq51pisSFB7a25zZXSmhRVo7T7z+yuwxcXj7USYMspYPcIgu9W/9+wclArn+5s0xzDPIgbsr6ned1vjYJtLxx9CBpZrj4yiTJLPIQYUrl9qSLgkd3Cdr0ydNXOZHNTMP8s5/KgMQvvd6RVWBqseRNAsiUeoq9EROqw6jjQZTHiwhpU2CTlLCttGjBLlVXLy6uhuAHIuxYbTyAEm/o8nA5BdfOFLcYCpLaiAxSAyjhyeqsBrUdtQvxeN4GI+8niQShPHhV++7CJD35B5HX4ImrRbbIFtkiW2SLbFSzA9p3LWaQadBoamWWLAwvN5rsEE3+OgvKh0aTc1+UWf78fyb/A19xBlMQ/TjPAAAAAElFTkSuQmCC">
-    <div><div class="t">Perfect Match Analysis</div><div class="s" id="topSub">Personicx distribution builder</div></div>
+    <div><div class="t">Perfect Match Analysis</div><div class="s" id="topSub">Build your distribution</div></div>
+    <nav class="nav" id="nav"><button type="button" data-pg="build" class="on"><i>1</i>Build</button><button type="button" data-pg="render" disabled><i>2</i>Charts</button><button type="button" data-pg="deck" disabled><i>3</i>Presentation <span class="cnt" id="navCnt">0</span></button></nav>
     <div class="grow"></div>
     <button class="btn ghost" id="startOver" type="button" hidden>Start over</button>
   </header>
-  <main class="hero">
+  <main class="hero" id="pgBuild">
     <h1>Build your analysis</h1>
     <p>Upload your look-alike report, set your counts, then render.</p>
+    <div class="abar" id="abar" hidden><span class="lbl">Look-alikes</span><div class="achips" id="achips"></div><button class="btn ghost" id="addAn" type="button">+ Add another look-alike</button></div>
     <div class="steps">
 
       <section class="step" id="st1">
@@ -109,6 +139,7 @@
           <label class="drop" for="lalFile" id="lalDrop"><b id="lalTitle">Choose your look-alike report</b><span id="lalHint">Drag &amp; drop the PDF here, or <u>browse</u>.</span></label>
           <input type="file" id="lalFile" accept=".pdf,.json" hidden>
           <div class="chips" id="lalChips" hidden></div>
+          <div class="namerow" id="nameRow" hidden><label class="lbl" for="anName">Name</label><input id="anName" type="text" maxlength="24" placeholder="e.g. Cold, North, Warm"><span class="note">Used for the workbook, chart labels and slide titles. Add another look-alike to compare, such as north and south.</span></div>
           <div id="lalMsg"></div>
         </div>
       </section>
@@ -148,36 +179,43 @@
           <div id="wbMsg"></div>
           <div class="tiles" id="wbTiles"></div>
           <div id="wbNotes"></div>
-          <div class="rowbtns"><button class="btn primary" id="dlWb" type="button" disabled>Download workbook (.xlsx)</button><span class="note" id="wbName"></span></div>
+          <div class="rowbtns"><button class="btn primary" id="dlWb" type="button" disabled>Download workbook (.xlsx)</button><button class="btn" id="dlAll" type="button" hidden>Download all workbooks (.zip)</button><span class="note" id="wbName"></span></div>
           <details class="prev" id="wbPrev"><summary>Preview all 72 segments</summary><div class="tbl" id="wbTbl"></div></details>
         </div>
       </section>
 
-      <section class="step locked wide" id="st4">
-        <div class="shead"><span class="num">4</span><div class="grow"><h2>Render</h2><p>The bubble chart, appendix and puzzle man all live here. Switch between them, use compare, then add any slide to your presentation.</p></div></div>
-        <div class="sbody">
-          <div class="vbar">
-            <div class="seg" id="vtabs"><button class="btn" data-v="chart" type="button" disabled>Bubble chart</button><button class="btn" data-v="app" type="button" disabled>Appendix</button><button class="btn" data-v="puzzle" type="button" disabled>Puzzle man</button></div>
-            <div class="grow"></div>
-            <button class="btn ghost" id="addSlide" type="button" disabled>+ Add this to presentation</button>
-          </div>
-          <div id="renderMsg"></div>
-          <div id="viewer"></div>
-        </div>
-      </section>
-
-      <section class="step locked wide" id="st5">
-        <div class="shead"><span class="num">5</span><div class="grow"><h2>Presentation</h2><p>One deck instead of one-off files. Collect slides from every tool, put them in order, and export them together.</p></div></div>
-        <div class="sbody">
-          <div class="rowbtns"><button class="btn primary" id="startDeck" type="button">Start building presentation</button><span class="note" id="deckNote">Adds the bubble chart, every appendix page and the puzzle man as they are right now. Use &ldquo;Add this to presentation&rdquo; above to add more, such as a compare version.</span></div>
-          <div class="deck" id="deckList"></div>
-          <div class="rowbtns" id="deckExport" hidden><button class="btn primary" id="dkPdf" type="button">Export PDF (all slides)</button><button class="btn" id="dkPng" type="button">PNG (.zip)</button><button class="btn" id="dkSvg" type="button">SVG (.zip)</button><button class="btn ghost" id="dkClear" type="button">Clear deck</button><span class="note" id="dkCount"></span></div>
-          <div id="deckMsg"></div>
-        </div>
-      </section>
-
+      <div class="contbar"><button class="btn primary" id="toRender" type="button" disabled>Continue to charts &rarr;</button></div>
     </div>
   </main>
+  <section class="page" id="pgRender" hidden>
+    <div class="vbar">
+      <div class="seg" id="anTabs" hidden></div>
+      <div class="seg" id="vtabs"><button class="btn" data-v="chart" type="button" disabled>Bubble chart</button><button class="btn" data-v="app" type="button" disabled>Appendix</button><button class="btn" data-v="puzzle" type="button" disabled>Puzzle man</button></div>
+      <label class="cmpsel" id="cmpWrap" hidden>Compare with <select id="cmpWith"></select></label>
+      <div id="renderMsg"></div>
+      <div class="grow"></div>
+      <button class="btn ghost" id="addSlide" type="button" disabled>+ Add to presentation</button>
+      <button class="btn primary" id="toDeck" type="button">Presentation <span class="cnt">0</span> &rarr;</button>
+    </div>
+    <div id="viewer"></div>
+  </section>
+
+  <section class="page deckpage" id="pgDeck" hidden>
+    <div class="deckwrap">
+      <div class="dhead">
+        <div><h2>Presentation</h2><p>One deck instead of one-off files. Put the slides in order, then export them all at once.</p></div>
+        <div class="rowbtns" id="deckExport" hidden><button class="btn primary" id="dkPdf" type="button">Export PDF</button><button class="btn" id="dkPng" type="button">PNG (.zip)</button><button class="btn" id="dkSvg" type="button">SVG (.zip)</button></div>
+      </div>
+      <div class="empty" id="deckEmpty">
+        <b>No slides yet</b>
+        <span>Start building adds the bubble chart, every appendix page and the puzzle man exactly as they look now. You can also add slides one at a time from the charts page, such as a compare version.</span>
+        <button class="btn primary" id="startDeck" type="button">Start building presentation</button>
+      </div>
+      <div class="deck" id="deckList"></div>
+      <div class="rowbtns" id="deckMore" hidden><button class="btn ghost" id="startDeck2" type="button">Add all current slides again</button><button class="btn ghost" id="dkClear" type="button">Clear deck</button><span class="note" id="dkCount"></span></div>
+      <div id="deckMsg"></div>
+    </div>
+  </section>
 </div>
 <div id="deckPrint"></div>
 
@@ -1194,7 +1232,7 @@ function runStandalone(){
     if(toTab) setTab("app"); else if(S.tab==="app") exp.forEach(b=>b.disabled=false);
   };
   appBtn.onclick=()=>buildAppendix(true);
-  window.__getAppPages=()=>S.appPages; window.__buildAppendix=t=>buildAppendix(t); window.__setTab=setTab;
+  window.__getAppPages=()=>S.appPages; window.__buildAppendix=t=>buildAppendix(t); window.__setTab=setTab; window.__getTab=()=>S.tab;
   qa("#tabs .tabbtn").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
   $("appStart").oninput=()=>{ if(S.appOn) buildAppendix(false); };
   const dlAppZip=async kind=>{
@@ -2796,53 +2834,64 @@ function extractPersonicx(rep){
   return {seg,missing,unknown:{c:uc,m:um},remainder,matched:(rep.totals&&rep.totals.matched)||0,prospects:tp};
 }
 
-/* ============================== app state ============================== */
-const S={lal:null,cust:{src:'lal',file:null},mkt:{src:'lal',file:null},wb:null,frames:{},engine:null,view:'chart',opened:false,deck:[]};
+/* ============================== app state: one "analysis" per look-alike report ============================== */
+const uid=()=>Math.random().toString(36).slice(2);
+const mkAn=()=>({id:uid(),name:'',lal:null,loading:'',progress:'',lalErr:'',cust:{src:'lal',file:null},mkt:{src:'lal',file:null},cerr:{cust:'',mkt:''},wb:null,plan:null,frames:{},engine:null,opened:false,cmpWith:'',tok:0});
+const S={view:'chart',deck:[],list:[],a:null,dragI:null};
+S.list.push(S.a=mkAn());
+['lal','cust','mkt','wb','plan','frames','engine','opened'].forEach(k=>Object.defineProperty(S,k,{get(){return S.a[k];},set(v){S.a[k]=v;}}));
 const viewer=$('viewer'),picker=$('picker');
+const withLal=()=>S.list.filter(a=>a.lal);
+const short=n=>String(n||'').slice(0,14);
+const wbName=an=>'Personicx_NS_Distribution'+(an.name?'_'+slug(an.name):(an.lal&&an.lal.client?'_'+slug(an.lal.client):''))+'.xlsx';
+function defaultName(rep,fn){
+  let n=String(rep.client||'').replace(/\s*[-–]?\s*look[\s-]?alike.*$/i,'').replace(/\s*(lal|report)\s*$/i,'').replace(/[\s\-–]+$/,'').trim();
+  if(!n)n=String(fn||'').replace(/\.[^.]+$/,'').replace(/^Enhanced[_\s-]*Look[_\s-]*Alike[_\s-]*Report[_\s-]*/i,'').replace(/_+/g,' ').trim();
+  return n||'Look-alike';
+}
+function uniqueName(an,n){let k=n,i=2;while(S.list.some(x=>x!==an&&x.name===k))k=n+' '+i++;return k;}
 
 function setStep(id,state){const el=$(id);el.classList.toggle('locked',state==='locked');el.classList.toggle('done',state==='done');}
 function box(el,kind,html){el.innerHTML=html?'<div class="'+(kind==='err'?'errbox':'warnbox')+'">'+html+'</div>':'';}
 
-/* ============================== step 1: look-alike report ============================== */
+/* ============================== frames ============================== */
 function getHTML(kind){return $('tpl-'+kind).textContent.replace(/<\\\/script/g,'</script').replace(/\\u003c\\\/script/g,'</script');}
-function makeFrame(kind){
+function makeFrame(kind,an){
   return new Promise(res=>{
     const f=document.createElement('iframe');f.title=kind==='bubble'?'Perfect Match Analysis – Bubble Chart':'Perfect Match Analysis – Puzzle Man';
-    f.addEventListener('load',()=>{try{const st=f.contentDocument.createElement('style');st.textContent='.top{display:none!important}';f.contentDocument.head.appendChild(st);}catch(e){}if(window.__onFrame)window.__onFrame(kind,f.contentWindow);res(f);},{once:true});
+    f.dataset.an=an.id;f.dataset.kind=kind;
+    f.addEventListener('load',()=>{try{const st=f.contentDocument.createElement('style');st.textContent='.top,#tabs,#appBtn{display:none!important}';f.contentDocument.head.appendChild(st);}catch(e){}if(window.__onFrame)window.__onFrame(kind,f.contentWindow);res(f);},{once:true});
     f.srcdoc=getHTML(kind);viewer.appendChild(f);
   });
 }
-function dropFrames(){viewer.innerHTML='';S.frames={};S.engine=null;S.opened=false;}
+function dropFrame(an,kind){
+  viewer.querySelectorAll('iframe').forEach(f=>{if(f.dataset.an===an.id&&(!kind||f.dataset.kind===kind))f.remove();});
+  if(!kind||kind==='bubble')delete an.frames.bubble;
+  if(!kind||kind==='puzzle'){delete an.frames.puzzle;if(!kind)an.engine=null;}
+  an.opened=false;
+}
+function dependents(an){return S.list.filter(x=>x.cmpWith===an.id);}
+function breakCompares(an){            // anyone comparing against `an` is now out of date
+  for(const d of dependents(an)){d.cmpWith='';dropFrame(d,'bubble');if(d.frames.puzzle)applyPuzzleCompare(d);}
+}
+
+/* ============================== step 1: look-alike report ============================== */
 async function loadLal(file){
-  const msg=$('lalMsg'),chips=$('lalChips');
-  S.lal=null;S.wb=null;S.frames.bubble&&S.frames.bubble.remove();S.frames={};S.opened=false;
-  box(msg,'err','');chips.hidden=true;lock234();
-  $('lalTitle').textContent=file.name;$('lalHint').textContent='Reading…';
+  const an=S.a;
+  breakCompares(an);dropFrame(an);an.lal=null;an.wb=null;an.plan=null;an.lalErr='';an.loading=file.name;an.progress='Reading…';an.cmpWith='';
+  syncUI();
   try{
-    if(S.engine)S.engine.remove();
-    S.engine=await makeFrame('puzzle');
-    const w=S.engine.contentWindow,prog={set textContent(v){$('lalHint').textContent=v;}};
+    an.engine=await makeFrame('puzzle',an);
+    const w=an.engine.contentWindow,prog={set textContent(v){an.progress=v;if(S.a===an)$('lalHint').textContent=v;}};
     const rep=/\.json$/i.test(file.name)?JSON.parse(await file.text()):await w.readPdf(file,prog);
     const px=extractPersonicx(rep);
-    S.lal={rep,px,name:file.name,client:rep.client||''};
-    $('lalHint').innerHTML='Drop a different report to replace it, or <u>browse</u>.';
-    chips.hidden=false;
-    chips.innerHTML=(rep.client?'<span class="chip info">'+esc(rep.client)+'</span>':'')
-      +'<span class="chip ok">'+fmt(px.matched||[...px.seg.values()].reduce((a,b)=>a+b.c,0))+' customers matched</span>'
-      +'<span class="chip info">'+fmt(px.prospects||[...px.seg.values()].reduce((a,b)=>a+b.m,0))+' prospects analyzed</span>'
-      +'<span class="chip ok">'+px.seg.size+' of '+NSEG+' Personicx segments found</span>';
-    setStep('st1','done');setStep('st2','active');
-    $('startOver').hidden=false;setStep('st4','active');setStep('st5','active');tabsState();
-    await refreshPlan();
+    an.lal={rep,px,name:file.name,client:rep.client||''};
+    if(!an.name)an.name=uniqueName(an,defaultName(rep,file.name));
   }catch(e){
-    S.lal=null;$('lalTitle').textContent='Choose your look-alike report';$('lalHint').innerHTML='Drag &amp; drop the PDF here, or <u>browse</u>.';
-    box(msg,'err',esc(e.message||String(e)));setStep('st1','active');lock234();
+    an.lal=null;an.lalErr=e.message||String(e);if(an.engine){an.engine.remove();an.engine=null;}
   }
-}
-function lock234(){setStep('st2','locked');setStep('st3','locked');setStep('st4','locked');if(!S.deck.length)setStep('st5','locked');tabsState();}
-function tabsState(){
-  const t=q=>document.querySelector('#vtabs [data-v="'+q+'"]');
-  t('chart').disabled=t('app').disabled=!S.wb;t('puzzle').disabled=!S.lal;$('addSlide').disabled=!S.lal;
+  an.loading='';
+  if(an.lal)await refreshPlan(an);else syncUI();
 }
 
 /* ============================== step 2: counts and the plan ============================== */
@@ -2852,25 +2901,25 @@ function lalEstimate(px){            // market counts for segments the report do
   px.missing.forEach((s,i)=>est.set(s,Math.max(1,each+(i<extra?1:0))));
   return est;
 }
-function computePlan(){
-  const L=S.lal,px=L.px,notes=[],errors=[],cust=[],mkt=[],est=lalEstimate(px);
-  const cf=S.cust.src==='file'?S.cust.file:null,mf=S.mkt.src==='file'?S.mkt.file:null;
-  if(S.cust.src==='file'&&!cf)errors.push('Choose your customer counts file, or switch customer counts back to the look-alike report.');
-  if(S.mkt.src==='file'&&!mf)errors.push('Choose your market counts file, or switch market counts back to the look-alike report.');
+function computePlan(an){
+  const px=an.lal.px,notes=[],errors=[],cust=[],mkt=[],est=lalEstimate(px);
+  const cf=an.cust.src==='file'?an.cust.file:null,mf=an.mkt.src==='file'?an.mkt.file:null;
+  if(an.cust.src==='file'&&!cf)errors.push('Choose your customer counts file, or switch customer counts back to the look-alike report.');
+  if(an.mkt.src==='file'&&!mf)errors.push('Choose your market counts file, or switch market counts back to the look-alike report.');
   const noMkt=[];
   for(let s=1;s<=NSEG;s++){
-    cust.push(S.cust.src==='file'?(cf?(cf.map.get(s)||0):0):(px.seg.has(s)?px.seg.get(s).c:0));
+    cust.push(an.cust.src==='file'?(cf?(cf.map.get(s)||0):0):(px.seg.has(s)?px.seg.get(s).c:0));
     let m;
-    if(S.mkt.src==='file')m=mf?(mf.map.get(s)||0):0;else m=px.seg.has(s)?px.seg.get(s).m:(est.get(s)||0);
-    if(!(m>0)&&(S.mkt.src!=='file'||mf))noMkt.push(s);
+    if(an.mkt.src==='file')m=mf?(mf.map.get(s)||0):0;else m=px.seg.has(s)?px.seg.get(s).m:(est.get(s)||0);
+    if(!(m>0)&&(an.mkt.src!=='file'||mf))noMkt.push(s);
     mkt.push(m);
   }
   if(noMkt.length)errors.push('Market counts are missing for segment'+(noMkt.length>1?'s ':' ')+noMkt.slice(0,12).map(pad2).join(', ')+(noMkt.length>12?' and '+(noMkt.length-12)+' more':'')+'. Every segment needs a market count above zero.');
-  if(S.cust.src==='lal'||S.mkt.src==='lal'){
+  if(an.cust.src==='lal'||an.mkt.src==='lal'){
     if(px.unknown.c||px.unknown.m)notes.push('The report’s “Unknown” row ('+fmt(px.unknown.c)+' customers, '+fmt(px.unknown.m)+' prospects) isn’t a Personicx segment, so it is left out.');
     if(px.missing.length){
       notes.push(px.missing.length+' segment'+(px.missing.length>1?'s are':' is')+' not listed in the report ('+px.missing.map(pad2).join(', ')+'), so '+(px.missing.length>1?'they have':'it has')+' 0 customers.'
-        +(S.mkt.src==='lal'?(px.remainder>0?' The report doesn’t list their market counts either, so the '+fmt(px.remainder)+' prospects it doesn’t account for are split evenly across them.':' Their market count is set to 1 so the index can be calculated.'):''));
+        +(an.mkt.src==='lal'?(px.remainder>0?' The report doesn’t list their market counts either, so the '+fmt(px.remainder)+' prospects it doesn’t account for are split evenly across them.':' Their market count is set to 1 so the index can be calculated.'):''));
     }
   }
   for(const [k,f,lab] of [['cust',cf,'customer'],['mkt',mf,'market']]){
@@ -2880,132 +2929,253 @@ function computePlan(){
   }
   return {cust,mkt,notes,errors};
 }
-let planTok=0;
-async function refreshPlan(){
-  if(!S.lal)return;const tok=++planTok;S.wb=null;S.frames.bubble&&(S.frames.bubble.remove(),delete S.frames.bubble);tabsState();
-  const plan=computePlan();renderStep2Msgs();
-  if(plan.errors.length){
-    setStep('st3','locked');if(S.view!=='puzzle'&&S.opened)showTab('puzzle');
-    $('wbMsg').innerHTML='';$('dlWb').disabled=true;
-    $('st3').classList.remove('locked');$('st3').querySelector('.sbody').style.display='';
-    box($('wbMsg'),'err',plan.errors.map(esc).join('<br>'));$('wbTiles').innerHTML='';$('wbNotes').innerHTML='';$('wbName').textContent='';$('wbPrev').hidden=true;
-    return;
-  }
+async function refreshPlan(an){
+  if(!an.lal)return;const tok=++an.tok;an.wb=null;
+  breakCompares(an);dropFrame(an,'bubble');an.planErr='';
+  an.plan=computePlan(an);
+  if(S.a===an)syncUI();
+  if(an.plan.errors.length)return;
   try{
-    const bytes=await buildWorkbook(plan.cust,plan.mkt);
-    if(tok!==planTok)return;
-    const nm='Personicx_NS_Distribution'+(S.lal.client?'_'+slug(S.lal.client):'')+'.xlsx';
-    S.wb={bytes,name:nm,plan};
-    setStep('st3','done');$('st3').querySelector('.sbody').style.display='';
-    $('wbMsg').innerHTML='';
-    const sc=plan.cust.reduce((a,b)=>a+b,0),sm=plan.mkt.reduce((a,b)=>a+b,0),n=plan.cust.filter(x=>x>0).length;
-    $('wbTiles').innerHTML=[['Customer households',fmt(sc)],['Market base',fmt(sm)],['Segments with customers',n+' of '+NSEG]].map(([k,v])=>'<div class="tile"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>').join('');
-    $('wbNotes').innerHTML=plan.notes.length?'<div class="warnbox"><b>Good to know</b><ul>'+plan.notes.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>':'';
-    $('wbName').textContent=nm;$('dlWb').disabled=false;$('wbPrev').hidden=false;
-    let h='<table><thead><tr><th>#</th><th>Segment</th><th>Customers</th><th>% of customers</th><th>Market</th><th>% of market</th><th>Index</th></tr></thead><tbody>';
-    for(let i=0;i<NSEG;i++){const idx=plan.mkt[i]&&sc&&sm?(plan.cust[i]/sc)/(plan.mkt[i]/sm)*100:0;h+='<tr'+(plan.cust[i]?'':' class="zero"')+'><td>'+pad2(i+1)+'</td><td>'+esc(SEG_NAMES[i])+'</td><td>'+fmt(plan.cust[i])+'</td><td>'+(sc?(plan.cust[i]/sc*100).toFixed(2):'0.00')+'%</td><td>'+fmt(plan.mkt[i])+'</td><td>'+(sm?(plan.mkt[i]/sm*100).toFixed(2):'0.00')+'%</td><td>'+Math.round(idx)+'</td></tr>';}
-    $('wbTbl').innerHTML=h+'</tbody></table>';
-    tabsState();setStep('st4','active');showTab(S.opened?S.view:'chart');
-  }catch(e){box($('wbMsg'),'err',esc(e.message||String(e)));$('dlWb').disabled=true;}
+    const bytes=await buildWorkbook(an.plan.cust,an.plan.mkt);
+    if(tok!==an.tok)return;
+    an.wb={bytes,plan:an.plan};an.planErr='';
+  }catch(e){an.planErr=e.message||String(e);}
+  if(S.a===an)syncUI();else renderAnBar();
 }
-function renderStep2Msgs(){
+
+/* ============================== UI sync (everything on the Build page is drawn from the current analysis) ============================== */
+function renderStep2Msgs(an){
   for(const [kind,col] of [['cust',$('colCust')],['mkt',$('colMkt')]]){
-    const st=S[kind],m=col.querySelector('.cmsg');
+    const st=an[kind],m=col.querySelector('.cmsg');
+    if(an.cerr[kind]){m.innerHTML='<div class="errbox">'+esc(an.cerr[kind])+'</div>';continue;}
     if(st.src==='lal'){m.innerHTML='<span class="chip ok">From the look-alike report</span>';continue;}
     if(!st.file){m.innerHTML='';continue;}
     const f=st.file,tot=[...f.map.values()].reduce((a,b)=>a+b,0);
     m.innerHTML='<span class="chip ok">'+f.map.size+' segments, '+fmt(tot)+' total</span> <span class="note">column “'+esc(f.column)+'”</span>';
   }
 }
+function renderPlanUI(an){
+  const tiles=$('wbTiles'),notes=$('wbNotes'),msg=$('wbMsg');
+  const clear=()=>{tiles.innerHTML='';notes.innerHTML='';msg.innerHTML='';$('wbName').textContent='';$('wbPrev').hidden=true;$('dlWb').disabled=true;};
+  if(!an.lal){setStep('st3','locked');clear();return;}
+  clear();const plan=an.plan;
+  if(!plan){setStep('st3','active');return;}
+  if(plan.errors.length){setStep('st3','active');box(msg,'err',plan.errors.map(esc).join('<br>'));return;}
+  if(an.planErr){setStep('st3','active');box(msg,'err',esc(an.planErr));return;}
+  if(!an.wb){setStep('st3','active');return;}
+  setStep('st3','done');
+  const sc=plan.cust.reduce((a,b)=>a+b,0),sm=plan.mkt.reduce((a,b)=>a+b,0),n=plan.cust.filter(x=>x>0).length;
+  tiles.innerHTML=[['Customer households',fmt(sc)],['Market base',fmt(sm)],['Segments with customers',n+' of '+NSEG]].map(([k,v])=>'<div class="tile"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>').join('');
+  notes.innerHTML=plan.notes.length?'<div class="warnbox"><b>Good to know</b><ul>'+plan.notes.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>':'';
+  $('wbName').textContent=wbName(an);$('dlWb').disabled=false;$('wbPrev').hidden=false;
+  let h='<table><thead><tr><th>#</th><th>Segment</th><th>Customers</th><th>% of customers</th><th>Market</th><th>% of market</th><th>Index</th></tr></thead><tbody>';
+  for(let i=0;i<NSEG;i++){const idx=plan.mkt[i]&&sc&&sm?(plan.cust[i]/sc)/(plan.mkt[i]/sm)*100:0;h+='<tr'+(plan.cust[i]?'':' class="zero"')+'><td>'+pad2(i+1)+'</td><td>'+esc(SEG_NAMES[i])+'</td><td>'+fmt(plan.cust[i])+'</td><td>'+(sc?(plan.cust[i]/sc*100).toFixed(2):'0.00')+'%</td><td>'+fmt(plan.mkt[i])+'</td><td>'+(sm?(plan.mkt[i]/sm*100).toFixed(2):'0.00')+'%</td><td>'+Math.round(idx)+'</td></tr>';}
+  $('wbTbl').innerHTML=h+'</tbody></table>';
+}
+function renderAnBar(){
+  const L=withLal(),bar=$('abar');bar.hidden=!L.length;
+  $('achips').innerHTML='';
+  S.list.forEach(an=>{
+    const c=document.createElement('div');c.className='achip'+(an===S.a?' on':'');
+    c.innerHTML='<button type="button" class="an">'+esc(an.name||(an.loading?'Reading…':'New look-alike'))+'</button>'+(S.list.length>1?'<button type="button" class="x" title="Remove this look-alike">&times;</button>':'');
+    c.querySelector('.an').onclick=()=>selectAn(an);
+    const x=c.querySelector('.x');if(x)x.onclick=()=>removeAn(an);
+    $('achips').appendChild(c);
+  });
+  const any=withLal().length>0;
+  document.querySelectorAll('#nav [data-pg=render],#nav [data-pg=deck]').forEach(b=>b.disabled=!any);
+  $('toRender').disabled=!any;$('startOver').hidden=!any&&!S.deck.length;
+  const built=S.list.filter(a=>a.wb).length;$('dlAll').hidden=built<2;
+  renderChartBar();
+}
+function renderChartBar(){
+  const L=withLal(),multi=L.length>1;
+  const t=q=>document.querySelector('#vtabs [data-v="'+q+'"]');
+  t('chart').disabled=t('app').disabled=!S.a.wb;t('puzzle').disabled=!S.a.lal;$('addSlide').disabled=!S.a.lal;
+  const at=$('anTabs');at.hidden=!multi;at.innerHTML='';
+  if(multi)L.forEach(an=>{const b=document.createElement('button');b.type='button';b.className='btn'+(an===S.a?' on':'');b.textContent=an.name;b.onclick=()=>selectAn(an);at.appendChild(b);});
+  $('cmpWrap').hidden=!multi;
+  if(multi){
+    const sel=$('cmpWith');sel.innerHTML='<option value="">Nothing</option>'+L.filter(a=>a!==S.a).map(a=>'<option value="'+a.id+'">'+esc(a.name)+'</option>').join('');
+    sel.value=S.a.cmpWith||'';
+  }
+}
+function syncUI(){
+  const an=S.a;
+  // step 1
+  $('lalTitle').textContent=an.loading||(an.lal?an.lal.name:'Choose your look-alike report');
+  $('lalHint').innerHTML=an.loading?esc(an.progress||'Reading…'):(an.lal?'Drop a different report to replace it, or <u>browse</u>.':'Drag &amp; drop the PDF here, or <u>browse</u>.');
+  const chips=$('lalChips');chips.hidden=!an.lal;
+  if(an.lal){const px=an.lal.px,rep=an.lal.rep;
+    chips.innerHTML=(rep.client?'<span class="chip info">'+esc(rep.client)+'</span>':'')
+      +'<span class="chip ok">'+fmt(px.matched||[...px.seg.values()].reduce((a,b)=>a+b.c,0))+' customers matched</span>'
+      +'<span class="chip info">'+fmt(px.prospects||[...px.seg.values()].reduce((a,b)=>a+b.m,0))+' prospects analyzed</span>'
+      +'<span class="chip ok">'+px.seg.size+' of '+NSEG+' Personicx segments found</span>';}
+  $('nameRow').hidden=!an.lal;if(an.lal&&document.activeElement!==$('anName'))$('anName').value=an.name;
+  box($('lalMsg'),'err',an.lalErr?esc(an.lalErr):'');
+  setStep('st1',an.lal?'done':'active');
+  // step 2
+  setStep('st2',an.lal?'active':'locked');
+  for(const [kind,col] of [['cust',$('colCust')],['mkt',$('colMkt')]]){
+    col.querySelectorAll('.seg .btn').forEach(b=>b.classList.toggle('on',b.dataset.src===an[kind].src));
+    col.querySelector('.own').hidden=an[kind].src!=='file';
+    col.querySelector('.fn').textContent=an[kind].file?an[kind].file.name:'Choose file (.xlsx / .csv)';
+  }
+  renderStep2Msgs(an);
+  renderPlanUI(an);
+  renderAnBar();
+}
+function selectAn(an,quiet){
+  if(S.a===an)return;S.a=an;syncUI();
+  if(!$('pgRender').hidden)showTab(S.view);
+}
+function addAn(){
+  const an=mkAn();S.list.push(an);S.a=an;syncUI();
+  if(!$('pgRender').hidden||!$('pgDeck').hidden)goPage('build');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function removeAn(an){
+  if(!confirm('Remove “'+(an.name||'this look-alike')+'”? Slides you already added to the presentation stay.'))return;
+  breakCompares(an);dropFrame(an);an.tok++;
+  S.list=S.list.filter(x=>x!==an);if(!S.list.length)S.list.push(mkAn());
+  if(S.a===an){S.a=S.list.find(a=>a.lal)||S.list[0];}
+  syncUI();if(!$('pgRender').hidden){if(withLal().length)showTab(S.view);else goPage('build');}
+}
+
+/* ============================== step 2 wiring ============================== */
 function wireStep2(){
   document.querySelectorAll('.seg[data-kind]').forEach(seg=>{
     const kind=seg.dataset.kind,col=seg.closest('.srccol');
     seg.addEventListener('click',e=>{
-      const b=e.target.closest('.btn');if(!b)return;
-      S[kind].src=b.dataset.src;seg.querySelectorAll('.btn').forEach(x=>x.classList.toggle('on',x===b));
-      col.querySelector('.own').hidden=S[kind].src!=='file';
-      refreshPlan();
+      const b=e.target.closest('.btn');if(!b)return;const an=S.a;
+      an[kind].src=b.dataset.src;an.cerr[kind]='';refreshPlan(an);
     });
     col.querySelector('.dlt').addEventListener('click',async()=>{
       download(new Blob([await countsTemplate(kind)],{type:XLSX_MIME}),(kind==='cust'?'Customer_Counts_Template':'Market_Counts_Template')+'.xlsx');
     });
     const inp=col.querySelector('input[type=file]');
     inp.addEventListener('change',async()=>{
-      const f=inp.files[0];if(!f)return;const m=col.querySelector('.cmsg');
-      try{
-        const r=await readCountsFile(f,kind);S[kind].file=r;col.querySelector('.fn').textContent=f.name;
-      }catch(err){S[kind].file=null;col.querySelector('.fn').textContent='Choose file (.xlsx / .csv)';box(m,'err',esc(err.message||String(err)));inp.value='';await refreshPlan();m.innerHTML='<div class="errbox">'+esc(err.message||String(err))+'</div>';return;}
-      inp.value='';await refreshPlan();
+      const f=inp.files[0];if(!f)return;const an=S.a;
+      try{an[kind].file=await readCountsFile(f,kind);an.cerr[kind]='';}
+      catch(err){an[kind].file=null;an.cerr[kind]=err.message||String(err);}
+      inp.value='';await refreshPlan(an);if(S.a===an)syncUI();
     });
   });
 }
 
-/* ============================== step 4: render (all three views on one page) ============================== */
+/* ============================== render page: bubble chart, appendix and puzzle man ============================== */
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function until(fn,ms=20000){const t0=Date.now();while(Date.now()-t0<ms){try{const v=fn();if(v)return v;}catch(e){}await sleep(40);}throw new Error('The chart took too long to load.');}
-async function ensureBubble(){
-  if(S.frames.bubble)return S.frames.bubble;
-  if(!S.wb)throw new Error('Fix the counts above to build the workbook first.');
-  if(S.bubbleP)return S.bubbleP;
-  const wb=S.wb;
-  S.bubbleP=(async()=>{
-    const f=await makeFrame('bubble'),w=f.contentWindow,d=f.contentDocument;
-    const file=new w.File([wb.bytes],wb.name,{type:XLSX_MIME}),dt=new w.DataTransfer();dt.items.add(file);
+async function applyBubbleCompare(an,f){
+  const w=f.contentWindow,d=f.contentDocument,tog=d.getElementById('cmpToggle'),on=tog.getAttribute('aria-checked')==='true';
+  const other=S.list.find(x=>x.id===an.cmpWith);
+  if(!other||!other.wb){if(on)tog.click();return;}
+  const dt=new w.DataTransfer();dt.items.add(new w.File([other.wb.bytes],wbName(other),{type:XLSX_MIME}));
+  const pf=d.getElementById('pfile');pf.files=dt.files;await pf.onchange();
+  const pl=d.getElementById('plabel'),cl=d.getElementById('clabel');pl.value=short(other.name);cl.value=short(an.name);pl.oninput();cl.oninput();
+  if(!on)tog.click();
+}
+async function applyPuzzleCompare(an){
+  const f=an.frames.puzzle;if(!f)return;
+  const w=f.contentWindow,d=f.contentDocument,tog=d.getElementById('cmpToggle'),on=tog.getAttribute('aria-checked')==='true';
+  const other=S.list.find(x=>x.id===an.cmpWith);
+  if(!other||!other.lal){if(on)tog.click();return;}
+  if(!on)tog.click();
+  d.querySelector('#cmpKind [data-kind="lal"]').click();
+  for(const [id,v] of [['plabel',other.name],['clabel',an.name]]){const el=d.getElementById(id);el.value=short(v);el.dispatchEvent(new w.Event('input',{bubbles:true}));}
+  await w.loadPrevFile(new w.File([JSON.stringify(other.lal.rep)],short(other.name)+'.json',{type:'application/json'}));
+}
+async function ensureBubble(an){
+  if(an.frames.bubble)return an.frames.bubble;
+  if(!an.wb)throw new Error('Fix the counts on the Build page to create the workbook first.');
+  if(an.bubbleP)return an.bubbleP;
+  const wb=an.wb;
+  an.bubbleP=(async()=>{
+    const f=await makeFrame('bubble',an),w=f.contentWindow,d=f.contentDocument;
+    const file=new w.File([wb.bytes],wbName(an),{type:XLSX_MIME}),dt=new w.DataTransfer();dt.items.add(file);
     const inp=d.getElementById('file');inp.files=dt.files;if(inp.onchange)inp.onchange();
     await d.getElementById('go').onclick();
     await until(()=>w.__tables&&w.__lastSVG);
     f.style.display='none';
-    if(S.wb!==wb){f.remove();return ensureBubble();}
-    S.frames.bubble=f;return f;
+    if(an.wb!==wb){f.remove();return ensureBubble(an);}
+    an.frames.bubble=f;
+    if(an.cmpWith)await applyBubbleCompare(an,f);
+    return f;
   })();
-  try{return await S.bubbleP;}finally{S.bubbleP=null;}
+  try{return await an.bubbleP;}finally{an.bubbleP=null;}
 }
-function ensurePuzzle(){
-  if(!S.frames.puzzle){S.engine.contentWindow.setReport(S.lal.rep,S.lal.name);S.frames.puzzle=S.engine;}
-  return S.engine;
+async function ensurePuzzle(an){
+  if(!an.frames.puzzle){
+    an.engine.contentWindow.setReport(an.lal.rep,an.lal.name);an.frames.puzzle=an.engine;
+    if(an.cmpWith)await applyPuzzleCompare(an);
+  }
+  return an.engine;
 }
 let viewTok=0;
 async function showTab(v){
-  const tok=++viewTok;S.view=v;box($('renderMsg'),'err','');
+  const an=S.a,tok=++viewTok;if(v!=='puzzle'&&!an.wb)v='puzzle';
+  S.view=v;box($('renderMsg'),'err','');$('addSlide').textContent=v==='app'?'+ Add all appendix pages':'+ Add to presentation';
   document.querySelectorAll('#vtabs .btn').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  renderChartBar();
   try{
     let f;
-    if(v==='puzzle')f=ensurePuzzle();
+    if(v==='puzzle')f=await ensurePuzzle(an);
     else{
-      f=await ensureBubble();if(tok!==viewTok)return;
+      f=await ensureBubble(an);if(tok!==viewTok)return;
       const w=f.contentWindow;
       if(v==='app'){if(w.__getAppPages().length)w.__setTab('app');else w.__buildAppendix(true);}else w.__setTab('chart');
     }
-    if(tok!==viewTok)return;
+    if(tok!==viewTok||S.a!==an)return;
     for(const x of viewer.querySelectorAll('iframe'))x.style.display=x===f?'block':'none';
-    S.opened=true;
+    an.opened=true;
   }catch(e){box($('renderMsg'),'err',esc(e.message||String(e)));}
 }
-function flash(msg){const m=$('renderMsg');m.innerHTML='<div class="okbox">'+esc(msg)+'</div>';setTimeout(()=>{if(m.textContent===msg)m.innerHTML='';},4000);}
+async function setCompareWith(id){
+  const an=S.a;an.cmpWith=id;box($('renderMsg'),'err','');
+  try{
+    if(an.frames.bubble)await applyBubbleCompare(an,an.frames.bubble);
+    if(an.frames.puzzle)await applyPuzzleCompare(an);
+    await showTab(S.view);
+    const other=S.list.find(x=>x.id===id);
+    if(other)flash('Comparing '+an.name+' against '+other.name+'. '+other.name+' is the faded “previous” side.');
+  }catch(e){box($('renderMsg'),'err',esc(e.message||String(e)));}
+}
+function goPage(p){
+  if(p!=='build'&&!S.a.lal){const f=withLal()[0];if(!f)return;S.a=f;syncUI();}
+  $('pgBuild').hidden=p!=='build';$('pgRender').hidden=p!=='render';$('pgDeck').hidden=p!=='deck';
+  document.body.classList.remove('pg-build','pg-render','pg-deck');document.body.classList.add('pg-'+p);
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.pg===p));
+  $('topSub').textContent={build:'Build your distribution',render:'Bubble chart, appendix and puzzle man',deck:'Presentation'}[p];
+  window.scrollTo(0,0);
+  if(p==='render')showTab(S.view);
+}
+function flash(msg){const m=$('renderMsg');m.innerHTML='<div class="okbox">'+esc(msg)+'</div>';setTimeout(()=>{if(m.textContent===msg)m.innerHTML='';},5000);}
 
-/* ============================== step 5: presentation ============================== */
+/* ============================== presentation ============================== */
 const cmpOn=w=>{try{return w.document.getElementById('cmpToggle').getAttribute('aria-checked')==='true';}catch(e){return false;}};
-async function grab(kind){                      // -> [{title,svg}] for one tool, exactly as it looks right now
+async function grab(kind,an){                    // -> [{title,svg}] for one tool of one look-alike, exactly as it looks right now
+  an=an||S.a;const multi=withLal().length>1,pre=multi?an.name+' – ':'',other=S.list.find(x=>x.id===an.cmpWith);
+  const cmpTxt=w=>cmpOn(w)?(other?' – '+other.name+' vs '+an.name:' – compare years'):'';
   if(kind==='puzzle'){
-    const f=ensurePuzzle(),w=f.contentWindow;
+    const f=await ensurePuzzle(an),w=f.contentWindow;
     if(!w.eval('!!(state.report&&state.pieces.some(p=>p.visible))'))throw new Error('The puzzle man has no pieces yet.');
-    return [{title:'Puzzle man'+(cmpOn(w)?' – compare years':''),svg:w.renderSlide(true)}];
+    const c=cmpTxt(w);return [{title:(c&&other?'':pre)+'Puzzle man'+c,svg:w.renderSlide(true)}];
   }
-  const f=await ensureBubble(),w=f.contentWindow;
-  if(kind==='chart'){if(!w.__lastSVG)throw new Error('The bubble chart isn’t ready yet.');return [{title:'Bubble chart'+(cmpOn(w)?' – compare years':''),svg:w.__lastSVG}];}
+  const f=await ensureBubble(an),w=f.contentWindow;
+  if(kind==='chart'){if(!w.__lastSVG)throw new Error('The bubble chart isn’t ready yet.');const c=cmpTxt(w);return [{title:(c&&other?'':pre)+'Bubble chart'+c,svg:w.__lastSVG}];}
   let pg=w.__getAppPages();if(!pg.length){w.__buildAppendix(false);pg=w.__getAppPages();}
   if(!pg.length)throw new Error('The appendix couldn’t be built from this workbook.');
-  return pg.map(p=>({title:'Appendix – '+p.band.name+(p.parts>1?' ('+p.part+' of '+p.parts+')':''),svg:p.svg}));
+  return pg.map(p=>({title:pre+'Appendix – '+p.band.name+(p.parts>1?' ('+p.part+' of '+p.parts+')':''),svg:p.svg}));
 }
 function addSlides(list){
-  for(const x of list)S.deck.push({id:Math.random().toString(36).slice(2),title:x.title,svg:x.svg,url:URL.createObjectURL(new Blob([x.svg],{type:'image/svg+xml'}))});
+  for(const x of list)S.deck.push({id:uid(),title:x.title,svg:x.svg,url:URL.createObjectURL(new Blob([x.svg],{type:'image/svg+xml'}))});
   renderDeck();
 }
 function renderDeck(){
   const L=$('deckList'),n=S.deck.length;L.innerHTML='';
   $('deckExport').hidden=!n;$('dkCount').textContent=n?n+' slide'+(n>1?'s':''):'';
-  $('startDeck').textContent=n?'Add all current slides again':'Start building presentation';
-  $('deckNote').hidden=!!n;
+  $('deckEmpty').hidden=!!n;$('deckMore').hidden=!n;
+  document.querySelectorAll('.cnt').forEach(c=>c.textContent=n);
   S.deck.forEach((d,i)=>{
     const c=document.createElement('div');c.className='dcard';c.draggable=true;
     c.innerHTML='<img alt=""><div class="dmeta"><span class="n">'+(i+1)+'</span><input aria-label="Slide title"><button class="ib" data-a="up" type="button" title="Move earlier">&larr;</button><button class="ib" data-a="dn" type="button" title="Move later">&rarr;</button><button class="ib" data-a="rm" type="button" title="Remove from deck">&times;</button></div>';
@@ -3020,24 +3190,27 @@ function renderDeck(){
     c.addEventListener('drop',e=>{if(S.dragI==null)return;e.preventDefault();e.stopPropagation();const from=S.dragI;S.dragI=null;if(from===i)return;const [m]=S.deck.splice(from,1);S.deck.splice(i,0,m);renderDeck();});
     L.appendChild(c);
   });
+  $('startOver').hidden=!withLal().length&&!n;
 }
 async function startDeck(){
-  const m=$('deckMsg'),btn=$('startDeck'),label=btn.textContent;m.innerHTML='';btn.disabled=true;btn.textContent='Collecting slides…';
-  const got=[],miss=[];
-  for(const [k,lab] of [['chart','bubble chart'],['app','appendix'],['puzzle','puzzle man']]){
-    if(k!=='puzzle'&&!S.wb){miss.push(lab+' (counts need fixing)');continue;}
-    try{got.push(...await grab(k));}catch(e){miss.push(lab+': '+(e.message||e));}
+  const m=$('deckMsg'),btns=[$('startDeck'),$('startDeck2')],labels=btns.map(b=>b.textContent);m.innerHTML='';btns.forEach(b=>{b.disabled=true;b.textContent='Collecting slides…';});
+  const got=[],miss=[],multi=withLal().length>1;
+  for(const an of withLal()){
+    for(const [k,lab] of [['chart','bubble chart'],['app','appendix'],['puzzle','puzzle man']]){
+      const who=multi?an.name+' ':'';
+      if(k!=='puzzle'&&!an.wb){miss.push(who+lab+' (counts need fixing)');continue;}
+      try{got.push(...await grab(k,an));}catch(e){miss.push(who+lab+': '+(e.message||e));}
+    }
   }
   addSlides(got);
   if(miss.length)box(m,'warn','Left out: '+esc(miss.join('; ')));
-  btn.disabled=false;renderDeck();if(!got.length)btn.textContent=label;
-  if(S.view){const f=viewer.querySelector('iframe[style*="block"]');}
+  btns.forEach((b,i)=>{b.disabled=false;b.textContent=labels[i];});renderDeck();
 }
 async function addCurrent(){
-  try{const got=await grab(S.view);addSlides(got);flash(got.length>1?'Added '+got.length+' slides to your presentation.':'Added “'+got[0].title+'” to your presentation.');setStep('st5','active');}
+  try{const got=await grab(S.view,S.a);addSlides(got);flash(got.length>1?'Added '+got.length+' slides to your presentation.':'Added “'+got[0].title+'” to your presentation.');}
   catch(e){box($('renderMsg'),'err',esc(e.message||String(e)));}
 }
-const deckBase=()=>'Perfect_Match_Analysis'+(S.lal&&S.lal.client?'_'+slug(S.lal.client):'');
+const deckBase=()=>{const L=withLal();return 'Perfect_Match_Analysis'+(L.length?'_'+slug(L.length>1?L.map(a=>a.name).join('_'):(L[0].lal.client||L[0].name)):'');};
 async function exportPdf(){
   const P=$('deckPrint');P.innerHTML='';
   const imgs=S.deck.map(d=>{const i=new Image();i.src=d.url;P.appendChild(i);return i;});
@@ -3052,40 +3225,47 @@ async function svgToPngBytes(svg){
   const c=document.createElement('canvas');c.width=3008;c.height=1692;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);
   const b=await new Promise(r=>c.toBlob(r,'image/png'));return new Uint8Array(await b.arrayBuffer());
 }
+const storeEntry=(name,u)=>({name,method:0,crc:crc32(u),csize:u.length,usize:u.length,raw:u});
 async function exportZip(kind){
   const m=$('deckMsg');m.innerHTML='';
   try{
     const ents=[];
     for(let i=0;i<S.deck.length;i++){
       const d=S.deck[i],u=kind==='png'?await svgToPngBytes(d.svg):enc.encode('<?xml version="1.0" encoding="UTF-8"?>\n'+d.svg);
-      ents.push({name:pad2(i+1)+'_'+(slug(d.title)||'slide')+'.'+kind,method:0,crc:crc32(u),csize:u.length,usize:u.length,raw:u});
+      ents.push(storeEntry(pad2(i+1)+'_'+(slug(d.title)||'slide')+'.'+kind,u));
     }
     download(new Blob([writeZip(ents)],{type:'application/zip'}),deckBase()+'_'+kind.toUpperCase()+'s.zip');
   }catch(e){box(m,'err',esc(e.message||String(e)));}
 }
-window.showBuilder=window.showPicker=function(){window.scrollTo({top:0,behavior:'smooth'});};
+window.showBuilder=window.showPicker=function(){goPage('build');};
 
 /* ============================== wiring ============================== */
 $('lalFile').addEventListener('change',e=>{const f=e.target.files[0];if(f)loadLal(f);e.target.value='';});
 window.addEventListener('dragover',e=>{e.preventDefault();document.body.classList.add('dragging');});
 window.addEventListener('dragleave',e=>{if(!e.relatedTarget)document.body.classList.remove('dragging');});
 window.addEventListener('drop',e=>{e.preventDefault();document.body.classList.remove('dragging');const f=e.dataTransfer.files[0];if(f&&e.target.closest&&e.target.closest('#st1'))loadLal(f);});
-$('dlWb').addEventListener('click',()=>{if(S.wb)download(new Blob([S.wb.bytes],{type:XLSX_MIME}),S.wb.name);});
+$('anName').addEventListener('input',e=>{const an=S.a;an.name=e.target.value.trim()||an.name;renderAnBar();if(an.wb)$('wbName').textContent=wbName(an);});
+$('anName').addEventListener('change',e=>{const an=S.a;const v=e.target.value.trim();if(!v){e.target.value=an.name;return;}an.name=uniqueName(an,v);e.target.value=an.name;renderAnBar();if(an.wb)$('wbName').textContent=wbName(an);});
+$('addAn').addEventListener('click',addAn);
+$('dlWb').addEventListener('click',()=>{if(S.wb)download(new Blob([S.wb.bytes],{type:XLSX_MIME}),wbName(S.a));});
+$('dlAll').addEventListener('click',()=>{const ents=S.list.filter(a=>a.wb).map(a=>storeEntry(wbName(a),a.wb.bytes));download(new Blob([writeZip(ents)],{type:'application/zip'}),'Personicx_NS_Distributions.zip');});
 $('vtabs').addEventListener('click',e=>{const b=e.target.closest('.btn');if(b&&!b.disabled)showTab(b.dataset.v);});
+$('cmpWith').addEventListener('change',e=>setCompareWith(e.target.value));
 $('addSlide').addEventListener('click',addCurrent);
-$('startDeck').addEventListener('click',startDeck);
+$('startDeck').addEventListener('click',startDeck);$('startDeck2').addEventListener('click',startDeck);
+document.querySelectorAll('#nav button').forEach(b=>b.addEventListener('click',()=>{if(!b.disabled)goPage(b.dataset.pg);}));
+$('toRender').addEventListener('click',()=>goPage('render'));$('toDeck').addEventListener('click',()=>goPage('deck'));
 $('dkPdf').addEventListener('click',exportPdf);$('dkPng').addEventListener('click',()=>exportZip('png'));$('dkSvg').addEventListener('click',()=>exportZip('svg'));
 $('dkClear').addEventListener('click',()=>{if(!S.deck.length||!confirm('Remove all slides from the presentation?'))return;S.deck.forEach(d=>URL.revokeObjectURL(d.url));S.deck=[];renderDeck();});
 $('startOver').addEventListener('click',()=>{
-  if(!confirm('Start over? The look-alike report, counts, charts and your presentation will be cleared.'))return;
-  dropFrames();S.deck.forEach(d=>URL.revokeObjectURL(d.url));S.deck=[];renderDeck();S.lal=null;S.wb=null;S.cust={src:'lal',file:null};S.mkt={src:'lal',file:null};planTok++;
-  document.querySelectorAll('.seg[data-kind] .btn').forEach(b=>b.classList.toggle('on',b.dataset.src==='lal'));
-  document.querySelectorAll('.own').forEach(o=>o.hidden=true);document.querySelectorAll('.fn').forEach(x=>x.textContent='Choose file (.xlsx / .csv)');
-  $('lalChips').hidden=true;$('lalMsg').innerHTML='';$('lalTitle').textContent='Choose your look-alike report';$('lalHint').innerHTML='Drag &amp; drop the PDF here, or <u>browse</u>.';
-  setStep('st1','active');lock234();$('startOver').hidden=true;$('wbPrev').hidden=true;
-  document.querySelectorAll('#vtabs .btn').forEach(b=>b.classList.remove('on'));for(const id of ['wbMsg','wbNotes','wbTiles','wbTbl','renderMsg','deckMsg'])$(id).innerHTML='';$('wbName').textContent='';$('dlWb').disabled=true;
+  if(!confirm('Start over? Every look-alike, its counts and charts, and your presentation will be cleared.'))return;
+  viewer.innerHTML='';S.deck.forEach(d=>URL.revokeObjectURL(d.url));S.deck=[];S.list.forEach(a=>a.tok++);
+  S.list=[mkAn()];S.a=S.list[0];S.view='chart';
+  for(const id of ['renderMsg','deckMsg'])$(id).innerHTML='';
+  document.querySelectorAll('#vtabs .btn').forEach(b=>b.classList.remove('on'));
+  renderDeck();goPage('build');syncUI();
 });
-wireStep2();
+wireStep2();syncUI();
 </script>
 </body>
 </html>
