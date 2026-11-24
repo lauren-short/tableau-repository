@@ -1467,6 +1467,12 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
   #opts select,#opts input.txt{width:100%;max-width:none}
   #opts .filebtn{max-width:none;width:100%}
 
+  .gpg{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px;background:#fff}
+  .gpg .gh{display:flex;gap:8px;align-items:center;margin-bottom:8px}.gpg .gh input{flex:1}
+  .gpg .gx{all:unset;cursor:pointer;width:26px;height:26px;border-radius:50%;text-align:center;line-height:26px;color:var(--mut);font-size:18px}.gpg .gx:hover{background:#eef3fb;color:#b42318}
+  .gpc{display:flex;flex-wrap:wrap;gap:5px}.gpc button{all:unset;cursor:pointer;box-sizing:border-box;height:24px;padding:0 10px;border-radius:999px;border:1px solid #d5e0f2;background:#fff;font-size:11px;color:var(--mut)}
+  .gpc button.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
+  .gpkeep{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--navy)}
   .acc{border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;flex:none}
 
   .acch{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;gap:10px;padding:13px 16px;background:#f8fafd}
@@ -1668,6 +1674,13 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
           </div>
           <div class="osec"><div class="lbl">Commentary for this piece <span class="mut">&ndash; one bullet per line</span></div><div id="pmBul"></div></div>
         </section>
+        </div></div>
+        <div class="acc" id="accGrp"><div class="acch" aria-expanded="false"><span class="atx" role="button" tabindex="0"><span class="at">Group pieces on one slide</span><span class="as">Look at a few pieces together, e.g. affluence</span></span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg><button id="gpToggle" class="switch" type="button" role="switch" aria-checked="false" aria-pressed="false" title="Put several pieces on one slide"><span></span></button></div><div class="accb">
+          <div class="hint">Pick the pieces that belong together and they get one slide: each piece&rsquo;s shape and bands side by side, with only those pieces lit on the figure. Slides appear where the first piece of the group sits in your list.</div>
+          <div id="gpList"></div>
+          <div class="pcbtns"><button class="btn" id="gpAdd" type="button">+ Add a group</button><button class="btn" id="gpPreset" type="button">+ Affluence example</button></div>
+          <label class="gpkeep"><input type="checkbox" id="gpKeep"> Also keep each piece&rsquo;s own slide</label>
+          <div class="hint">Commentary for a group slide is typed in the box under Create puzzle pieces while that slide is showing.</div>
         </div></div>
       </div>
     </aside>
@@ -1940,7 +1953,7 @@ const state={
   pieces:[],
   opts:{thr:120,excl:true,minShare:2,method:'pct'},
   figScale:1,
-  pm:{on:false,page:0,sub:null,bul:{},ts:1,ls:1},
+  pm:{on:false,page:0,sub:null,bul:{},ts:1,ls:1,groups:[],gOn:false,keep:false,gid:1},
   cmp:{on:false,kind:'pm',report:null,pm:null,plabel:String(new Date().getFullYear()-1),clabel:String(new Date().getFullYear()),fname:{pm:'',lal:''}},
   edited:{},
   text:{title:'CUSTOMER TRAITS AT A GLANCE',sub:'NOTE: BRAND PREFERENCE INDEX (BPI) IS DISPLAYED IN BLUE\nPARENTHESIS.',slide:''},
@@ -2419,8 +2432,8 @@ function pmBBox(d){   // works even when the page is hidden (no DOM measuring): 
   }
   return {x:x0,y:y0,width:x1-x0,height:y1-y0};
 }
-function pmSlide(idx,forExport){
-  const vis=pmVis(),p=vis[idx],T=state.text;
+function pmPieceSlide(item,idx,forExport){
+  const vis=pmVis(),p=item.p,T=state.text;
   const plan=planMan(vis),tp=plan.tpl,C=state.cmp;
   const sc=Math.min(300/tp.w,640/tp.h)*(state.figScale||1),X0=1267-tp.w*sc/2,Y0=150;
   const me=plan.items.find(it=>it.p===p);
@@ -2494,7 +2507,7 @@ function pmSlide(idx,forExport){
   // figure: this piece dark, the others muted
   let shapes='',flabels='';
   plan.items.forEach(it=>{
-    const on=it===me,done=!!(it.p&&vis.indexOf(it.p)<idx),col=(on||done)?NAVY:PM_MUTED;
+    const on=it===me,done=!!(it.p&&item.done.has(it.p)),col=(on||done)?NAVY:PM_MUTED;
     shapes+=it.r.d.split(/(?=M)/).map(dd=>`<path d="${dd}" fill="${col}" stroke="${col}" stroke-width="0.7" stroke-linejoin="round"/>`).join('');
     if((on||done)&&it.p){
       const [rx,ry,rw,rh]=it.r.rect,m=1,bw2=(rw-2*m)*sc,bh2=(rh-2*m)*sc,vert=(it.r.z==='arm'||it.r.z==='leg')&&rh>rw*1.25,rot2=vert?(it.r.s==='r'?90:-90):0;
@@ -2509,24 +2522,135 @@ function pmSlide(idx,forExport){
   const dims=forExport?` width="${SW}" height="${SH}"`:'';
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${SH}"${dims} font-family="Arial, Helvetica, sans-serif">${o}</svg>`;
 }
-function pmPages(){const v=pmVis();return v.map((p,i)=>({title:String(p.header||p.label),svg:pmSlide(i,true)}));}
+
+function pmBulletsKey(k){return String(state.pm.bul[k]||'').split('\n').map(x=>x.trim()).filter(Boolean);}
+function pmItems(){
+  const vis=pmVis(),P=state.pm,G=P.gOn?P.groups.map(g=>({g,mem:vis.filter(p=>g.uids.includes(p.uid))})).filter(x=>x.mem.length):[];
+  const inG=new Map();G.forEach(x=>x.mem.forEach(p=>inG.set(p.uid,x)));
+  const items=[],emitted=new Set(),done=new Set();
+  vis.forEach(p=>{
+    const gx=inG.get(p.uid);
+    if(!gx){items.push({p,mem:[p],done:new Set(done)});done.add(p);return;}
+    if(P.keep){items.push({p,mem:[p],done:new Set(done)});done.add(p);if(gx.mem[gx.mem.length-1]===p)items.push({g:gx.g,mem:gx.mem,done:new Set(done)});}
+    else if(!emitted.has(gx.g.id)){emitted.add(gx.g.id);gx.mem.forEach(m=>done.add(m));items.push({g:gx.g,mem:gx.mem,done:new Set(done)});}
+  });
+  return items;
+}
+const pmTitle=it=>it.g?(it.g.name||'Group'):String(it.p.header||it.p.label);
+function pmIso(plan,tp,sc,p,bx,by,bw,bh){
+  const me=plan.items.find(it=>it.p===p);if(!me)return '';
+  const bb0=pmBBox(me.r.d),ds=[me.r.d];let u={x0:bb0.x,y0:bb0.y,x1:bb0.x+bb0.width,y1:bb0.y+bb0.height};
+  plan.items.forEach(it2=>{
+    if(!it2.r.b)return;const kb=pmBBox(it2.r.d),kx=kb.x+kb.width/2,ky=kb.y+kb.height/2,m=2;
+    const hit=kb.x<=bb0.x+bb0.width+m&&kb.x+kb.width>=bb0.x-m&&kb.y<=bb0.y+bb0.height+m&&kb.y+kb.height>=bb0.y-m;
+    const inside=kx>bb0.x&&kx<bb0.x+bb0.width&&ky>bb0.y&&ky<bb0.y+bb0.height;
+    if(hit&&!inside){ds.push(it2.r.d);u={x0:Math.min(u.x0,kb.x),y0:Math.min(u.y0,kb.y),x1:Math.max(u.x1,kb.x+kb.width),y1:Math.max(u.y1,kb.y+kb.height)};}
+  });
+  const bb={x:u.x0,y:u.y0,width:u.x1-u.x0,height:u.y1-u.y0};
+  const s2=Math.min(bw/bb.width,bh/bb.height),pw=bb.width*s2,ph=bb.height*s2,px=bx+(bw-pw)/2,py=by+(bh-ph)/2;
+  let o=`<g transform="translate(${px.toFixed(1)},${py.toFixed(1)}) scale(${s2.toFixed(4)}) translate(${-bb.x},${-bb.y})">`+ds.map(d=>d.split(/(?=M)/).map(dd=>`<path d="${dd}" fill="${NAVY}" stroke="${NAVY}" stroke-width="0.7" stroke-linejoin="round"/>`).join('')).join('')+`</g>`;
+  const [rx,ry,rw,rh]=me.r.rect,vertical=(me.r.z==='arm'||me.r.z==='leg')&&rh>rw*1.25,rot=vertical?(me.r.s==='r'?90:-90):0;
+  const f0=fitLabel(p.label,((vertical?rh:rw)-2)*sc,((vertical?rw:rh)-2)*sc),k=s2/sc*1.15*(state.pm.ls||1),f={size:+(f0.size*k).toFixed(1),lines:f0.lines};
+  const cx=px+(tp.x0+rx+rw/2-bb.x)*s2,cy=py+(tp.y0+ry+rh/2-bb.y)*s2,n=f.lines.length,lh=f.size*1.18;
+  return o+`<g transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(${rot})">`+f.lines.map((l,i)=>`<text x="0" y="${((i-(n-1)/2)*lh+f.size*0.35).toFixed(1)}" text-anchor="middle" font-size="${f.size}" font-weight="700" fill="#fff">${esc(l)}</text>`).join('')+`</g>`;
+}
+function pmGroupSlide(item,idx,forExport){
+  const vis=pmVis(),plan=planMan(vis),tp=plan.tpl,C=state.cmp,T=state.text,TS=state.pm.ts||1,g=item.g,mem=item.mem;
+  const sc=Math.min(300/tp.w,640/tp.h)*(state.figScale||1),X0=1267-tp.w*sc/2,Y0=150;
+  let o=`<rect width="${SW}" height="${SH}" fill="#fff"/>`;
+  const title=String(g.name||'Group').toUpperCase();
+  let tSize=Math.round(66*TS);while(tSize>24&&measure(title,tSize,'bold')>980)tSize--;
+  o+=`<text x="108" y="116" font-size="${tSize}" font-weight="700" fill="${NAVY}">${esc(title)}</text>`;
+  const sub=pmSubText();if(sub)o+=`<text x="110" y="152" font-size="${(26*TS).toFixed(1)}" letter-spacing="2.4" fill="${NAVY}">${esc(sub)}</text>`;
+  const AX=108,AW=Math.min(1000,X0-40-AX),top=190;
+  // commentary
+  const bl=pmBulletsKey('g'+g.id);let bsz=Math.round(22*TS),bL=bl.map(b=>wrapFn(b,t=>measure(t,bsz,'normal'),AW-40));
+  const bh=bL.reduce((a,x)=>a+x.length*bsz*1.35+10,0),bottom=bl.length?Math.min(790-bh-16,800):800;
+  const k=mem.length,cols=k<=3?k:Math.ceil(k/2),rows=Math.ceil(k/cols),cw=AW/cols,chh=(bottom-top)/rows;
+  mem.forEach((p,i)=>{
+    const col=i%cols,row=Math.floor(i/cols),cx0=AX+col*cw,cy0=top+row*chh;
+    const ph=Math.min(chh*0.4,rows===1?190:110);
+    o+=pmIso(plan,tp,sc,p,cx0+12,cy0,cw-24,ph);
+    const ls=linesOf(p),cmp=C.on&&ls.some(l=>l.prev!=null),heads=cmp?[String(C.plabel),String(C.clabel)]:['Index'];
+    let fs=Math.round(24*TS),lh;
+    const dims=()=>({w1:Math.max(measure(p.header,fs,'bold'),...ls.map(l=>measure(l.text,fs,'normal')),40),cws:heads.map(h=>Math.max(measure(h,fs,'bold'),measure('000',fs,'normal'))+8)});
+    let d=dims();const gap=Math.max(10,fs*0.9);
+    for(;;){lh=Math.round(fs*1.38);d=dims();const tw=d.w1+d.cws.reduce((a,b)=>a+b+gap,0);if(((ls.length+1)*lh<=chh-ph-26&&tw<=cw-8)||fs<=11)break;fs--;}
+    const gp=Math.max(10,fs*0.9),tw=d.w1+d.cws.reduce((a,b)=>a+b+gp,0),tx=cx0+cw/2-tw/2;let y=cy0+ph+24;
+    o+=`<text x="${(tx+d.w1/2).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" font-size="${fs}" font-weight="700" fill="${NAVY}">${esc(p.header)}</text>`;
+    let cp=tx+d.w1+gp;const colX=d.cws.map(w=>{const c=cp+w/2;cp+=w+gp;return c;});
+    heads.forEach((h,q)=>{o+=`<text x="${colX[q].toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" font-size="${fs}" font-weight="700" fill="${cmp?(q===0?GOLD:BLUE):NAVY}">${esc(h)}</text>`;});
+    y+=lh;
+    if(!ls.length)o+=`<text x="${(cx0+cw/2).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" font-size="${fs}" fill="#777">No bands</text>`;
+    ls.forEach(l=>{
+      o+=`<text x="${(tx+d.w1/2).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" font-size="${fs}" fill="${GRAYT}">${esc(l.text)}</text>`;
+      (cmp?[l.prev,l.bpi]:[l.bpi]).forEach((v,q)=>{o+=`<text x="${colX[q].toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" font-size="${fs}" fill="${GRAYT}">${v==null?'—':esc(v)}</text>`;});
+      y+=lh;
+    });
+  });
+  if(bl.length){let by=790-bh+bsz;bL.forEach(lines=>{o+=`<rect x="109" y="${(by-bsz*0.8).toFixed(1)}" width="${bsz*0.8}" height="${bsz*0.8}" fill="none" stroke="${BLUE}" stroke-width="2"/>`;lines.forEach(t=>{o+=`<text x="${(109+bsz*0.8+14)}" y="${by.toFixed(1)}" font-size="${bsz}" fill="${GRAYT}">${esc(t)}</text>`;by+=bsz*1.35;});by+=10;});}
+  // figure
+  let shapes='',flabels='';const inM=new Set(mem);
+  plan.items.forEach(it=>{
+    const lit=!!(it.p&&(inM.has(it.p)||item.done.has(it.p))),col=lit?NAVY:PM_MUTED;
+    shapes+=it.r.d.split(/(?=M)/).map(dd=>`<path d="${dd}" fill="${col}" stroke="${col}" stroke-width="0.7" stroke-linejoin="round"/>`).join('');
+    if(lit){
+      const [rx,ry,rw,rh]=it.r.rect,m=1,bw2=(rw-2*m)*sc,bh2=(rh-2*m)*sc,vert=(it.r.z==='arm'||it.r.z==='leg')&&rh>rw*1.25,rot2=vert?(it.r.s==='r'?90:-90):0;
+      const f=fitLabel(it.p.label,vert?bh2:bw2,vert?bw2:bh2),cx=X0+(rx+rw/2)*sc,cy=Y0+(ry+rh/2)*sc,n=f.lines.length,lh2=f.size*1.18;
+      flabels+=`<g transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(${rot2})">`+f.lines.map((l,q)=>`<text x="0" y="${((q-(n-1)/2)*lh2+f.size*0.35).toFixed(1)}" text-anchor="middle" font-size="${f.size}" font-weight="700" fill="#fff">${esc(l)}</text>`).join('')+`</g>`;
+    }
+  });
+  o+=`<g transform="translate(${X0.toFixed(2)},${Y0}) scale(${sc.toFixed(4)}) translate(${-tp.x0},${-tp.y0})">${shapes}</g>${flabels}`;
+  const n0=parseInt(T.slide,10);if(!isNaN(n0))o+=`<text x="48" y="790" font-size="13" fill="#222">${n0+idx}</text>`;
+  const dm=forExport?` width="${SW}" height="${SH}"`:'';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${SH}"${dm} font-family="Arial, Helvetica, sans-serif">${o}</svg>`;
+}
+function pmSlide(i,forExport){const it=pmItems()[i];return it.g?pmGroupSlide(it,i,forExport):pmPieceSlide(it,i,forExport);}
+function pmPages(){return pmItems().map((it,i)=>({title:pmTitle(it),svg:pmSlide(i,true)}));}
 window.__pmOn=()=>!!state.pm.on;
 window.renderPieceSlides=pmPages;
-function pmClamp(){const n=pmVis().length;state.pm.page=Math.max(0,Math.min(state.pm.page,n-1));}
+function pmClamp(){const n=pmItems().length;state.pm.page=Math.max(0,Math.min(state.pm.page,n-1));}
 function pmBuildPanel(){
   $('pmSub').value=pmSubText();
-  pmClamp();$('pmBul').innerHTML=pmVis().filter((p,i)=>i===state.pm.page).map(p=>`<div class="pb"><b>${esc(p.header||p.label)}</b><textarea data-uid="${p.uid}" placeholder="# 1 is unique and above average index for…">${esc(state.pm.bul[p.uid]||'')}</textarea></div>`).join('')||'<div class="hint">No pieces yet.</div>';
+  pmClamp();$('pmBul').innerHTML=pmItems().filter((it,i)=>i===state.pm.page).map(it=>{const key=it.g?'g'+it.g.id:it.p.uid;return `<div class="pb"><b>${esc(pmTitle(it))}${it.g?' (group)':''}</b><textarea data-uid="${key}" placeholder="# 1 is unique and above average index for…">${esc(state.pm.bul[key]||'')}</textarea></div>`;}).join('')||'<div class="hint">No pieces yet.</div>';
 }
 function pmSet(on){
   state.pm.on=on;const b=$('pmToggle');b.classList.toggle('on',on);b.setAttribute('aria-checked',on);b.setAttribute('aria-pressed',on);
   $('pmPanel').hidden=!on;if(on){pmBuildPanel();}
-  if(on){$('accPm').classList.add('on');accSet('accPm',true);accSet('accBuild',false);accSet('accCmp',false);}else{$('accPm').classList.remove('on');accSet('accPm',false);accSet('accBuild',true);}
+  if(on){$('accPm').classList.add('on');accSet('accPm',true);accSet('accBuild',false);accSet('accCmp',false);}else{$('accPm').classList.remove('on');accSet('accPm',false);if(state.pm.gOn)gpSet(false);accSet('accBuild',true);}
   renderStage();
 }
 $('pmToggle').addEventListener('click',()=>pmSet(!state.pm.on));
 [['pmTs','ts'],['pmLs','ls']].forEach(([id,k])=>$(id).addEventListener('input',e=>{state.pm[k]=e.target.value/100;$(id+'V').textContent=e.target.value+'%';renderStage();}));
 $('pmSub').addEventListener('input',e=>{state.pm.sub=e.target.value;renderStage();});
 $('pmBul').addEventListener('input',e=>{const t=e.target.closest('textarea');if(!t)return;state.pm.bul[t.dataset.uid]=t.value;renderStage();});
+
+/* ---- group pieces on one slide ---- */
+function gpBuild(){
+  const P=state.pm,vis=pmVis();
+  $('gpList').innerHTML=P.groups.map(g=>`<div class="gpg" data-id="${g.id}"><div class="gh"><input class="txt gn" value="${esc(g.name)}" placeholder="Group name, e.g. Affluence"><button type="button" class="gx" title="Remove group" aria-label="Remove group">&times;</button></div><div class="gpc">${vis.map(p=>`<button type="button" data-uid="${p.uid}" class="${g.uids.includes(p.uid)?'on':''}">${esc(p.label)}</button>`).join('')}</div></div>`).join('')||'<div class="hint">No groups yet.</div>';
+  $('gpKeep').checked=P.keep;
+}
+function gpSet(on,quiet){
+  const P=state.pm,b=$('gpToggle');P.gOn=on;b.classList.toggle('on',on);b.setAttribute('aria-checked',on);b.setAttribute('aria-pressed',on);
+  $('accGrp').classList.toggle('on',on);
+  if(on){if(!P.groups.length)P.groups.push({id:P.gid++,name:'Group 1',uids:[]});gpBuild();if(!P.on&&!quiet)pmSet(true);accSet('accGrp',true);accSet('accPm',false);accSet('accBuild',false);accSet('accCmp',false);}
+  else accSet('accGrp',false);
+  if(P.on)renderStage();
+}
+$('gpToggle').addEventListener('click',()=>gpSet(!state.pm.gOn));
+$('gpAdd').addEventListener('click',()=>{const P=state.pm;P.groups.push({id:P.gid++,name:'Group '+(P.groups.length+1),uids:[]});gpBuild();renderStage();});
+$('gpPreset').addEventListener('click',()=>{const P=state.pm,u=pmVis().filter(p=>/income|net ?worth|home market value/i.test(p.label)).map(p=>p.uid);
+  P.groups.forEach(g=>g.uids=g.uids.filter(x=>!u.includes(x)));P.groups=P.groups.filter(g=>g.uids.length);P.groups.push({id:P.gid++,name:'Affluence',uids:u});gpBuild();renderStage();});
+$('gpKeep').addEventListener('change',e=>{state.pm.keep=e.target.checked;renderStage();});
+$('gpList').addEventListener('input',e=>{const el=e.target.closest('.gpg');if(!el||!e.target.classList.contains('gn'))return;state.pm.groups.find(g=>g.id==el.dataset.id).name=e.target.value;renderStage();});
+$('gpList').addEventListener('click',e=>{
+  const el=e.target.closest('.gpg');if(!el)return;const P=state.pm,g=P.groups.find(x=>x.id==el.dataset.id);
+  if(e.target.closest('.gx')){P.groups=P.groups.filter(x=>x!==g);gpBuild();renderStage();return;}
+  const b=e.target.closest('.gpc button');if(!b)return;const uid=+b.dataset.uid;
+  if(g.uids.includes(uid))g.uids=g.uids.filter(x=>x!==uid);else{P.groups.forEach(x=>x.uids=x.uids.filter(y=>y!==uid));g.uids.push(uid);}
+  gpBuild();renderStage();
+});
 
 /* ---- UI (bubble-chart look & feel) ---- */
 document.body.classList.add('standalone');
@@ -2535,8 +2659,8 @@ const EMPTY=()=>`<label for="file" class="drop"><div class="ic"><svg width="30" 
 function renderStage(){
   if(!state.report){ stage.innerHTML=EMPTY(); ['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=true); $('segbar').hidden=true; return; }
   if(state.pm.on&&pmVis().length){
-    pmClamp();const n=pmVis().length,pg=state.pm.page;
-    stage.innerHTML=`<div style="width:100%;display:flex;flex-direction:column;align-items:center"><div class="card">${pmSlide(pg,false)}</div><div class="pmbar"><button type="button" id="pmPrev" ${pg<=0?'disabled':''} aria-label="Previous piece">&lsaquo;</button><span>Piece ${pg+1} of ${n} &ndash; ${esc(pmVis()[pg].header)}</span><button type="button" id="pmNext" ${pg>=n-1?'disabled':''} aria-label="Next piece">&rsaquo;</button></div></div>`;
+    pmClamp();const items=pmItems(),n=items.length,pg=state.pm.page;
+    stage.innerHTML=`<div style="width:100%;display:flex;flex-direction:column;align-items:center"><div class="card">${pmSlide(pg,false)}</div><div class="pmbar"><button type="button" id="pmPrev" ${pg<=0?'disabled':''} aria-label="Previous piece">&lsaquo;</button><span>Slide ${pg+1} of ${n} &ndash; ${esc(pmTitle(items[pg]))}</span><button type="button" id="pmNext" ${pg>=n-1?'disabled':''} aria-label="Next piece">&rsaquo;</button></div></div>`;
     $('pmPrev').onclick=()=>{state.pm.page--;renderStage();};$('pmNext').onclick=()=>{state.pm.page++;renderStage();};
     window.__fit={notes:[]};$('fitnote').textContent='';
     ['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=false);
@@ -2617,7 +2741,7 @@ function buildPieceList(){
       <div class="pcbtns"><button class="btn rb" type="button">Auto bands</button><button class="btn reset" type="button">Reset lines to auto</button>${state.cmp.on?'<button class="btn preset" type="button">Reset prior-year lines</button>':''}<button class="btn rm" type="button">Remove piece</button></div>
     </div>
   </div>`).join('');
-  buildSegbar(); renderStage();
+  buildSegbar(); if(state.pm.gOn)gpBuild(); renderStage();
   if(state.cmp.on&&$('manualBox')&&!$('manualBox').hidden) buildManual();
 }
 function updateChips(){
@@ -2726,10 +2850,10 @@ $('resetAll').addEventListener('click',()=>{ if(state.report){initPieces();build
 /* options panel */
 
 function accSet(id,on){const a=$(id);if(!a)return;a.classList.toggle('open',on);a.querySelector('.acch').setAttribute('aria-expanded',on?'true':'false');}
-$('accCmp').classList.add('sw');$('accPm').classList.add('sw');
-function accSync(){[['accCmp','cmpToggle'],['accPm','pmToggle']].forEach(([a,t])=>{const on=$(t).classList.contains('on');$(a).classList.toggle('on',on);if(!on)accSet(a,false);});}
+$('accCmp').classList.add('sw');$('accPm').classList.add('sw');$('accGrp').classList.add('sw');
+function accSync(){[['accCmp','cmpToggle'],['accPm','pmToggle'],['accGrp','gpToggle']].forEach(([a,t])=>{const on=$(t).classList.contains('on');$(a).classList.toggle('on',on);if(!on)accSet(a,false);});}
 document.querySelectorAll('.acch').forEach(h=>{const b=h.querySelector('.atx');const f=e=>{if(e&&e.target.closest&&e.target.closest('.switch'))return;const a=b.closest('.acc');if(a.classList.contains('sw')&&!a.classList.contains('on'))return;accSet(a.id,!a.classList.contains('open'));};h.addEventListener('click',f);b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();f();}});});
-['cmpToggle','pmToggle'].forEach(t=>$(t).addEventListener('click',()=>setTimeout(accSync,0)));
+['cmpToggle','pmToggle','gpToggle'].forEach(t=>$(t).addEventListener('click',()=>setTimeout(accSync,0)));
 function openOpts(on){ $('opts').hidden=!on; $('moreBtn').setAttribute('aria-expanded',on?'true':'false'); }
 $('moreBtn').addEventListener('click',()=>openOpts($('opts').hidden));
 $('optsClose').addEventListener('click',()=>openOpts(false));
@@ -2897,7 +3021,7 @@ function svgToCanvas(scale){
   });
 }
 function curSVG(){return state.pm.on&&pmVis().length?pmSlide(state.pm.page,true):renderSlide(true);}
-function curName(ext){return state.pm.on&&pmVis().length?fname(ext).replace('_puzzle_man.','_piece'+(state.pm.page+1)+'_'+String(pmVis()[state.pm.page].header).replace(/[^\w]+/g,'_')+'.'):fname(ext);}
+function curName(ext){return state.pm.on&&pmVis().length?fname(ext).replace('_puzzle_man.','_slide'+(state.pm.page+1)+'_'+String(pmTitle(pmItems()[state.pm.page])).replace(/[^\w]+/g,'_')+'.'):fname(ext);}
 $('dlsvg').addEventListener('click',()=>download(new Blob([curSVG()],{type:'image/svg+xml'}),curName('svg')));
 $('dlpng').addEventListener('click',async()=>{try{const c=await svgToCanvas(2);c.toBlob(b=>download(b,curName('png')),'image/png');}catch(e){showMsg(e.message);}});
 $('dlpdf').addEventListener('click',()=>{
