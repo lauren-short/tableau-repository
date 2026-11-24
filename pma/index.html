@@ -59,15 +59,35 @@
   details.prev{border:1px solid var(--line);border-radius:12px;background:#fff} details.prev summary{cursor:pointer;padding:10px 14px;font-size:13px;font-weight:600;color:var(--accent)}
   .tbl{max-height:320px;overflow:auto;border-top:1px solid var(--line)} .tbl table{width:100%;border-collapse:collapse;font-size:12.5px} .tbl th{position:sticky;top:0;background:#f4f6fa;text-align:right;padding:7px 10px;color:var(--mut);font-weight:600;border-bottom:1px solid var(--line)} .tbl th:nth-child(-n+2),.tbl td:nth-child(-n+2){text-align:left}
   .tbl td{padding:5px 10px;text-align:right;border-bottom:1px solid #f0f2f7;font-variant-numeric:tabular-nums} .tbl tr.zero td{color:#98a2b3}
-  .rend{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-  .pick{text-align:left;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;cursor:pointer;font-family:inherit;color:inherit;display:flex;flex-direction:column;gap:6px;transition:transform .15s,border-color .15s,box-shadow .15s}
-  .pick:hover:not(:disabled),.pick:focus-visible{transform:translateY(-2px);border-color:var(--navy);box-shadow:0 10px 26px rgba(16,24,40,.12);outline:none}
-  .pick:disabled{opacity:.45;cursor:not-allowed}
-  .pick .tag{font-size:11.5px;font-weight:700;color:var(--accent);letter-spacing:.3px;text-transform:uppercase}
-  .pick h3{margin:0;font-size:17px;color:var(--navy)} .pick p{margin:0;font-size:13px;line-height:1.45;color:var(--mut);flex:1} .pick .go{font-size:13px;font-weight:700;color:var(--navy);margin-top:4px}
-  #frameWrap{position:fixed;inset:0;background:#fff}
-  #frameWrap iframe{width:100%;height:100%;border:0;display:none}
-  @media (max-width:760px){.cols2,.tiles,.rend{grid-template-columns:1fr} .sbody{padding-left:26px} .hero h1{font-size:24px}}
+  .steps{max-width:1120px}
+  .step.wide .sbody{padding-left:26px}
+  .vbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .vbar .grow{flex:1}
+  #viewer{position:relative;height:min(940px,calc(100vh - 110px));min-height:660px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
+  #viewer iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:none}
+  .okbox{padding:10px 14px;border-radius:9px;background:var(--okbg);color:var(--ok);font-size:13px;font-weight:600}
+  .deck{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+  .deck:empty{display:none}
+  .dcard{border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden;display:flex;flex-direction:column;cursor:grab}
+  .dcard.over{border-color:var(--accent);box-shadow:0 0 0 2px #cfe0f7}
+  .dcard.drag{opacity:.4}
+  .dcard img{display:block;width:100%;aspect-ratio:16/9;object-fit:contain;background:#fff;border-bottom:1px solid var(--line);pointer-events:none}
+  .dmeta{display:flex;align-items:center;gap:6px;padding:8px 8px 8px 10px}
+  .dmeta .n{flex:none;font-size:12px;font-weight:700;color:var(--mut);min-width:18px}
+  .dmeta input{flex:1;min-width:0;border:1px solid transparent;border-radius:6px;padding:5px 6px;font:600 12.5px/1.2 inherit;font-family:inherit;color:var(--navy);background:transparent}
+  .dmeta input:hover,.dmeta input:focus{border-color:var(--line);background:#fff;outline:none}
+  .ib{flex:none;width:26px;height:26px;border-radius:6px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;font-size:13px;line-height:1;padding:0}
+  .ib:hover:not(:disabled){border-color:#c3ccd8;background:#f7f9fc} .ib:disabled{opacity:.35;cursor:default}
+  #deckPrint{display:none}
+  @media print{
+    @page{size:16in 9in;margin:0}
+    html,body{height:auto!important;overflow:visible!important;background:#fff!important}
+    body.printing>*:not(#deckPrint){display:none!important}
+    body.printing #deckPrint{display:block}
+    #deckPrint img{display:block;width:16in;height:9in;break-after:page}
+    #deckPrint img:last-child{break-after:auto}
+  }
+  @media (max-width:760px){.cols2,.tiles{grid-template-columns:1fr} .sbody{padding-left:26px} .hero h1{font-size:24px}}
 </style>
 </head>
 <body>
@@ -133,22 +153,33 @@
         </div>
       </section>
 
-      <section class="step locked" id="st4">
-        <div class="shead"><span class="num">4</span><div class="grow"><h2>Render</h2><p>Open the bubble chart or appendix from the workbook above, or build the puzzle man from the same look-alike report.</p></div></div>
+      <section class="step locked wide" id="st4">
+        <div class="shead"><span class="num">4</span><div class="grow"><h2>Render</h2><p>The bubble chart, appendix and puzzle man all live here. Switch between them, use compare, then add any slide to your presentation.</p></div></div>
         <div class="sbody">
-          <div class="rend">
-            <button class="pick" id="goBubble" type="button" disabled><div class="tag">Personicx distribution</div><h3>Bubble chart</h3><p>Brand Preference Index bubble chart, with year-over-year comparison.</p><span class="go">Render bubble chart &rarr;</span></button>
-            <button class="pick" id="goApp" type="button" disabled><div class="tag">Personicx distribution</div><h3>Appendix</h3><p>One page per brand-receptivity band, ready to export.</p><span class="go">Render appendix &rarr;</span></button>
-            <button class="pick" id="goPuzzle" type="button" disabled><div class="tag">Look-alike report</div><h3>Puzzle man</h3><p>Uses the look-alike report you already uploaded. No second upload.</p><span class="go">Build puzzle man &rarr;</span></button>
+          <div class="vbar">
+            <div class="seg" id="vtabs"><button class="btn" data-v="chart" type="button" disabled>Bubble chart</button><button class="btn" data-v="app" type="button" disabled>Appendix</button><button class="btn" data-v="puzzle" type="button" disabled>Puzzle man</button></div>
+            <div class="grow"></div>
+            <button class="btn ghost" id="addSlide" type="button" disabled>+ Add this to presentation</button>
           </div>
           <div id="renderMsg"></div>
+          <div id="viewer"></div>
+        </div>
+      </section>
+
+      <section class="step locked wide" id="st5">
+        <div class="shead"><span class="num">5</span><div class="grow"><h2>Presentation</h2><p>One deck instead of one-off files. Collect slides from every tool, put them in order, and export them together.</p></div></div>
+        <div class="sbody">
+          <div class="rowbtns"><button class="btn primary" id="startDeck" type="button">Start building presentation</button><span class="note" id="deckNote">Adds the bubble chart, every appendix page and the puzzle man as they are right now. Use &ldquo;Add this to presentation&rdquo; above to add more, such as a compare version.</span></div>
+          <div class="deck" id="deckList"></div>
+          <div class="rowbtns" id="deckExport" hidden><button class="btn primary" id="dkPdf" type="button">Export PDF (all slides)</button><button class="btn" id="dkPng" type="button">PNG (.zip)</button><button class="btn" id="dkSvg" type="button">SVG (.zip)</button><button class="btn ghost" id="dkClear" type="button">Clear deck</button><span class="note" id="dkCount"></span></div>
+          <div id="deckMsg"></div>
         </div>
       </section>
 
     </div>
   </main>
 </div>
-<div id="frameWrap" hidden></div>
+<div id="deckPrint"></div>
 
 <script type="text/plain" id="tpl-bubble"><!DOCTYPE html>
 <html lang="en">
@@ -1163,6 +1194,7 @@ function runStandalone(){
     if(toTab) setTab("app"); else if(S.tab==="app") exp.forEach(b=>b.disabled=false);
   };
   appBtn.onclick=()=>buildAppendix(true);
+  window.__getAppPages=()=>S.appPages; window.__buildAppendix=t=>buildAppendix(t); window.__setTab=setTab;
   qa("#tabs .tabbtn").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
   $("appStart").oninput=()=>{ if(S.appOn) buildAppendix(false); };
   const dlAppZip=async kind=>{
@@ -2765,8 +2797,8 @@ function extractPersonicx(rep){
 }
 
 /* ============================== app state ============================== */
-const S={lal:null,cust:{src:'lal',file:null},mkt:{src:'lal',file:null},wb:null,frames:{},engine:null,busy:0};
-const wrap=$('frameWrap'),picker=$('picker');
+const S={lal:null,cust:{src:'lal',file:null},mkt:{src:'lal',file:null},wb:null,frames:{},engine:null,view:'chart',opened:false,deck:[]};
+const viewer=$('viewer'),picker=$('picker');
 
 function setStep(id,state){const el=$(id);el.classList.toggle('locked',state==='locked');el.classList.toggle('done',state==='done');}
 function box(el,kind,html){el.innerHTML=html?'<div class="'+(kind==='err'?'errbox':'warnbox')+'">'+html+'</div>':'';}
@@ -2776,14 +2808,14 @@ function getHTML(kind){return $('tpl-'+kind).textContent.replace(/<\\\/script/g,
 function makeFrame(kind){
   return new Promise(res=>{
     const f=document.createElement('iframe');f.title=kind==='bubble'?'Perfect Match Analysis – Bubble Chart':'Perfect Match Analysis – Puzzle Man';
-    f.addEventListener('load',()=>{if(window.__onFrame)window.__onFrame(kind,f.contentWindow);res(f);},{once:true});
-    f.srcdoc=getHTML(kind);wrap.appendChild(f);
+    f.addEventListener('load',()=>{try{const st=f.contentDocument.createElement('style');st.textContent='.top{display:none!important}';f.contentDocument.head.appendChild(st);}catch(e){}if(window.__onFrame)window.__onFrame(kind,f.contentWindow);res(f);},{once:true});
+    f.srcdoc=getHTML(kind);viewer.appendChild(f);
   });
 }
-function dropFrames(){wrap.innerHTML='';S.frames={};S.engine=null;}
+function dropFrames(){viewer.innerHTML='';S.frames={};S.engine=null;S.opened=false;}
 async function loadLal(file){
   const msg=$('lalMsg'),chips=$('lalChips');
-  S.lal=null;S.wb=null;S.frames.bubble&&S.frames.bubble.remove();S.frames={};
+  S.lal=null;S.wb=null;S.frames.bubble&&S.frames.bubble.remove();S.frames={};S.opened=false;
   box(msg,'err','');chips.hidden=true;lock234();
   $('lalTitle').textContent=file.name;$('lalHint').textContent='Reading…';
   try{
@@ -2800,14 +2832,18 @@ async function loadLal(file){
       +'<span class="chip info">'+fmt(px.prospects||[...px.seg.values()].reduce((a,b)=>a+b.m,0))+' prospects analyzed</span>'
       +'<span class="chip ok">'+px.seg.size+' of '+NSEG+' Personicx segments found</span>';
     setStep('st1','done');setStep('st2','active');
-    $('startOver').hidden=false;$('goPuzzle').disabled=false;setStep('st4','active');
+    $('startOver').hidden=false;setStep('st4','active');setStep('st5','active');tabsState();
     await refreshPlan();
   }catch(e){
     S.lal=null;$('lalTitle').textContent='Choose your look-alike report';$('lalHint').innerHTML='Drag &amp; drop the PDF here, or <u>browse</u>.';
     box(msg,'err',esc(e.message||String(e)));setStep('st1','active');lock234();
   }
 }
-function lock234(){setStep('st2','locked');setStep('st3','locked');setStep('st4','locked');$('goBubble').disabled=$('goApp').disabled=$('goPuzzle').disabled=true;}
+function lock234(){setStep('st2','locked');setStep('st3','locked');setStep('st4','locked');if(!S.deck.length)setStep('st5','locked');tabsState();}
+function tabsState(){
+  const t=q=>document.querySelector('#vtabs [data-v="'+q+'"]');
+  t('chart').disabled=t('app').disabled=!S.wb;t('puzzle').disabled=!S.lal;$('addSlide').disabled=!S.lal;
+}
 
 /* ============================== step 2: counts and the plan ============================== */
 function lalEstimate(px){            // market counts for segments the report does not list
@@ -2846,10 +2882,10 @@ function computePlan(){
 }
 let planTok=0;
 async function refreshPlan(){
-  if(!S.lal)return;const tok=++planTok;S.wb=null;S.frames.bubble&&(S.frames.bubble.remove(),delete S.frames.bubble);
+  if(!S.lal)return;const tok=++planTok;S.wb=null;S.frames.bubble&&(S.frames.bubble.remove(),delete S.frames.bubble);tabsState();
   const plan=computePlan();renderStep2Msgs();
   if(plan.errors.length){
-    setStep('st3','locked');$('goBubble').disabled=$('goApp').disabled=true;
+    setStep('st3','locked');if(S.view!=='puzzle'&&S.opened)showTab('puzzle');
     $('wbMsg').innerHTML='';$('dlWb').disabled=true;
     $('st3').classList.remove('locked');$('st3').querySelector('.sbody').style.display='';
     box($('wbMsg'),'err',plan.errors.map(esc).join('<br>'));$('wbTiles').innerHTML='';$('wbNotes').innerHTML='';$('wbName').textContent='';$('wbPrev').hidden=true;
@@ -2866,10 +2902,10 @@ async function refreshPlan(){
     $('wbTiles').innerHTML=[['Customer households',fmt(sc)],['Market base',fmt(sm)],['Segments with customers',n+' of '+NSEG]].map(([k,v])=>'<div class="tile"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>').join('');
     $('wbNotes').innerHTML=plan.notes.length?'<div class="warnbox"><b>Good to know</b><ul>'+plan.notes.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>':'';
     $('wbName').textContent=nm;$('dlWb').disabled=false;$('wbPrev').hidden=false;
-    let h='<table><thead><tr><th>#</th><th>Segment</th><th>Customers</th><th>Market</th><th>Index</th></tr></thead><tbody>';
-    for(let i=0;i<NSEG;i++){const idx=plan.mkt[i]&&sc&&sm?(plan.cust[i]/sc)/(plan.mkt[i]/sm)*100:0;h+='<tr'+(plan.cust[i]?'':' class="zero"')+'><td>'+pad2(i+1)+'</td><td>'+esc(SEG_NAMES[i])+'</td><td>'+fmt(plan.cust[i])+'</td><td>'+fmt(plan.mkt[i])+'</td><td>'+Math.round(idx)+'</td></tr>';}
+    let h='<table><thead><tr><th>#</th><th>Segment</th><th>Customers</th><th>% of customers</th><th>Market</th><th>% of market</th><th>Index</th></tr></thead><tbody>';
+    for(let i=0;i<NSEG;i++){const idx=plan.mkt[i]&&sc&&sm?(plan.cust[i]/sc)/(plan.mkt[i]/sm)*100:0;h+='<tr'+(plan.cust[i]?'':' class="zero"')+'><td>'+pad2(i+1)+'</td><td>'+esc(SEG_NAMES[i])+'</td><td>'+fmt(plan.cust[i])+'</td><td>'+(sc?(plan.cust[i]/sc*100).toFixed(2):'0.00')+'%</td><td>'+fmt(plan.mkt[i])+'</td><td>'+(sm?(plan.mkt[i]/sm*100).toFixed(2):'0.00')+'%</td><td>'+Math.round(idx)+'</td></tr>';}
     $('wbTbl').innerHTML=h+'</tbody></table>';
-    $('goBubble').disabled=$('goApp').disabled=false;setStep('st4','active');
+    tabsState();setStep('st4','active');showTab(S.opened?S.view:'chart');
   }catch(e){box($('wbMsg'),'err',esc(e.message||String(e)));$('dlWb').disabled=true;}
 }
 function renderStep2Msgs(){
@@ -2904,64 +2940,150 @@ function wireStep2(){
   });
 }
 
-/* ============================== step 4: render ============================== */
-function showFrame(kind){
-  picker.hidden=true;wrap.hidden=false;
-  for(const [k,f] of Object.entries(S.frames))f.style.display=k===kind?'block':'none';
-  if(S.engine&&kind==='puzzle')S.engine.style.display='block';else if(S.engine&&S.frames.puzzle!==S.engine)S.engine.style.display='none';
-  document.title='Perfect Match Analysis – '+(kind==='puzzle'?'Puzzle Man':'Bubble Chart');
-}
-window.showBuilder=function(){
-  wrap.hidden=true;picker.hidden=false;document.title='Perfect Match Analysis';
-  for(const f of wrap.querySelectorAll('iframe'))f.style.display='none';
-};
-window.showPicker=window.showBuilder;
+/* ============================== step 4: render (all three views on one page) ============================== */
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function until(fn,ms=20000){const t0=Date.now();while(Date.now()-t0<ms){try{const v=fn();if(v)return v;}catch(e){}await sleep(40);}throw new Error('The chart took too long to load.');}
-async function openBubble(mode){
-  const msg=$('renderMsg');box(msg,'err','');
-  const btn=mode==='app'?$('goApp'):$('goBubble');const label=btn.querySelector('.go').innerHTML;btn.disabled=true;btn.querySelector('.go').textContent='Opening…';
+async function ensureBubble(){
+  if(S.frames.bubble)return S.frames.bubble;
+  if(!S.wb)throw new Error('Fix the counts above to build the workbook first.');
+  if(S.bubbleP)return S.bubbleP;
+  const wb=S.wb;
+  S.bubbleP=(async()=>{
+    const f=await makeFrame('bubble'),w=f.contentWindow,d=f.contentDocument;
+    const file=new w.File([wb.bytes],wb.name,{type:XLSX_MIME}),dt=new w.DataTransfer();dt.items.add(file);
+    const inp=d.getElementById('file');inp.files=dt.files;if(inp.onchange)inp.onchange();
+    await d.getElementById('go').onclick();
+    await until(()=>w.__tables&&w.__lastSVG);
+    f.style.display='none';
+    if(S.wb!==wb){f.remove();return ensureBubble();}
+    S.frames.bubble=f;return f;
+  })();
+  try{return await S.bubbleP;}finally{S.bubbleP=null;}
+}
+function ensurePuzzle(){
+  if(!S.frames.puzzle){S.engine.contentWindow.setReport(S.lal.rep,S.lal.name);S.frames.puzzle=S.engine;}
+  return S.engine;
+}
+let viewTok=0;
+async function showTab(v){
+  const tok=++viewTok;S.view=v;box($('renderMsg'),'err','');
+  document.querySelectorAll('#vtabs .btn').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   try{
-    if(!S.frames.bubble){
-      const f=await makeFrame('bubble'),w=f.contentWindow,d=f.contentDocument;
-      const file=new w.File([S.wb.bytes],S.wb.name,{type:XLSX_MIME}),dt=new w.DataTransfer();dt.items.add(file);
-      const inp=d.getElementById('file');inp.files=dt.files;if(inp.onchange)inp.onchange();
-      await d.getElementById('go').onclick();
-      await until(()=>w.__tables&&w.__lastSVG);
-      f.style.display='none';S.frames.bubble=f;
+    let f;
+    if(v==='puzzle')f=ensurePuzzle();
+    else{
+      f=await ensureBubble();if(tok!==viewTok)return;
+      const w=f.contentWindow;
+      if(v==='app'){if(w.__getAppPages().length)w.__setTab('app');else w.__buildAppendix(true);}else w.__setTab('chart');
     }
-    const d=S.frames.bubble.contentDocument;
-    if(mode==='app'){d.getElementById('appBtn').click();}
-    else{const t=d.querySelector('#tabs .tabbtn[data-tab="chart"]');if(t&&!d.getElementById('tabs').hidden)t.click();}
-    showFrame('bubble');
-  }catch(e){box(msg,'err',esc(e.message||String(e)));}
-  btn.disabled=false;btn.querySelector('.go').innerHTML=label;
+    if(tok!==viewTok)return;
+    for(const x of viewer.querySelectorAll('iframe'))x.style.display=x===f?'block':'none';
+    S.opened=true;
+  }catch(e){box($('renderMsg'),'err',esc(e.message||String(e)));}
 }
-async function openPuzzle(){
-  const msg=$('renderMsg');box(msg,'err','');
+function flash(msg){const m=$('renderMsg');m.innerHTML='<div class="okbox">'+esc(msg)+'</div>';setTimeout(()=>{if(m.textContent===msg)m.innerHTML='';},4000);}
+
+/* ============================== step 5: presentation ============================== */
+const cmpOn=w=>{try{return w.document.getElementById('cmpToggle').getAttribute('aria-checked')==='true';}catch(e){return false;}};
+async function grab(kind){                      // -> [{title,svg}] for one tool, exactly as it looks right now
+  if(kind==='puzzle'){
+    const f=ensurePuzzle(),w=f.contentWindow;
+    if(!w.eval('!!(state.report&&state.pieces.some(p=>p.visible))'))throw new Error('The puzzle man has no pieces yet.');
+    return [{title:'Puzzle man'+(cmpOn(w)?' – compare years':''),svg:w.renderSlide(true)}];
+  }
+  const f=await ensureBubble(),w=f.contentWindow;
+  if(kind==='chart'){if(!w.__lastSVG)throw new Error('The bubble chart isn’t ready yet.');return [{title:'Bubble chart'+(cmpOn(w)?' – compare years':''),svg:w.__lastSVG}];}
+  let pg=w.__getAppPages();if(!pg.length){w.__buildAppendix(false);pg=w.__getAppPages();}
+  if(!pg.length)throw new Error('The appendix couldn’t be built from this workbook.');
+  return pg.map(p=>({title:'Appendix – '+p.band.name+(p.parts>1?' ('+p.part+' of '+p.parts+')':''),svg:p.svg}));
+}
+function addSlides(list){
+  for(const x of list)S.deck.push({id:Math.random().toString(36).slice(2),title:x.title,svg:x.svg,url:URL.createObjectURL(new Blob([x.svg],{type:'image/svg+xml'}))});
+  renderDeck();
+}
+function renderDeck(){
+  const L=$('deckList'),n=S.deck.length;L.innerHTML='';
+  $('deckExport').hidden=!n;$('dkCount').textContent=n?n+' slide'+(n>1?'s':''):'';
+  $('startDeck').textContent=n?'Add all current slides again':'Start building presentation';
+  $('deckNote').hidden=!!n;
+  S.deck.forEach((d,i)=>{
+    const c=document.createElement('div');c.className='dcard';c.draggable=true;
+    c.innerHTML='<img alt=""><div class="dmeta"><span class="n">'+(i+1)+'</span><input aria-label="Slide title"><button class="ib" data-a="up" type="button" title="Move earlier">&larr;</button><button class="ib" data-a="dn" type="button" title="Move later">&rarr;</button><button class="ib" data-a="rm" type="button" title="Remove from deck">&times;</button></div>';
+    c.querySelector('img').src=d.url;const inp=c.querySelector('input');inp.value=d.title;inp.oninput=()=>{d.title=inp.value;};
+    c.querySelector('[data-a=up]').disabled=i===0;c.querySelector('[data-a=dn]').disabled=i===n-1;
+    c.addEventListener('click',e=>{const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;
+      if(k==='rm'){URL.revokeObjectURL(d.url);S.deck.splice(i,1);}else{const j=k==='up'?i-1:i+1;[S.deck[i],S.deck[j]]=[S.deck[j],S.deck[i]];}renderDeck();});
+    c.addEventListener('dragstart',e=>{S.dragI=i;c.classList.add('drag');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain','slide');});
+    c.addEventListener('dragend',()=>{c.classList.remove('drag');L.querySelectorAll('.over').forEach(x=>x.classList.remove('over'));});
+    c.addEventListener('dragover',e=>{if(S.dragI==null)return;e.preventDefault();e.stopPropagation();c.classList.add('over');});
+    c.addEventListener('dragleave',()=>c.classList.remove('over'));
+    c.addEventListener('drop',e=>{if(S.dragI==null)return;e.preventDefault();e.stopPropagation();const from=S.dragI;S.dragI=null;if(from===i)return;const [m]=S.deck.splice(from,1);S.deck.splice(i,0,m);renderDeck();});
+    L.appendChild(c);
+  });
+}
+async function startDeck(){
+  const m=$('deckMsg'),btn=$('startDeck'),label=btn.textContent;m.innerHTML='';btn.disabled=true;btn.textContent='Collecting slides…';
+  const got=[],miss=[];
+  for(const [k,lab] of [['chart','bubble chart'],['app','appendix'],['puzzle','puzzle man']]){
+    if(k!=='puzzle'&&!S.wb){miss.push(lab+' (counts need fixing)');continue;}
+    try{got.push(...await grab(k));}catch(e){miss.push(lab+': '+(e.message||e));}
+  }
+  addSlides(got);
+  if(miss.length)box(m,'warn','Left out: '+esc(miss.join('; ')));
+  btn.disabled=false;renderDeck();if(!got.length)btn.textContent=label;
+  if(S.view){const f=viewer.querySelector('iframe[style*="block"]');}
+}
+async function addCurrent(){
+  try{const got=await grab(S.view);addSlides(got);flash(got.length>1?'Added '+got.length+' slides to your presentation.':'Added “'+got[0].title+'” to your presentation.');setStep('st5','active');}
+  catch(e){box($('renderMsg'),'err',esc(e.message||String(e)));}
+}
+const deckBase=()=>'Perfect_Match_Analysis'+(S.lal&&S.lal.client?'_'+slug(S.lal.client):'');
+async function exportPdf(){
+  const P=$('deckPrint');P.innerHTML='';
+  const imgs=S.deck.map(d=>{const i=new Image();i.src=d.url;P.appendChild(i);return i;});
+  await Promise.all(imgs.map(i=>i.decode().catch(()=>{})));
+  const t=document.title;document.title=deckBase();document.body.classList.add('printing');
+  const done=()=>{document.body.classList.remove('printing');P.innerHTML='';document.title=t;window.removeEventListener('afterprint',done);};
+  window.addEventListener('afterprint',done);window.print();
+}
+async function svgToPngBytes(svg){
+  const img=new Image();
+  await new Promise((res,rej)=>{img.onload=res;img.onerror=()=>rej(new Error('Could not draw a slide as an image.'));img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);});
+  const c=document.createElement('canvas');c.width=3008;c.height=1692;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);
+  const b=await new Promise(r=>c.toBlob(r,'image/png'));return new Uint8Array(await b.arrayBuffer());
+}
+async function exportZip(kind){
+  const m=$('deckMsg');m.innerHTML='';
   try{
-    if(!S.frames.puzzle){S.engine.contentWindow.setReport(S.lal.rep,S.lal.name);S.frames.puzzle=S.engine;}
-    showFrame('puzzle');
-  }catch(e){box(msg,'err',esc(e.message||String(e)));}
+    const ents=[];
+    for(let i=0;i<S.deck.length;i++){
+      const d=S.deck[i],u=kind==='png'?await svgToPngBytes(d.svg):enc.encode('<?xml version="1.0" encoding="UTF-8"?>\n'+d.svg);
+      ents.push({name:pad2(i+1)+'_'+(slug(d.title)||'slide')+'.'+kind,method:0,crc:crc32(u),csize:u.length,usize:u.length,raw:u});
+    }
+    download(new Blob([writeZip(ents)],{type:'application/zip'}),deckBase()+'_'+kind.toUpperCase()+'s.zip');
+  }catch(e){box(m,'err',esc(e.message||String(e)));}
 }
+window.showBuilder=window.showPicker=function(){window.scrollTo({top:0,behavior:'smooth'});};
 
 /* ============================== wiring ============================== */
 $('lalFile').addEventListener('change',e=>{const f=e.target.files[0];if(f)loadLal(f);e.target.value='';});
 window.addEventListener('dragover',e=>{e.preventDefault();document.body.classList.add('dragging');});
 window.addEventListener('dragleave',e=>{if(!e.relatedTarget)document.body.classList.remove('dragging');});
-window.addEventListener('drop',e=>{e.preventDefault();document.body.classList.remove('dragging');const f=e.dataTransfer.files[0];if(f&&!picker.hidden)loadLal(f);});
+window.addEventListener('drop',e=>{e.preventDefault();document.body.classList.remove('dragging');const f=e.dataTransfer.files[0];if(f&&e.target.closest&&e.target.closest('#st1'))loadLal(f);});
 $('dlWb').addEventListener('click',()=>{if(S.wb)download(new Blob([S.wb.bytes],{type:XLSX_MIME}),S.wb.name);});
-$('goBubble').addEventListener('click',()=>openBubble('chart'));
-$('goApp').addEventListener('click',()=>openBubble('app'));
-$('goPuzzle').addEventListener('click',openPuzzle);
+$('vtabs').addEventListener('click',e=>{const b=e.target.closest('.btn');if(b&&!b.disabled)showTab(b.dataset.v);});
+$('addSlide').addEventListener('click',addCurrent);
+$('startDeck').addEventListener('click',startDeck);
+$('dkPdf').addEventListener('click',exportPdf);$('dkPng').addEventListener('click',()=>exportZip('png'));$('dkSvg').addEventListener('click',()=>exportZip('svg'));
+$('dkClear').addEventListener('click',()=>{if(!S.deck.length||!confirm('Remove all slides from the presentation?'))return;S.deck.forEach(d=>URL.revokeObjectURL(d.url));S.deck=[];renderDeck();});
 $('startOver').addEventListener('click',()=>{
-  if(!confirm('Start over? The look-alike report, counts and any charts you have open will be cleared.'))return;
-  dropFrames();S.lal=null;S.wb=null;S.cust={src:'lal',file:null};S.mkt={src:'lal',file:null};planTok++;
+  if(!confirm('Start over? The look-alike report, counts, charts and your presentation will be cleared.'))return;
+  dropFrames();S.deck.forEach(d=>URL.revokeObjectURL(d.url));S.deck=[];renderDeck();S.lal=null;S.wb=null;S.cust={src:'lal',file:null};S.mkt={src:'lal',file:null};planTok++;
   document.querySelectorAll('.seg[data-kind] .btn').forEach(b=>b.classList.toggle('on',b.dataset.src==='lal'));
   document.querySelectorAll('.own').forEach(o=>o.hidden=true);document.querySelectorAll('.fn').forEach(x=>x.textContent='Choose file (.xlsx / .csv)');
   $('lalChips').hidden=true;$('lalMsg').innerHTML='';$('lalTitle').textContent='Choose your look-alike report';$('lalHint').innerHTML='Drag &amp; drop the PDF here, or <u>browse</u>.';
   setStep('st1','active');lock234();$('startOver').hidden=true;$('wbPrev').hidden=true;
-  for(const id of ['wbMsg','wbNotes','wbTiles','wbTbl','renderMsg'])$(id).innerHTML='';$('wbName').textContent='';$('dlWb').disabled=true;
+  document.querySelectorAll('#vtabs .btn').forEach(b=>b.classList.remove('on'));for(const id of ['wbMsg','wbNotes','wbTiles','wbTbl','renderMsg','deckMsg'])$(id).innerHTML='';$('wbName').textContent='';$('dlWb').disabled=true;
 });
 wireStep2();
 </script>
