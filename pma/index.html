@@ -1467,13 +1467,12 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
   @media (max-width:760px){ .segbar{flex-wrap:wrap} .segpick{width:100%} .segpick .btn{width:100%;justify-content:center} .top{flex-wrap:wrap} .controls,.top,.morelink,.meta{padding-left:14px;padding-right:14px} body.standalone .work{padding:14px} .opt{margin-left:0} }
 
   .pmbar span{display:block;width:300px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .pmbar{margin:0 0 10px!important;display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px;font-size:13px;color:var(--navy);font-weight:600}
+  .pmbar{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px;font-size:13px;color:var(--navy);font-weight:600}
   .pmbar button{border:1px solid var(--line);background:#fff;border-radius:8px;width:34px;height:30px;cursor:pointer;color:var(--navy);font-size:16px}
   .pmbar button:disabled{opacity:.35;cursor:default}
   #pmBul .pb{margin-top:8px}#pmBul .pb b{display:block;font-size:12px;color:var(--navy);margin-bottom:3px}
   #pmBul textarea{width:100%;height:54px;box-sizing:border-box;font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;resize:vertical}
   #pmPrint{display:none}
-  #opts .swrow:has(#pmToggle){position:sticky;bottom:0;z-index:3;box-shadow:0 -6px 12px #fff}
   body.pmprinting #stage,body.pmprinting .pmbar{display:none!important}
   body.pmprinting #pmPrint{display:block}
   body.pmprinting #pmPrint svg{display:block;width:16in;height:9in;page-break-after:always;break-after:page}
@@ -2508,7 +2507,7 @@ function renderStage(){
   if(!state.report){ stage.innerHTML=EMPTY(); ['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=true); $('segbar').hidden=true; return; }
   if(state.pm.on&&pmVis().length){
     pmClamp();const n=pmVis().length,pg=state.pm.page;
-    stage.innerHTML=`<div style="width:100%"><div class="pmbar"><button type="button" id="pmPrev" ${pg<=0?'disabled':''} aria-label="Previous piece">&lsaquo;</button><span>Piece ${pg+1} of ${n} &ndash; ${esc(pmVis()[pg].header)}</span><button type="button" id="pmNext" ${pg>=n-1?'disabled':''} aria-label="Next piece">&rsaquo;</button></div><div class="card">${pmSlide(pg,false)}</div></div>`;
+    stage.innerHTML=`<div style="width:100%"><div class="card">${pmSlide(pg,false)}</div><div class="pmbar"><button type="button" id="pmPrev" ${pg<=0?'disabled':''} aria-label="Previous piece">&lsaquo;</button><span>Piece ${pg+1} of ${n} &ndash; ${esc(pmVis()[pg].header)}</span><button type="button" id="pmNext" ${pg>=n-1?'disabled':''} aria-label="Next piece">&rsaquo;</button></div></div>`;
     $('pmPrev').onclick=()=>{state.pm.page--;renderStage();};$('pmNext').onclick=()=>{state.pm.page++;renderStage();};
     window.__fit={notes:[]};$('fitnote').textContent='';
     ['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=false);
