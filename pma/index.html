@@ -79,6 +79,11 @@
   .nav button:disabled{opacity:.5;cursor:not-allowed}
   .nav button.alt{padding:0 14px;margin-left:6px;border-left:1px solid #d5dde8;border-radius:0 999px 999px 0}
   .deck.hist{grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:20px}
+  .hclients{margin:0 0 16px}.hct{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:10px}
+  .hcrow{display:flex;flex-wrap:wrap;gap:10px}
+  .hcchip{border:1px solid var(--line);background:#fff;color:#2b3a55;border-radius:999px;padding:9px 20px;font:inherit;font-size:13px;cursor:pointer;transition:.15s}
+  .hcchip:hover{border-color:#b8c6dc;background:#f8fafd}
+  .hcchip.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700}
   .hcard{border-radius:20px;background:#fff;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(16,24,40,.06),0 12px 32px -8px rgba(16,24,40,.14);transition:transform .18s,box-shadow .18s}
   .hcard:hover{transform:translateY(-3px);box-shadow:0 1px 2px rgba(16,24,40,.06),0 20px 40px -10px rgba(16,24,40,.22)}
   .hcard.cur{box-shadow:0 0 0 2px var(--accent),0 16px 36px -10px rgba(10,79,180,.35)}
@@ -252,6 +257,7 @@
         <div><h2>History</h2><p>Every project is saved automatically in this browser. Open one to pick up where you left off.</p></div>
         <div class="rowbtns"><button class="btn" id="histEdit" type="button" hidden>Edit</button><label class="btn" for="histImport" style="cursor:pointer">Import project file</label><input type="file" id="histImport" accept=".json,.pma" hidden></div>
       </div>
+      <div class="hclients" id="histClients" hidden><div class="hct">Clients</div><div class="hcrow" id="histClientRow" role="tablist"></div></div>
       <div class="editbar" id="histBar" hidden><span id="histSel">0 selected</span><span class="grow"></span><button class="btn" id="histAll" type="button">Select all</button><button class="btn danger" id="histDel" type="button" disabled>Delete selected</button></div>
       <div id="histMsg"></div>
       <div class="deck hist" id="histList"></div>
@@ -1413,13 +1419,13 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
   #stage .hdrhit{fill:transparent;cursor:text} #stage .hdrhit:hover{fill:rgba(255,255,255,.18)}
   .mainCol{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column}
   body:not(.standalone) .segbar{display:none}
-  .segbar{display:flex;align-items:flex-start;gap:14px;width:100%;max-width:min(1400px,calc((100vh - 250px) * 1.7778));margin:16px auto 0;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 1px 2px rgba(16,24,40,.05);position:relative}
-  .seglabel{font-size:12px;font-weight:700;color:var(--navy);white-space:nowrap;padding-top:6px}
+  .segbar{display:flex;align-items:flex-start;gap:14px;width:100%;max-width:min(1400px,calc((100vh - 250px) * 1.7778));margin:10px auto 0;padding:7px 12px;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(16,24,40,.05);position:relative}
+  .seglabel{font-size:12px;font-weight:700;color:var(--navy);white-space:nowrap;padding-top:3px}
   .segchips{flex:1;display:flex;flex-wrap:wrap;gap:8px;min-width:0;padding-top:1px}
   .segchips .mut{font-size:12.5px;padding-top:5px}
-  .schip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 4px 0 10px;border-radius:999px;background:#eef3fb;border:1px solid #d5e0f2;font-size:12px;color:var(--navy);max-width:240px}
+  .schip{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 2px 0 8px;border-radius:999px;background:#eef3fb;border:1px solid #d5e0f2;font-size:11px;color:var(--navy);max-width:240px}
   .schip .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mut)}
-  .schip .sx{flex:none;width:22px;height:22px;border-radius:50%;border:0;background:transparent;cursor:pointer;color:var(--mut);font-size:16px;line-height:1;padding:0} .schip .sx:hover{background:#fff;color:var(--bad)}
+  .schip .sx{flex:none;width:18px;height:18px;border-radius:50%;border:0;background:transparent;cursor:pointer;color:var(--mut);font-size:14px;line-height:1;padding:0} .schip .sx:hover{background:#fff;color:var(--bad)}
   .segpick{position:relative;flex:none}
   .segmenu{position:absolute;right:0;bottom:calc(100% + 12px);width:460px;max-width:92vw;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 40px rgba(16,24,40,.20);z-index:40;display:flex;flex-direction:column}
   .segtools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px;border-bottom:1px solid var(--line)}
@@ -1455,10 +1461,16 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
   #opts .filebtn{max-width:none;width:100%}
 
   .acc{border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;flex:none}
-  .acch{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:1fr auto;column-gap:10px;padding:13px 16px;cursor:pointer;background:#f8fafd}
+
+  .acch{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;gap:10px;padding:13px 16px;background:#f8fafd}
+  .acch .atx{flex:1;min-width:0;display:flex;flex-direction:column;cursor:pointer;outline-offset:2px}
+  .acch .chev{grid-row:auto;grid-column:auto;flex:none;visibility:hidden}
+  .acc.on .chev,#accBuild .chev{visibility:visible}
+  .acc.sw:not(.on) .atx{cursor:default}
+  .acch.__old{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:1fr auto;column-gap:10px;padding:13px 16px;cursor:pointer;background:#f8fafd}
   .acch:focus-visible{outline:2px solid var(--blue,#3C9AD8);outline-offset:-2px}
   .acch .at{font-weight:700;color:var(--navy);font-size:14px}.acch .as{grid-column:1;font-size:12px;color:var(--mut)}
-  .acch .chev{grid-row:1/3;grid-column:2;align-self:center;color:var(--navy);transition:transform .18s}
+  .acch .chev{color:var(--navy);transition:transform .18s}
   .acc.open .chev{transform:rotate(180deg)}.acc.open .acch{border-bottom:1px solid var(--line)}
   .accb{display:none;padding:14px 16px;flex-direction:column;gap:18px}.acc.open .accb{display:flex}
   .swrow{flex-direction:row;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;background:#f8fafd;border:1px solid var(--line);border-radius:12px}
@@ -1513,7 +1525,9 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
   .pc .row2{display:flex;gap:10px} .pc .row2 .field{flex:1;min-width:0}
   .lbl2{font-size:12px;color:var(--mut)} .pcbtns{display:flex;gap:8px} .pcbtns .btn{height:30px;font-size:12px;padding:0 10px}
   .pcs{display:flex;flex-direction:column;gap:8px}
-  .segpick select{max-width:260px}
+  .segpick select{max-width:220px;height:30px;font-size:12px;padding:0 8px}
+  .segbar .btn{height:30px;padding:0 12px;font-size:12px}
+  .segbar #segchips,.segbar .segchips{gap:5px!important}
   #opts textarea{font-family:Consolas,Menlo,monospace}
   #opts #tSub{font-family:inherit;font-size:13px;line-height:1.4}
   .bands{max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff}
@@ -1583,7 +1597,7 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
     <aside id="opts" hidden aria-label="More options">
       <div class="ohead"><span>More options</span><button class="iconbtn" id="optsClose" type="button" aria-label="Close options">&times;</button></div>
       <div class="obody">
-        <div class="acc open" id="accBuild"><button type="button" class="acch" aria-expanded="true"><span class="at">1 &middot; Build your puzzle man</span><span class="as">Rules, wording, pieces</span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg></button><div class="accb">
+        <div class="acc open" id="accBuild"><div class="acch" aria-expanded="true"><span class="atx" role="button" tabindex="0"><span class="at">Build your puzzle man</span><span class="as">Rules, wording, pieces</span></span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg></div><div class="accb">
         <div class="osec">
           <div class="lbl">Roll-up rules</div>
           <div class="osec two">
@@ -1609,11 +1623,7 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
           <div><button class="btn" id="resetAll" type="button">Reset pieces to default</button></div>
         </div>
         </div></div>
-        <div class="acc" id="accCmp"><button type="button" class="acch" aria-expanded="false"><span class="at">2 &middot; Compare</span><span class="as">Last year or another look-alike</span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg></button><div class="accb">
-        <div class="osec swrow">
-          <div><div class="lbl">Compare</div><div class="sub">Show an earlier year or another look-alike (gold) next to this one (blue).</div></div>
-          <button id="cmpToggle" class="switch" type="button" role="switch" aria-checked="false" aria-pressed="false" title="Compare against last year's puzzle man or LAL report"><span></span></button>
-        </div>
+        <div class="acc" id="accCmp"><div class="acch" aria-expanded="false"><span class="atx" role="button" tabindex="0"><span class="at">Compare</span><span class="as">Show last year or another look-alike (gold) next to this one (blue)</span></span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg><button id="cmpToggle" class="switch" type="button" role="switch" aria-checked="false" aria-pressed="false" title="Compare against last year's puzzle man or LAL report"><span></span></button></div><div class="accb">
         <section class="compare" id="cmpPanel" hidden>
           <div class="osec">
             <div class="lbl">Last year&rsquo;s data comes from</div>
@@ -1636,11 +1646,7 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
           <div class="hint">Last year&rsquo;s bands stay exactly as they were. This year&rsquo;s index is recalculated for those same bands from this year&rsquo;s report, so last year&rsquo;s Age 24-36 is re-scored with this year&rsquo;s ages 24-36.</div>
         </section>
         </div></div>
-        <div class="acc" id="accPm"><button type="button" class="acch" aria-expanded="false"><span class="at">3 &middot; Create puzzle pieces</span><span class="as">One slide per piece</span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg></button><div class="accb">
-        <div class="osec swrow" id="pmRow">
-          <div><div class="lbl">Create puzzle pieces</div><div class="sub">One slide per puzzle piece, in the order above, using the same bands and splits.</div></div>
-          <button id="pmToggle" class="switch" type="button" role="switch" aria-checked="false" aria-pressed="false" title="Make one slide for each puzzle piece"><span></span></button>
-        </div>
+        <div class="acc" id="accPm"><div class="acch" aria-expanded="false"><span class="atx" role="button" tabindex="0"><span class="at">Create puzzle pieces</span><span class="as">One slide per piece, using the same bands and splits</span></span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg><button id="pmToggle" class="switch" type="button" role="switch" aria-checked="false" aria-pressed="false" title="Make one slide for each puzzle piece"><span></span></button></div><div class="accb">
         <section class="compare" id="pmPanel" hidden>
           <div class="osec">
             <label class="lbl" for="pmSub">Line under each title <span class="mut">&ndash; e.g. the client and audience</span></label><input type="text" id="pmSub" class="txt">
@@ -2506,7 +2512,7 @@ function pmBuildPanel(){
 function pmSet(on){
   state.pm.on=on;const b=$('pmToggle');b.classList.toggle('on',on);b.setAttribute('aria-checked',on);b.setAttribute('aria-pressed',on);
   $('pmPanel').hidden=!on;if(on){pmBuildPanel();}
-  if(on){accSet('accPm',true);accSet('accBuild',false);accSet('accCmp',false);}else{accSet('accPm',false);accSet('accBuild',true);}
+  if(on){$('accPm').classList.add('on');accSet('accPm',true);accSet('accBuild',false);accSet('accCmp',false);}else{$('accPm').classList.remove('on');accSet('accPm',false);accSet('accBuild',true);}
   renderStage();
 }
 $('pmToggle').addEventListener('click',()=>pmSet(!state.pm.on));
@@ -2711,8 +2717,11 @@ $('resetAll').addEventListener('click',()=>{ if(state.report){initPieces();build
 
 /* options panel */
 
-function accSet(id,on){const a=$(id);a.classList.toggle('open',on);a.querySelector('.acch').setAttribute('aria-expanded',on?'true':'false');}
-document.querySelectorAll('.acch').forEach(b=>b.addEventListener('click',()=>accSet(b.parentNode.id,!b.parentNode.classList.contains('open'))));
+function accSet(id,on){const a=$(id);if(!a)return;a.classList.toggle('open',on);a.querySelector('.acch').setAttribute('aria-expanded',on?'true':'false');}
+$('accCmp').classList.add('sw');$('accPm').classList.add('sw');
+function accSync(){[['accCmp','cmpToggle'],['accPm','pmToggle']].forEach(([a,t])=>{const on=$(t).classList.contains('on');$(a).classList.toggle('on',on);if(!on)accSet(a,false);});}
+document.querySelectorAll('.acch .atx').forEach(b=>{const f=()=>{const a=b.closest('.acc');if(a.classList.contains('sw')&&!a.classList.contains('on'))return;accSet(a.id,!a.classList.contains('open'));};b.addEventListener('click',f);b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();f();}});});
+['cmpToggle','pmToggle'].forEach(t=>$(t).addEventListener('click',()=>setTimeout(accSync,0)));
 function openOpts(on){ $('opts').hidden=!on; $('moreBtn').setAttribute('aria-expanded',on?'true':'false'); }
 $('moreBtn').addEventListener('click',()=>openOpts($('opts').hidden));
 $('optsClose').addEventListener('click',()=>openOpts(false));
@@ -2800,7 +2809,7 @@ function setKindUI(){
   $('pfname').textContent=C.fname[C.kind]||KIND_TXT[C.kind].ph; $('pfile').accept=KIND_TXT[C.kind].acc; $('cmpKindHint').textContent=KIND_TXT[C.kind].hint;
 }
 $('cmpToggle').addEventListener('click',()=>{
-  if(!state.cmp.on){accSet('accCmp',true);accSet('accBuild',false);}
+  if(!state.cmp.on){$('accCmp').classList.add('on');accSet('accCmp',true);accSet('accBuild',false);}else{$('accCmp').classList.remove('on');accSet('accCmp',false);}
   const C=state.cmp; C.on=!C.on; const b=$('cmpToggle');
   b.classList.toggle('on',C.on); b.setAttribute('aria-checked',C.on); b.setAttribute('aria-pressed',C.on);
   $('cmpPanel').hidden=!C.on; syncCmpText(); setKindUI(); buildPieceList(); cmpInfo();
@@ -3592,6 +3601,13 @@ async function renderHist(){
   let recs=[];
   try{recs=await IDB.all();}catch(e){box(m,'err',esc(e.message||String(e)));}
   recs.sort((a,b)=>b.updated-a.updated);
+  const clientsOf=r=>{const c=[...new Set((r.analyses||[]).map(a=>String((a.lal&&a.lal.client)||'').replace(/\s*[-\u2013]\s*(look[ -]?alike|lal)\s*$/i,'').trim()).filter(Boolean))];return c.length?c:['Other'];};
+  const allC=[...new Set(recs.flatMap(clientsOf))].sort((a,b)=>a==='Other'?1:b==='Other'?-1:a.localeCompare(b));
+  if(S.histClient&&!allC.includes(S.histClient))S.histClient=null;
+  const hc=$('histClients');hc.hidden=!recs.length;
+  $('histClientRow').innerHTML=[null,...allC].map(c=>'<button type="button" role="tab" class="hcchip'+((S.histClient||null)===c?' on':'')+'" data-c="'+(c===null?'':esc(c))+'" aria-selected="'+((S.histClient||null)===c)+'">'+(c===null?'All clients':esc(c))+'</button>').join('');
+  $('histClientRow').querySelectorAll('.hcchip').forEach(b=>b.addEventListener('click',()=>{S.histClient=b.dataset.c||null;S.histSel=new Set();renderHist();}));
+  if(S.histClient)recs=recs.filter(r=>clientsOf(r).includes(S.histClient));
   $('histEmpty').hidden=!!recs.length;S.histIds=recs.map(r=>r.id);S.histSel=new Set([...S.histSel].filter(id=>S.histIds.includes(id)));
   $('histEdit').hidden=!recs.length;if(!recs.length)S.histEdit=false;
   L.classList.toggle('editing',S.histEdit);histBar();
