@@ -1676,7 +1676,8 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
         </section>
         </div></div>
         <div class="acc" id="accGrp"><div class="acch" aria-expanded="false"><span class="atx" role="button" tabindex="0"><span class="at">Group pieces on one slide</span><span class="as">Look at a few pieces together, e.g. affluence</span></span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg><button id="gpToggle" class="switch" type="button" role="switch" aria-checked="false" aria-pressed="false" title="Put several pieces on one slide"><span></span></button></div><div class="accb">
-          <div class="hint">Pick the pieces that belong together and they get one slide: each piece&rsquo;s shape and bands side by side, with only those pieces lit on the figure. Slides appear where the first piece of the group sits in your list.</div>
+          <div class="hint">Pick the pieces that belong together and they get one slide: each piece&rsquo;s shape and bands side by side. Slides appear where the first piece of the group sits in your list.</div>
+          <div class="osec"><label class="lbl" for="gpSize">Piece size <span class="mut" id="gpSizeV">100%</span></label><input type="range" id="gpSize" min="50" max="160" step="5" value="100" style="width:100%;accent-color:var(--navy)"></div>
           <div id="gpList"></div>
           <div class="pcbtns"><button class="btn" id="gpAdd" type="button">+ Add a group</button><button class="btn" id="gpPreset" type="button">+ Affluence example</button></div>
           <label class="gpkeep"><input type="checkbox" id="gpKeep"> Also keep each piece&rsquo;s own slide</label>
@@ -1953,7 +1954,7 @@ const state={
   pieces:[],
   opts:{thr:120,excl:true,minShare:2,method:'pct'},
   figScale:1,
-  pm:{on:false,page:0,sub:null,bul:{},ts:1,ls:1,groups:[],gOn:false,keep:false,gid:1},
+  pm:{on:false,page:0,sub:null,bul:{},ts:1,ls:1,groups:[],gOn:false,keep:false,gid:1,gs:1},
   cmp:{on:false,kind:'pm',report:null,pm:null,plabel:String(new Date().getFullYear()-1),clabel:String(new Date().getFullYear()),fname:{pm:'',lal:''}},
   edited:{},
   text:{title:'CUSTOMER TRAITS AT A GLANCE',sub:'NOTE: BRAND PREFERENCE INDEX (BPI) IS DISPLAYED IN BLUE\nPARENTHESIS.',slide:''},
@@ -2562,14 +2563,14 @@ function pmGroupSlide(item,idx,forExport){
   let tSize=Math.round(66*TS);while(tSize>24&&measure(title,tSize,'bold')>980)tSize--;
   o+=`<text x="108" y="116" font-size="${tSize}" font-weight="700" fill="${NAVY}">${esc(title)}</text>`;
   const sub=pmSubText();if(sub)o+=`<text x="110" y="152" font-size="${(26*TS).toFixed(1)}" letter-spacing="2.4" fill="${NAVY}">${esc(sub)}</text>`;
-  const AX=108,AW=Math.min(1000,X0-40-AX),top=190;
+  const AX=108,AW=1288,top=190;
   // commentary
   const bl=pmBulletsKey('g'+g.id);let bsz=Math.round(22*TS),bL=bl.map(b=>wrapFn(b,t=>measure(t,bsz,'normal'),AW-40));
   const bh=bL.reduce((a,x)=>a+x.length*bsz*1.35+10,0),bottom=bl.length?Math.min(790-bh-16,800):800;
-  const k=mem.length,cols=k<=3?k:Math.ceil(k/2),rows=Math.ceil(k/cols),cw=AW/cols,chh=(bottom-top)/rows;
+  const k=mem.length,cols=k<=4?k:Math.ceil(k/2),rows=Math.ceil(k/cols),cw=AW/cols,chh=(bottom-top)/rows;
   mem.forEach((p,i)=>{
     const col=i%cols,row=Math.floor(i/cols),cx0=AX+col*cw,cy0=top+row*chh;
-    const ph=Math.min(chh*0.4,rows===1?190:110);
+    const ph=Math.min(chh*0.62,(rows===1?230:120)*(state.pm.gs||1));
     o+=pmIso(plan,tp,sc,p,cx0+12,cy0,cw-24,ph);
     const ls=linesOf(p),cmp=C.on&&ls.some(l=>l.prev!=null),heads=cmp?[String(C.plabel),String(C.clabel)]:['Index'];
     let fs=Math.round(24*TS),lh;
@@ -2589,18 +2590,6 @@ function pmGroupSlide(item,idx,forExport){
     });
   });
   if(bl.length){let by=790-bh+bsz;bL.forEach(lines=>{o+=`<rect x="109" y="${(by-bsz*0.8).toFixed(1)}" width="${bsz*0.8}" height="${bsz*0.8}" fill="none" stroke="${BLUE}" stroke-width="2"/>`;lines.forEach(t=>{o+=`<text x="${(109+bsz*0.8+14)}" y="${by.toFixed(1)}" font-size="${bsz}" fill="${GRAYT}">${esc(t)}</text>`;by+=bsz*1.35;});by+=10;});}
-  // figure
-  let shapes='',flabels='';const inM=new Set(mem);
-  plan.items.forEach(it=>{
-    const lit=!!(it.p&&(inM.has(it.p)||item.done.has(it.p))),col=lit?NAVY:PM_MUTED;
-    shapes+=it.r.d.split(/(?=M)/).map(dd=>`<path d="${dd}" fill="${col}" stroke="${col}" stroke-width="0.7" stroke-linejoin="round"/>`).join('');
-    if(lit){
-      const [rx,ry,rw,rh]=it.r.rect,m=1,bw2=(rw-2*m)*sc,bh2=(rh-2*m)*sc,vert=(it.r.z==='arm'||it.r.z==='leg')&&rh>rw*1.25,rot2=vert?(it.r.s==='r'?90:-90):0;
-      const f=fitLabel(it.p.label,vert?bh2:bw2,vert?bw2:bh2),cx=X0+(rx+rw/2)*sc,cy=Y0+(ry+rh/2)*sc,n=f.lines.length,lh2=f.size*1.18;
-      flabels+=`<g transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(${rot2})">`+f.lines.map((l,q)=>`<text x="0" y="${((q-(n-1)/2)*lh2+f.size*0.35).toFixed(1)}" text-anchor="middle" font-size="${f.size}" font-weight="700" fill="#fff">${esc(l)}</text>`).join('')+`</g>`;
-    }
-  });
-  o+=`<g transform="translate(${X0.toFixed(2)},${Y0}) scale(${sc.toFixed(4)}) translate(${-tp.x0},${-tp.y0})">${shapes}</g>${flabels}`;
   const n0=parseInt(T.slide,10);if(!isNaN(n0))o+=`<text x="48" y="790" font-size="13" fill="#222">${n0+idx}</text>`;
   const dm=forExport?` width="${SW}" height="${SH}"`:'';
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${SH}"${dm} font-family="Arial, Helvetica, sans-serif">${o}</svg>`;
@@ -2642,6 +2631,7 @@ $('gpToggle').addEventListener('click',()=>gpSet(!state.pm.gOn));
 $('gpAdd').addEventListener('click',()=>{const P=state.pm;P.groups.push({id:P.gid++,name:'Group '+(P.groups.length+1),uids:[]});gpBuild();renderStage();});
 $('gpPreset').addEventListener('click',()=>{const P=state.pm,u=pmVis().filter(p=>/income|net ?worth|home market value/i.test(p.label)).map(p=>p.uid);
   P.groups.forEach(g=>g.uids=g.uids.filter(x=>!u.includes(x)));P.groups=P.groups.filter(g=>g.uids.length);P.groups.push({id:P.gid++,name:'Affluence',uids:u});gpBuild();renderStage();});
+$('gpSize').addEventListener('input',e=>{state.pm.gs=e.target.value/100;$('gpSizeV').textContent=e.target.value+'%';renderStage();});
 $('gpKeep').addEventListener('change',e=>{state.pm.keep=e.target.checked;renderStage();});
 $('gpList').addEventListener('input',e=>{const el=e.target.closest('.gpg');if(!el||!e.target.classList.contains('gn'))return;state.pm.groups.find(g=>g.id==el.dataset.id).name=e.target.value;renderStage();});
 $('gpList').addEventListener('click',e=>{
