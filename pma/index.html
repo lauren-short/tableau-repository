@@ -1463,6 +1463,7 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
   .acc{border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;flex:none}
 
   .acch{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;gap:10px;padding:13px 16px;background:#f8fafd}
+  .acch{cursor:pointer}.acc.sw:not(.on) .acch{cursor:default}
   .acch .atx{flex:1;min-width:0;display:flex;flex-direction:column;cursor:pointer;outline-offset:2px}
   .acch .chev{grid-row:auto;grid-column:auto;flex:none;visibility:hidden}
   .acc.on .chev,#accBuild .chev{visibility:visible}
@@ -2720,7 +2721,7 @@ $('resetAll').addEventListener('click',()=>{ if(state.report){initPieces();build
 function accSet(id,on){const a=$(id);if(!a)return;a.classList.toggle('open',on);a.querySelector('.acch').setAttribute('aria-expanded',on?'true':'false');}
 $('accCmp').classList.add('sw');$('accPm').classList.add('sw');
 function accSync(){[['accCmp','cmpToggle'],['accPm','pmToggle']].forEach(([a,t])=>{const on=$(t).classList.contains('on');$(a).classList.toggle('on',on);if(!on)accSet(a,false);});}
-document.querySelectorAll('.acch .atx').forEach(b=>{const f=()=>{const a=b.closest('.acc');if(a.classList.contains('sw')&&!a.classList.contains('on'))return;accSet(a.id,!a.classList.contains('open'));};b.addEventListener('click',f);b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();f();}});});
+document.querySelectorAll('.acch').forEach(h=>{const b=h.querySelector('.atx');const f=e=>{if(e&&e.target.closest&&e.target.closest('.switch'))return;const a=b.closest('.acc');if(a.classList.contains('sw')&&!a.classList.contains('on'))return;accSet(a.id,!a.classList.contains('open'));};h.addEventListener('click',f);b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();f();}});});
 ['cmpToggle','pmToggle'].forEach(t=>$(t).addEventListener('click',()=>setTimeout(accSync,0)));
 function openOpts(on){ $('opts').hidden=!on; $('moreBtn').setAttribute('aria-expanded',on?'true':'false'); }
 $('moreBtn').addEventListener('click',()=>openOpts($('opts').hidden));
