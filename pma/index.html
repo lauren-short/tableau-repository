@@ -1465,6 +1465,17 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
     #opts{width:100%;position:static;max-height:none;order:-1}
   }
   @media (max-width:760px){ .segbar{flex-wrap:wrap} .segpick{width:100%} .segpick .btn{width:100%;justify-content:center} .top{flex-wrap:wrap} .controls,.top,.morelink,.meta{padding-left:14px;padding-right:14px} body.standalone .work{padding:14px} .opt{margin-left:0} }
+
+  .pmbar{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px;font-size:13px;color:var(--navy);font-weight:600}
+  .pmbar button{border:1px solid var(--line);background:#fff;border-radius:8px;width:34px;height:30px;cursor:pointer;color:var(--navy);font-size:16px}
+  .pmbar button:disabled{opacity:.35;cursor:default}
+  #pmBul .pb{margin-top:8px}#pmBul .pb b{display:block;font-size:12px;color:var(--navy);margin-bottom:3px}
+  #pmBul textarea{width:100%;height:54px;box-sizing:border-box;font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;resize:vertical}
+  #pmPrint{display:none}
+  body.pmprinting #stage,body.pmprinting .pmbar{display:none!important}
+  body.pmprinting #pmPrint{display:block}
+  body.pmprinting #pmPrint svg{display:block;width:16in;height:9in;page-break-after:always;break-after:page}
+  @media print{ body.pmprinting{height:auto!important;overflow:visible!important} body.pmprinting #app,body.pmprinting .chrome{display:none!important} }
   @media print{
     @page{size:16in 9in;margin:0}
     html,body{width:16in;height:9in;overflow:hidden;background:#fff}
@@ -1612,6 +1623,17 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
           <div class="pcs" id="pieces"></div>
           <div><button class="btn" id="resetAll" type="button">Reset pieces to default</button></div>
         </div>
+        <div class="osec swrow">
+          <div><div class="lbl">Create puzzle pieces</div><div class="sub">One slide per puzzle piece, in the order above, using the same bands and splits.</div></div>
+          <button id="pmToggle" class="switch" type="button" role="switch" aria-checked="false" aria-pressed="false" title="Make one slide for each puzzle piece"><span></span></button>
+        </div>
+        <section class="compare" id="pmPanel" hidden>
+          <div class="osec">
+            <label class="lbl" for="pmSub">Line under each title <span class="mut">&ndash; e.g. the client and audience</span></label><input type="text" id="pmSub" class="txt">
+            <div class="hint">Slide numbers count up from the Slide number above (leave it blank for none). Titles come from each piece&rsquo;s list heading.</div>
+          </div>
+          <div class="osec"><div class="lbl">Commentary for each piece <span class="mut">&ndash; one bullet per line</span></div><div id="pmBul"></div></div>
+        </section>
       </div>
     </aside>
   </div>
@@ -1883,6 +1905,7 @@ const state={
   pieces:[],
   opts:{thr:120,excl:true,minShare:2,method:'pct'},
   figScale:1,
+  pm:{on:false,page:0,sub:null,bul:{}},
   cmp:{on:false,kind:'pm',report:null,pm:null,plabel:String(new Date().getFullYear()-1),clabel:String(new Date().getFullYear()),fname:{pm:'',lal:''}},
   edited:{},
   text:{title:'CUSTOMER TRAITS AT A GLANCE',sub:'NOTE: BRAND PREFERENCE INDEX (BPI) IS DISPLAYED IN BLUE\nPARENTHESIS.',slide:''},
@@ -2342,12 +2365,145 @@ function renderSlide(forExport){
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${SH}"${dims} font-family="Arial, Helvetica, sans-serif">${o}</svg>`;
 }
 
+
+/* ---- Create puzzle pieces: one slide per piece ---- */
+const PM_MUTED='#6a6690';
+function pmVis(){return state.pieces.filter(p=>p.visible);}
+function pmSubText(){return state.pm.sub!=null?state.pm.sub:String((state.report&&state.report.client)||'').toUpperCase();}
+function pmBullets(p){return String(state.pm.bul[p.uid]||'').split('\n').map(x=>x.trim()).filter(Boolean);}
+function pmBBox(d){   // works even when the page is hidden (no DOM measuring): paths only use M L C Z
+  const t=d.match(/[MLCZ]|-?\d*\.?\d+(?:e-?\d+)?/gi)||[];let i=0,cx=0,cy=0,x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,cmd='M';
+  const add=(x,y)=>{if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;};
+  while(i<t.length){
+    if(/[A-Za-z]/.test(t[i])){cmd=t[i++].toUpperCase();if(cmd==='Z')continue;}
+    if(cmd==='M'||cmd==='L'){cx=+t[i++];cy=+t[i++];add(cx,cy);}
+    else if(cmd==='C'){const p=[+t[i],+t[i+1],+t[i+2],+t[i+3],+t[i+4],+t[i+5]];i+=6;
+      for(let k=1;k<=10;k++){const u=k/10,v=1-u;add(v*v*v*cx+3*v*v*u*p[0]+3*v*u*u*p[2]+u*u*u*p[4],v*v*v*cy+3*v*v*u*p[1]+3*v*u*u*p[3]+u*u*u*p[5]);}
+      cx=p[4];cy=p[5];}
+    else i++;
+  }
+  return {x:x0,y:y0,width:x1-x0,height:y1-y0};
+}
+function pmSlide(idx,forExport){
+  const vis=pmVis(),p=vis[idx],T=state.text;
+  const plan=planMan(vis),tp=plan.tpl,C=state.cmp;
+  const sc=Math.min(300/tp.w,640/tp.h)*(state.figScale||1),X0=1267-tp.w*sc/2,Y0=150;
+  const me=plan.items.find(it=>it.p===p);
+  let o=`<rect width="${SW}" height="${SH}" fill="#fff"/>`;
+  // title + subtitle
+  const title=String(p.header||p.label).toUpperCase();
+  let tSize=56;while(tSize>28&&measure(title,tSize,'bold')>980)tSize--;
+  o+=`<text x="108" y="112" font-size="${tSize}" font-weight="700" fill="${NAVY}">${esc(title)}</text>`;
+  const sub=pmSubText();
+  if(sub)o+=`<text x="110" y="146" font-size="22" letter-spacing="2" fill="${NAVY}">${esc(sub)}</text>`;
+  // isolated piece (its own outline plus the tabs that stick out of it)
+  const LX=560;
+  if(me){
+    const bb0=pmBBox(me.r.d),ds=[me.r.d];let u={x0:bb0.x,y0:bb0.y,x1:bb0.x+bb0.width,y1:bb0.y+bb0.height};
+    plan.items.forEach(it2=>{
+      if(!it2.r.b)return;const kb=pmBBox(it2.r.d),kx=kb.x+kb.width/2,ky=kb.y+kb.height/2,m=2;
+      const hit=kb.x<=bb0.x+bb0.width+m&&kb.x+kb.width>=bb0.x-m&&kb.y<=bb0.y+bb0.height+m&&kb.y+kb.height>=bb0.y-m;
+      const inside=kx>bb0.x&&kx<bb0.x+bb0.width&&ky>bb0.y&&ky<bb0.y+bb0.height;
+      if(hit&&!inside){ds.push(it2.r.d);u={x0:Math.min(u.x0,kb.x),y0:Math.min(u.y0,kb.y),x1:Math.max(u.x1,kb.x+kb.width),y1:Math.max(u.y1,kb.y+kb.height)};}
+    });
+    const bb={x:u.x0,y:u.y0,width:u.x1-u.x0,height:u.y1-u.y0};
+    const s2=Math.min(380/bb.width,230/bb.height),pw=bb.width*s2,ph=bb.height*s2,px=LX-pw/2,py=180+(230-ph)/2;
+    o+=`<g transform="translate(${px.toFixed(1)},${py.toFixed(1)}) scale(${s2.toFixed(4)}) translate(${-bb.x},${-bb.y})">`+ds.map(d=>d.split(/(?=M)/).map(dd=>`<path d="${dd}" fill="${NAVY}" stroke="${NAVY}" stroke-width="0.7" stroke-linejoin="round"/>`).join('')).join('')+`</g>`;
+    const [rx,ry,rw,rh]=me.r.rect,vertical=(me.r.z==='arm'||me.r.z==='leg')&&rh>rw*1.25,rot=vertical?(me.r.s==='r'?90:-90):0;
+    const f0=fitLabel(p.label,((vertical?rh:rw)-2)*sc,((vertical?rw:rh)-2)*sc),k=s2/sc,f={size:+(f0.size*k).toFixed(1),lines:f0.lines};
+    const cx=px+(tp.x0+rx+rw/2-bb.x)*s2,cy=py+(tp.y0+ry+rh/2-bb.y)*s2,n=f.lines.length,lh=f.size*1.18;
+    o+=`<g transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(${rot})">`+f.lines.map((l,i)=>`<text x="0" y="${((i-(n-1)/2)*lh+f.size*0.35).toFixed(1)}" text-anchor="middle" font-size="${f.size}" font-weight="700" fill="#fff">${esc(l)}</text>`).join('')+`</g>`;
+  }
+  // table
+  const ls=linesOf(p),cmp=C.on&&ls.some(l=>l.prev!=null);
+  const bl=pmBullets(p),bw=960;
+  let fs=22,lh=30,tb=null;
+  const colsOf=()=>{
+    const w1=Math.max(measure(p.header,fs,'bold'),...ls.map(l=>measure(l.text,fs,'normal')),60);
+    const heads=cmp?[String(C.plabel),String(C.clabel)]:['Index'];
+    const cw=heads.map((h,k)=>Math.max(measure(h,fs,'bold'),measure('000',fs,'normal'))+10);
+    return {w1,heads,cw};
+  };
+  const bulLines=sz=>bl.map(b=>wrapFn(b,t=>measure(t,sz,'normal'),bw-40));
+  let bsz=20,bL=bulLines(bsz);
+  const tTop=470;
+  for(;;){
+    const rows=ls.length+1,end=tTop+rows*lh,bh=bL.reduce((a,x)=>a+x.length*(bsz*1.35)+10,0);
+    if(end+(bl.length?bh+34:0)<=800||fs<=13) break;
+    fs-=1;lh=Math.round(fs*1.36);if(bsz>15){bsz-=1;bL=bulLines(bsz);}
+  }
+  tb=colsOf();
+  const gap=26,totW=tb.w1+tb.cw.reduce((a,b)=>a+b+gap,0),tx=LX-totW/2;
+  let y=tTop;
+  o+=`<text x="${(tx+tb.w1/2).toFixed(1)}" y="${y}" text-anchor="middle" font-size="${fs}" font-weight="700" fill="${NAVY}">${esc(p.header)}</text>`;
+  let cxp=tx+tb.w1+gap;
+  const colX=tb.cw.map(w=>{const c=cxp+w/2;cxp+=w+gap;return c;});
+  tb.heads.forEach((h,k)=>{o+=`<text x="${colX[k].toFixed(1)}" y="${y}" text-anchor="middle" font-size="${fs}" font-weight="700" fill="${cmp?(k===0?GOLD:BLUE):NAVY}">${esc(h)}</text>`;});
+  y+=lh;
+  if(!ls.length)o+=`<text x="${LX}" y="${y}" text-anchor="middle" font-size="${fs}" fill="#777">No bands</text>`,y+=lh;
+  ls.forEach(l=>{
+    o+=`<text x="${(tx+tb.w1/2).toFixed(1)}" y="${y}" text-anchor="middle" font-size="${fs}" fill="${GRAYT}">${esc(l.text)}</text>`;
+    const vals=cmp?[l.prev,l.bpi]:[l.bpi];
+    vals.forEach((v,k)=>{o+=`<text x="${colX[k].toFixed(1)}" y="${y}" text-anchor="middle" font-size="${fs}" fill="${GRAYT}">${v==null?'—':esc(v)}</text>`;});
+    y+=lh;
+  });
+  // bullets
+  if(bl.length){
+    let by=Math.max(y+34,640);if(by+bL.reduce((a,x)=>a+x.length*bsz*1.35+10,0)>830)by=y+30;
+    bL.forEach(lines=>{
+      o+=`<rect x="109" y="${(by-bsz*0.8).toFixed(1)}" width="${bsz*0.8}" height="${bsz*0.8}" fill="none" stroke="${BLUE}" stroke-width="2"/>`;
+      lines.forEach((t,i)=>{o+=`<text x="${(109+bsz*0.8+14)}" y="${by.toFixed(1)}" font-size="${bsz}" fill="${GRAYT}">${esc(t)}</text>`;by+=bsz*1.35;});
+      by+=10;
+    });
+  }
+  // figure: this piece dark, the others muted
+  let shapes='';
+  plan.items.forEach(it=>{
+    const on=it===me;
+    shapes+=it.r.d.split(/(?=M)/).map(dd=>`<path d="${dd}" fill="${on?NAVY:PM_MUTED}" stroke="${on?NAVY:PM_MUTED}" stroke-width="0.7" stroke-linejoin="round"/>`).join('');
+  });
+  o+=`<g transform="translate(${X0.toFixed(2)},${Y0}) scale(${sc.toFixed(4)}) translate(${-tp.x0},${-tp.y0})">${shapes}</g>`;
+  // footer
+  const n0=parseInt(T.slide,10);
+  if(!isNaN(n0))o+=`<text x="48" y="790" font-size="13" fill="#222">${n0+idx}</text>`;
+  o+=`<rect x="1418" y="712" width="62" height="52" rx="5" fill="#fff" stroke="${NAVY}" stroke-width="2.5"/><text x="1449" y="748" text-anchor="middle" font-size="30" font-weight="700" fill="${NAVY}">blū</text>`;
+  o+=`<text x="1449" y="782" text-anchor="middle" font-size="11" fill="#555">© Reflex Blu ${new Date().getFullYear()}</text>`;
+  const dims=forExport?` width="${SW}" height="${SH}"`:'';
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${SH}"${dims} font-family="Arial, Helvetica, sans-serif">${o}</svg>`;
+}
+function pmPages(){const v=pmVis();return v.map((p,i)=>({title:String(p.header||p.label),svg:pmSlide(i,true)}));}
+window.__pmOn=()=>!!state.pm.on;
+window.renderPieceSlides=pmPages;
+function pmClamp(){const n=pmVis().length;state.pm.page=Math.max(0,Math.min(state.pm.page,n-1));}
+function pmBuildPanel(){
+  $('pmSub').value=pmSubText();
+  $('pmBul').innerHTML=pmVis().map(p=>`<div class="pb"><b>${esc(p.header||p.label)}</b><textarea data-uid="${p.uid}" placeholder="# 1 is unique and above average index for…">${esc(state.pm.bul[p.uid]||'')}</textarea></div>`).join('')||'<div class="hint">No pieces yet.</div>';
+}
+function pmSet(on){
+  state.pm.on=on;const b=$('pmToggle');b.classList.toggle('on',on);b.setAttribute('aria-checked',on);b.setAttribute('aria-pressed',on);
+  $('pmPanel').hidden=!on;if(on){pmBuildPanel();}
+  renderStage();
+}
+$('pmToggle').addEventListener('click',()=>pmSet(!state.pm.on));
+$('pmSub').addEventListener('input',e=>{state.pm.sub=e.target.value;renderStage();});
+$('pmBul').addEventListener('input',e=>{const t=e.target.closest('textarea');if(!t)return;state.pm.bul[t.dataset.uid]=t.value;renderStage();});
+
 /* ---- UI (bubble-chart look & feel) ---- */
 document.body.classList.add('standalone');
 const stage=$('stage');
 const EMPTY=()=>`<label for="file" class="drop"><div class="ic"><svg width="30" height="30" viewBox="0 0 16 16" fill="none" stroke="#002855" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V2M4.5 5.5L8 2l3.5 3.5M2 10v3.5h12V10"/></svg></div><h2>Upload your look-alike report</h2><p>Drag &amp; drop the Acxiom Enhanced Look Alike Report (.pdf) here, or <u>browse</u>. The puzzle man builds itself from the highly receptive elements.</p></label>`;
 function renderStage(){
   if(!state.report){ stage.innerHTML=EMPTY(); ['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=true); $('segbar').hidden=true; return; }
+  if(state.pm.on&&pmVis().length){
+    pmClamp();const n=pmVis().length,pg=state.pm.page;
+    stage.innerHTML=`<div style="width:100%"><div class="card">${pmSlide(pg,false)}</div><div class="pmbar"><button type="button" id="pmPrev" ${pg<=0?'disabled':''} aria-label="Previous piece">&lsaquo;</button><span>Piece ${pg+1} of ${n} &ndash; ${esc(pmVis()[pg].header)}</span><button type="button" id="pmNext" ${pg>=n-1?'disabled':''} aria-label="Next piece">&rsaquo;</button></div></div>`;
+    $('pmPrev').onclick=()=>{state.pm.page--;renderStage();};$('pmNext').onclick=()=>{state.pm.page++;renderStage();};
+    window.__fit={notes:[]};$('fitnote').textContent='';
+    ['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=false);
+    document.querySelectorAll('.pc').forEach(el=>{const q=state.pieces.find(x=>x.uid==el.dataset.uid);if(!q)return;const l2=linesOf(q);el.querySelector('.pc-sub').textContent=l2.length?l2.map(lineStr).join(' \u00b7 '):'Nothing above the receptive cutoff';});
+    if(!$('pmPanel').hidden&&!stage.contains(document.activeElement)&&!$('pmPanel').contains(document.activeElement)) pmBuildPanel();
+    return;
+  }
   stage.innerHTML=`<div class="card">${renderSlide(false)}</div>`;
   {const f=window.__fit||{notes:[]},n=$('fitnote'),pc=Math.round((f.scale||1)*100),msg=[];
    if(f.overflow) msg.push('The wording is too long to fit even at the smallest size. Remove a piece, shorten the lines, or make the figure smaller in More options.');
@@ -2690,12 +2846,21 @@ function svgToCanvas(scale){
     const img=new Image();
     img.onload=()=>{const c=document.createElement('canvas');c.width=SW*scale;c.height=SH*scale;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);res(c);};
     img.onerror=()=>rej(new Error('Could not draw the slide'));
-    img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(renderSlide(true));
+    img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(curSVG());
   });
 }
-$('dlsvg').addEventListener('click',()=>download(new Blob([renderSlide(true)],{type:'image/svg+xml'}),fname('svg')));
-$('dlpng').addEventListener('click',async()=>{try{const c=await svgToCanvas(2);c.toBlob(b=>download(b,fname('png')),'image/png');}catch(e){showMsg(e.message);}});
-$('dlpdf').addEventListener('click',()=>window.print());
+function curSVG(){return state.pm.on&&pmVis().length?pmSlide(state.pm.page,true):renderSlide(true);}
+function curName(ext){return state.pm.on&&pmVis().length?fname(ext).replace('_puzzle_man.','_piece'+(state.pm.page+1)+'_'+String(pmVis()[state.pm.page].header).replace(/[^\w]+/g,'_')+'.'):fname(ext);}
+$('dlsvg').addEventListener('click',()=>download(new Blob([curSVG()],{type:'image/svg+xml'}),curName('svg')));
+$('dlpng').addEventListener('click',async()=>{try{const c=await svgToCanvas(2);c.toBlob(b=>download(b,curName('png')),'image/png');}catch(e){showMsg(e.message);}});
+$('dlpdf').addEventListener('click',()=>{
+  if(state.pm.on&&pmVis().length){
+    let d=$('pmPrint');if(!d){d=document.createElement('div');d.id='pmPrint';document.body.appendChild(d);}
+    d.innerHTML=pmPages().map(p=>p.svg).join('');document.body.classList.add('pmprinting');
+    const done=()=>{document.body.classList.remove('pmprinting');d.innerHTML='';window.removeEventListener('afterprint',done);};
+    window.addEventListener('afterprint',done);window.print();
+  } else window.print();
+});
 renderStage();
 
 <\/script>
@@ -3239,6 +3404,7 @@ async function grab(kind,an){                    // -> [{title,svg}] for one too
   if(kind==='puzzle'){
     const f=await ensurePuzzle(an),w=f.contentWindow;
     if(!w.eval('!!(state.report&&state.pieces.some(p=>p.visible))'))throw new Error('The puzzle man has no pieces yet.');
+    if(w.__pmOn&&w.__pmOn())return w.renderPieceSlides().map(x=>({title:pre+'Puzzle piece – '+x.title,svg:x.svg}));
     const c=cmpTxt(w);return [{title:(c&&other?'':pre)+'Puzzle man'+c,svg:w.renderSlide(true)}];
   }
   const f=await ensureBubble(an),w=f.contentWindow;
