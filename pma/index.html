@@ -78,15 +78,35 @@
   .nav button.on{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(16,24,40,.12)} .nav button.on i{background:var(--navy)}
   .nav button:disabled{opacity:.5;cursor:not-allowed}
   .nav button.alt{padding:0 14px;margin-left:6px;border-left:1px solid #d5dde8;border-radius:0 999px 999px 0}
-  .hcard{border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;display:flex;flex-direction:column}
-  .hcard.cur{border-color:var(--navy);box-shadow:0 0 0 2px #cfd9ea}
-  .hbanner{background:var(--navy);border-bottom:4px solid #E8BE56;padding:16px 18px 14px;min-height:132px;display:flex;flex-direction:column;justify-content:space-between;gap:10px}
-  .hbanner .hk{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#E8BE56}
-  .hbanner textarea{width:100%;resize:none;border:1px solid transparent;border-radius:6px;padding:4px 6px;margin:-4px -6px;width:calc(100% + 12px);font-family:inherit;font-weight:700;font-size:19px;line-height:1.25;color:#fff;background:transparent;overflow:hidden}
-  .hbanner textarea:hover,.hbanner textarea:focus{border-color:rgba(255,255,255,.35);outline:none}
-  .hcard .hb{display:flex;flex-direction:column;gap:10px;padding:12px 14px 14px}
-  .hcard .meta{font-size:12.5px;color:var(--mut);line-height:1.45}
-  .hcard .rowbtns{gap:6px;flex-wrap:nowrap}.hcard .rowbtns .btn{padding:0 11px;flex:1}
+  .deck.hist{grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:20px}
+  .hcard{border-radius:20px;background:#fff;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(16,24,40,.06),0 12px 32px -8px rgba(16,24,40,.14);transition:transform .18s,box-shadow .18s}
+  .hcard:hover{transform:translateY(-3px);box-shadow:0 1px 2px rgba(16,24,40,.06),0 20px 40px -10px rgba(16,24,40,.22)}
+  .hcard.cur{box-shadow:0 0 0 2px var(--accent),0 16px 36px -10px rgba(10,79,180,.35)}
+  .hbanner{position:relative;padding:18px 20px 20px;min-height:150px;display:flex;flex-direction:column;justify-content:space-between;gap:18px;color:#fff;
+    background:radial-gradient(circle at 92% -10%,rgba(60,154,216,.55) 0,rgba(60,154,216,0) 46%),radial-gradient(circle at 100% 100%,rgba(232,190,86,.32) 0,rgba(232,190,86,0) 38%),linear-gradient(135deg,#002855 0%,#0a3f8f 100%)}
+  .htop{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .pill{display:inline-flex;align-items:center;gap:7px;height:24px;padding:0 11px;border-radius:999px;background:rgba(255,255,255,.14);backdrop-filter:blur(4px);font-size:11.5px;font-weight:600;letter-spacing:.02em;color:#fff}
+  .pill.live{background:rgba(255,255,255,.95);color:var(--navy)}
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:#1fb878;box-shadow:0 0 0 3px rgba(31,184,120,.25)}
+  .hdate{font-size:12px;color:rgba(255,255,255,.72)}
+  .hbanner textarea{width:calc(100% + 12px);margin:-4px -6px;resize:none;border:1px solid transparent;border-radius:8px;padding:4px 6px;font-family:inherit;font-weight:700;font-size:21px;line-height:1.22;letter-spacing:-.01em;color:#fff;background:transparent;overflow:hidden}
+  .hbanner textarea:hover{border-color:rgba(255,255,255,.28)} .hbanner textarea:focus{border-color:rgba(255,255,255,.6);background:rgba(255,255,255,.08);outline:none}
+  .hcard .hb{display:flex;flex-direction:column;gap:14px;padding:16px 20px 18px}
+  .lachips{display:flex;gap:6px;flex-wrap:wrap}
+  .lachips span{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;background:#eaf2fc;color:var(--accent);font-size:12px;font-weight:600}
+  .lachips span.none{background:#f2f4f7;color:var(--mut)}
+  .hstats{display:flex;gap:18px;font-size:13px;color:var(--mut)} .hstats b{font-size:16px;color:var(--navy);margin-right:3px}
+  .btn.danger{background:var(--bad);border-color:var(--bad);color:#fff} .btn.danger:hover:not(:disabled){background:#912018;border-color:#912018}
+  .editbar{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:13.5px;font-weight:600;color:var(--navy)} .editbar .grow{flex:1}
+  .hist.editing .hact{display:none} .hist.editing .hcard{cursor:pointer} .hist.editing .hcard:hover{transform:none}
+  .hist.editing .hbanner textarea{pointer-events:none}
+  .hcard .sel{display:none;width:24px;height:24px;border-radius:50%;border:2px solid rgba(255,255,255,.7);background:rgba(255,255,255,.1);place-items:center;color:transparent}
+  .hist.editing .hcard .sel{display:grid} .hist.editing .hcard .hdate{display:none}
+  .hcard.picked{box-shadow:0 0 0 3px var(--bad),0 16px 36px -10px rgba(180,35,24,.35)} .hcard.picked .sel{background:var(--bad);border-color:var(--bad);color:#fff}
+  .hact{display:flex;gap:8px;align-items:center}
+  .hact .btn.primary{flex:1;height:40px;border-radius:11px}
+  .ib2{flex:none;width:40px;height:40px;border-radius:11px;border:1px solid var(--line);background:#fff;color:var(--ink);display:grid;place-items:center;cursor:pointer;padding:0}
+  .ib2:hover{border-color:#c3ccd8;background:#f7f9fc;color:var(--navy)} .ib2.del:hover{border-color:#f3b8b2;background:#fff5f4;color:var(--bad)}
   .cnt{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--navy);color:#fff;font-size:11px}
   .nav .cnt{background:#d5dde8} .nav button.on .cnt{background:var(--navy)}
   body.pg-render #picker,body.pg-deck #picker,body.pg-hist #picker{height:100vh}
@@ -230,8 +250,9 @@
     <div class="deckwrap">
       <div class="dhead">
         <div><h2>History</h2><p>Every project is saved automatically in this browser. Open one to pick up where you left off.</p></div>
-        <div class="rowbtns"><label class="btn" for="histImport" style="cursor:pointer">Import project file</label><input type="file" id="histImport" accept=".json,.pma" hidden></div>
+        <div class="rowbtns"><button class="btn" id="histEdit" type="button" hidden>Edit</button><label class="btn" for="histImport" style="cursor:pointer">Import project file</label><input type="file" id="histImport" accept=".json,.pma" hidden></div>
       </div>
+      <div class="editbar" id="histBar" hidden><span id="histSel">0 selected</span><span class="grow"></span><button class="btn" id="histAll" type="button">Select all</button><button class="btn danger" id="histDel" type="button" disabled>Delete selected</button></div>
       <div id="histMsg"></div>
       <div class="deck hist" id="histList"></div>
       <div class="empty" id="histEmpty" hidden><b>Nothing saved yet</b><span>Upload a look-alike report on the Build page and your project will show up here automatically.</span></div>
@@ -2879,7 +2900,7 @@ function extractPersonicx(rep){
 /* ============================== app state: one "analysis" per look-alike report ============================== */
 const uid=()=>Math.random().toString(36).slice(2);
 const mkAn=()=>({id:uid(),name:'',lal:null,loading:'',progress:'',lalErr:'',cust:{src:'lal',file:null},mkt:{src:'lal',file:null},cerr:{cust:'',mkt:''},wb:null,plan:null,frames:{},engine:null,opened:false,cmpWith:'',peerIn:{},tok:0});
-const S={view:'chart',deck:[],list:[],a:null,dragI:null,deckView:'grid',selId:null,projectId:null,title:'',restoring:false,histUrls:[]};
+const S={view:'chart',deck:[],list:[],a:null,dragI:null,deckView:'grid',selId:null,projectId:null,title:'',restoring:false,histUrls:[],histEdit:false,histSel:new Set(),histIds:[]};
 S.list.push(S.a=mkAn());
 ['lal','cust','mkt','wb','plan','frames','engine','opened'].forEach(k=>Object.defineProperty(S,k,{get(){return S.a[k];},set(v){S.a[k]=v;}}));
 const viewer=$('viewer'),picker=$('picker');
@@ -2965,7 +2986,7 @@ function lalEstimate(px){            // market counts for segments the report do
   return est;
 }
 function computePlan(an){
-  const px=an.lal.px,notes=[],errors=[],cust=[],mkt=[],est=lalEstimate(px);
+  const px=an.lal.px,notes=[],errors=[],cust=[],mkt=[];
   const cf=an.cust.src==='file'?an.cust.file:null,mf=an.mkt.src==='file'?an.mkt.file:null;
   if(an.cust.src==='file'&&!cf)errors.push('Choose your customer counts file, or switch customer counts back to the look-alike report.');
   if(an.mkt.src==='file'&&!mf)errors.push('Choose your market counts file, or switch market counts back to the look-alike report.');
@@ -2973,16 +2994,15 @@ function computePlan(an){
   for(let s=1;s<=NSEG;s++){
     cust.push(an.cust.src==='file'?(cf?(cf.map.get(s)||0):0):(px.seg.has(s)?px.seg.get(s).c:0));
     let m;
-    if(an.mkt.src==='file')m=mf?(mf.map.get(s)||0):0;else m=px.seg.has(s)?px.seg.get(s).m:(est.get(s)||0);
-    if(!(m>0)&&(an.mkt.src!=='file'||mf))noMkt.push(s);
+    if(an.mkt.src==='file')m=mf?(mf.map.get(s)||0):0;else m=px.seg.has(s)?px.seg.get(s).m:0;
+    if(!(m>0)&&cust[s-1]>0&&(an.mkt.src!=='file'||mf))noMkt.push(s);
     mkt.push(m);
   }
-  if(noMkt.length)errors.push('Market counts are missing for segment'+(noMkt.length>1?'s ':' ')+noMkt.slice(0,12).map(pad2).join(', ')+(noMkt.length>12?' and '+(noMkt.length-12)+' more':'')+'. Every segment needs a market count above zero.');
+  if(noMkt.length)errors.push('Market counts are missing for segment'+(noMkt.length>1?'s ':' ')+noMkt.slice(0,12).map(pad2).join(', ')+(noMkt.length>12?' and '+(noMkt.length-12)+' more':'')+', which have customers. A segment with customers needs a market count above zero.');
   if(an.cust.src==='lal'||an.mkt.src==='lal'){
     if(px.unknown.c||px.unknown.m)notes.push('The report’s “Unknown” row ('+fmt(px.unknown.c)+' customers, '+fmt(px.unknown.m)+' prospects) isn’t a Personicx segment, so it is left out.');
     if(px.missing.length){
-      notes.push(px.missing.length+' segment'+(px.missing.length>1?'s are':' is')+' not listed in the report ('+px.missing.map(pad2).join(', ')+'), so '+(px.missing.length>1?'they have':'it has')+' 0 customers.'
-        +(an.mkt.src==='lal'?(px.remainder>0?' The report doesn’t list their market counts either, so the '+fmt(px.remainder)+' prospects it doesn’t account for are split evenly across them.':' Their market count is set to 1 so the index can be calculated.'):''));
+      notes.push(px.missing.length+' segment'+(px.missing.length>1?'s are':' is')+' not listed in the report ('+px.missing.map(pad2).join(', ')+'), so '+(px.missing.length>1?'they are':'it is')+' set to 0 customers'+(an.mkt.src==='lal'?' and 0 market':'')+'.');
     }
   }
   for(const [k,f,lab] of [['cust',cf,'customer'],['mkt',mf,'market']]){
@@ -3361,10 +3381,10 @@ function snapshot(){
     deck:S.deck.map(d=>({title:d.title,svg:d.svg}))};
 }
 let saveTimer=0;
-function touch(){clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,900);}
+function touch(){S.skipSave=false;clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,900);}
 async function saveNow(){
   clearTimeout(saveTimer);
-  if(S.restoring||(!withLal().length&&!S.deck.length))return;
+  if(S.restoring||S.skipSave||(!withLal().length&&!S.deck.length))return;
   if(!S.projectId)S.projectId=uid();
   try{await IDB.put(snapshot());$('saveNote').textContent='Saved to history';}
   catch(e){$('saveNote').textContent='Not saved – storage unavailable';S.saveErr=e.message||String(e);}
@@ -3376,25 +3396,44 @@ async function renderHist(){
   let recs=[];
   try{recs=await IDB.all();}catch(e){box(m,'err',esc(e.message||String(e)));}
   recs.sort((a,b)=>b.updated-a.updated);
-  $('histEmpty').hidden=!!recs.length;
+  $('histEmpty').hidden=!!recs.length;S.histIds=recs.map(r=>r.id);S.histSel=new Set([...S.histSel].filter(id=>S.histIds.includes(id)));
+  $('histEdit').hidden=!recs.length;if(!recs.length)S.histEdit=false;
+  L.classList.toggle('editing',S.histEdit);histBar();
   for(const r of recs){
     const c=document.createElement('div');c.className='hcard'+(r.id===S.projectId?' cur':'');
     const names=(r.analyses||[]).map(a=>a.name).join(', '),n=(r.deck||[]).length;
-    c.innerHTML='<div class="hbanner"><span class="hk"></span><textarea rows="2" aria-label="Project name" spellcheck="false"></textarea></div><div class="hb"><div class="meta"></div><div class="rowbtns"><button class="btn primary" data-a="open" type="button">Open</button><button class="btn" data-a="dl" type="button">Download</button><button class="btn ghost" data-a="del" type="button">Delete</button></div></div>';
-    c.querySelector('.hk').textContent=(r.id===S.projectId?'Open now':n+' slide'+(n===1?'':'s'));
+    const las=r.analyses||[];
+    c.innerHTML='<div class="hbanner"><div class="htop"><span class="pill"></span><span class="hdate"></span><span class="sel"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8.5l3 3 6-7"/></svg></span></div><textarea rows="2" aria-label="Project name" spellcheck="false"></textarea></div><div class="hb"><div class="lachips"></div><div class="hstats"><span><b class="ns"></b> slides</span><span><b class="nl"></b> look-alikes</span></div><div class="hact"><button class="btn primary" data-a="open" type="button">Open<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg></button><button class="ib2" data-a="dl" type="button" title="Download project file" aria-label="Download project file"><svg width="17" height="17" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M4.5 6.5L8 10l3.5-3.5M2.5 13h11"/></svg></button></div></div>';
+    const cur=r.id===S.projectId;
+    c.querySelector('.pill').innerHTML=cur?'<i class="dot"></i>Open now':'Saved';c.querySelector('.pill').classList.toggle('live',cur);
+    c.querySelector('.hdate').textContent=fmtDate(r.updated);
     c.querySelector('textarea').value=r.title;
-    c.querySelector('.meta').innerHTML=esc(fmtDate(r.updated))+'<br>'+(r.analyses||[]).length+' look-alike'+((r.analyses||[]).length===1?'':'s')+(names?' ('+esc(names)+')':'')+' · '+n+' slide'+(n===1?'':'s')+'';
+    c.querySelector('.ns').textContent=n;c.querySelector('.nl').textContent=las.length;
+    c.querySelector('.lachips').innerHTML=las.length?las.map(a=>'<span>'+esc(a.name)+'</span>').join(''):'<span class="none">No look-alikes</span>';
     c.querySelector('textarea').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.target.blur();}});
     c.querySelector('textarea').addEventListener('change',async e=>{r.title=e.target.value.trim()||r.title;e.target.value=r.title;if(r.id===S.projectId)S.title=r.title;try{await IDB.put(r);}catch(x){}});
-    c.addEventListener('click',async e=>{
+    c.classList.toggle('picked',S.histSel.has(r.id));
+    c.addEventListener('click',e=>{
+      if(S.histEdit){if(S.histSel.has(r.id))S.histSel.delete(r.id);else S.histSel.add(r.id);c.classList.toggle('picked',S.histSel.has(r.id));histBar();return;}
       const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;
       if(k==='open')openProject(r);
       else if(k==='dl')download(new Blob([JSON.stringify(r)],{type:'application/json'}),'PMA_'+(slug(r.title)||'project')+'.json');
-      else if(k==='del'){if(!confirm('Delete “'+r.title+'” from history? This can’t be undone.'))return;try{await IDB.del(r.id);}catch(x){}if(r.id===S.projectId)S.projectId=null;renderHist();}
     });
     L.appendChild(c);
   }
 }
+function histBar(){
+  $('histBar').hidden=!S.histEdit;$('histEdit').textContent=S.histEdit?'Done':'Edit';
+  const n=S.histSel.size;$('histSel').textContent=n?n+' selected':'Select projects to delete';$('histDel').disabled=!n;
+  $('histAll').textContent=n&&n===S.histIds.length?'Select none':'Select all';
+}
+$('histEdit').addEventListener('click',()=>{S.histEdit=!S.histEdit;S.histSel=new Set();renderHist();});
+$('histAll').addEventListener('click',()=>{S.histSel=S.histSel.size===S.histIds.length?new Set():new Set(S.histIds);renderHist();});
+$('histDel').addEventListener('click',async()=>{
+  const n=S.histSel.size;if(!n||!confirm('Delete '+n+' project'+(n>1?'s':'')+' from history? This can\u2019t be undone.'))return;
+  for(const id of S.histSel){try{await IDB.del(id);}catch(x){}if(id===S.projectId){S.projectId=null;S.skipSave=true;clearTimeout(saveTimer);$('saveNote').textContent='';}}
+  S.histSel=new Set();renderHist();
+});
 async function openProject(rec){
   const m=$('histMsg');box(m,'err','');
   try{
