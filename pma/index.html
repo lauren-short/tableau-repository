@@ -1453,6 +1453,14 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
   #opts .field{display:flex;flex-direction:column;align-items:stretch;gap:5px}
   #opts select,#opts input.txt{width:100%;max-width:none}
   #opts .filebtn{max-width:none;width:100%}
+
+  .acc{border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;flex:none}
+  .acch{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:1fr auto;column-gap:10px;padding:13px 16px;cursor:pointer;background:#f8fafd}
+  .acch:focus-visible{outline:2px solid var(--blue,#3C9AD8);outline-offset:-2px}
+  .acch .at{font-weight:700;color:var(--navy);font-size:14px}.acch .as{grid-column:1;font-size:12px;color:var(--mut)}
+  .acch .chev{grid-row:1/3;grid-column:2;align-self:center;color:var(--navy);transition:transform .18s}
+  .acc.open .chev{transform:rotate(180deg)}.acc.open .acch{border-bottom:1px solid var(--line)}
+  .accb{display:none;padding:14px 16px;flex-direction:column;gap:18px}.acc.open .accb{display:flex}
   .swrow{flex-direction:row;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;background:#f8fafd;border:1px solid var(--line);border-radius:12px}
   .switch{flex:none;width:46px;height:26px;border-radius:999px;border:0;background:#c4cedb;position:relative;cursor:pointer;transition:.18s;padding:0}
   .switch span{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:.18s}
@@ -1575,6 +1583,7 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
     <aside id="opts" hidden aria-label="More options">
       <div class="ohead"><span>More options</span><button class="iconbtn" id="optsClose" type="button" aria-label="Close options">&times;</button></div>
       <div class="obody">
+        <div class="acc open" id="accBuild"><button type="button" class="acch" aria-expanded="true"><span class="at">1 &middot; Build your puzzle man</span><span class="as">Rules, wording, pieces</span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg></button><div class="accb">
         <div class="osec">
           <div class="lbl">Roll-up rules</div>
           <div class="osec two">
@@ -1588,6 +1597,19 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
           <label class="lbl" for="tSub">Note <span class="mut">&ndash; BLUE, GOLD and the year labels are colored</span></label><textarea id="tSub" spellcheck="false" style="height:56px"></textarea>
           <label class="lbl" for="tSlide">Slide number <span class="mut">(optional)</span></label><input type="text" id="tSlide" class="txt" style="width:100px">
         </div>
+        <div class="osec">
+          <label class="lbl" for="figScale">Figure size <span class="mut" id="figScaleV">100%</span></label>
+          <input type="range" id="figScale" min="60" max="100" step="5" value="100" style="width:100%;accent-color:var(--navy)">
+          <div class="hint">Wording automatically wraps and shrinks so it never runs into the puzzle man. Make the figure smaller if you want more room for text.</div>
+        </div>
+        <div class="osec">
+          <div class="lbl">Puzzle pieces</div>
+          <div class="hint">Tick to show or hide, drag the handle on the left to reorder, and &hellip; to change the source, location or lines.</div>
+          <div class="pcs" id="pieces"></div>
+          <div><button class="btn" id="resetAll" type="button">Reset pieces to default</button></div>
+        </div>
+        </div></div>
+        <div class="acc" id="accCmp"><button type="button" class="acch" aria-expanded="false"><span class="at">2 &middot; Compare</span><span class="as">Last year or another look-alike</span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg></button><div class="accb">
         <div class="osec swrow">
           <div><div class="lbl">Compare</div><div class="sub">Show an earlier year or another look-alike (gold) next to this one (blue).</div></div>
           <button id="cmpToggle" class="switch" type="button" role="switch" aria-checked="false" aria-pressed="false" title="Compare against last year's puzzle man or LAL report"><span></span></button>
@@ -1613,18 +1635,9 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
           </div>
           <div class="hint">Last year&rsquo;s bands stay exactly as they were. This year&rsquo;s index is recalculated for those same bands from this year&rsquo;s report, so last year&rsquo;s Age 24-36 is re-scored with this year&rsquo;s ages 24-36.</div>
         </section>
-        <div class="osec">
-          <label class="lbl" for="figScale">Figure size <span class="mut" id="figScaleV">100%</span></label>
-          <input type="range" id="figScale" min="60" max="100" step="5" value="100" style="width:100%;accent-color:var(--navy)">
-          <div class="hint">Wording automatically wraps and shrinks so it never runs into the puzzle man. Make the figure smaller if you want more room for text.</div>
-        </div>
-        <div class="osec">
-          <div class="lbl">Puzzle pieces</div>
-          <div class="hint">Tick to show or hide, drag the handle on the left to reorder, and &hellip; to change the source, location or lines.</div>
-          <div class="pcs" id="pieces"></div>
-          <div><button class="btn" id="resetAll" type="button">Reset pieces to default</button></div>
-        </div>
-        <div class="osec swrow" id="pmRow" style="position:sticky;bottom:0;z-index:5;box-shadow:0 -6px 12px rgba(255,255,255,.95)">
+        </div></div>
+        <div class="acc" id="accPm"><button type="button" class="acch" aria-expanded="false"><span class="at">3 &middot; Create puzzle pieces</span><span class="as">One slide per piece</span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg></button><div class="accb">
+        <div class="osec swrow" id="pmRow">
           <div><div class="lbl">Create puzzle pieces</div><div class="sub">One slide per puzzle piece, in the order above, using the same bands and splits.</div></div>
           <button id="pmToggle" class="switch" type="button" role="switch" aria-checked="false" aria-pressed="false" title="Make one slide for each puzzle piece"><span></span></button>
         </div>
@@ -1641,6 +1654,7 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
           </div>
           <div class="osec"><div class="lbl">Commentary for this piece <span class="mut">&ndash; one bullet per line</span></div><div id="pmBul"></div></div>
         </section>
+        </div></div>
       </div>
     </aside>
   </div>
@@ -2492,6 +2506,7 @@ function pmBuildPanel(){
 function pmSet(on){
   state.pm.on=on;const b=$('pmToggle');b.classList.toggle('on',on);b.setAttribute('aria-checked',on);b.setAttribute('aria-pressed',on);
   $('pmPanel').hidden=!on;if(on){pmBuildPanel();}
+  if(on){accSet('accPm',true);accSet('accBuild',false);accSet('accCmp',false);}else{accSet('accPm',false);accSet('accBuild',true);}
   renderStage();
 }
 $('pmToggle').addEventListener('click',()=>pmSet(!state.pm.on));
@@ -2695,6 +2710,9 @@ $('editPieces').addEventListener('click',()=>openOpts(true));
 $('resetAll').addEventListener('click',()=>{ if(state.report){initPieces();buildPieceList();} });
 
 /* options panel */
+
+function accSet(id,on){const a=$(id);a.classList.toggle('open',on);a.querySelector('.acch').setAttribute('aria-expanded',on?'true':'false');}
+document.querySelectorAll('.acch').forEach(b=>b.addEventListener('click',()=>accSet(b.parentNode.id,!b.parentNode.classList.contains('open'))));
 function openOpts(on){ $('opts').hidden=!on; $('moreBtn').setAttribute('aria-expanded',on?'true':'false'); }
 $('moreBtn').addEventListener('click',()=>openOpts($('opts').hidden));
 $('optsClose').addEventListener('click',()=>openOpts(false));
@@ -2782,6 +2800,7 @@ function setKindUI(){
   $('pfname').textContent=C.fname[C.kind]||KIND_TXT[C.kind].ph; $('pfile').accept=KIND_TXT[C.kind].acc; $('cmpKindHint').textContent=KIND_TXT[C.kind].hint;
 }
 $('cmpToggle').addEventListener('click',()=>{
+  if(!state.cmp.on){accSet('accCmp',true);accSet('accBuild',false);}
   const C=state.cmp; C.on=!C.on; const b=$('cmpToggle');
   b.classList.toggle('on',C.on); b.setAttribute('aria-checked',C.on); b.setAttribute('aria-pressed',C.on);
   $('cmpPanel').hidden=!C.on; syncCmpText(); setKindUI(); buildPieceList(); cmpInfo();
