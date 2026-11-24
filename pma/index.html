@@ -131,8 +131,9 @@
   .okbox{padding:10px 14px;border-radius:9px;background:var(--okbg);color:var(--ok);font-size:13px;font-weight:600}
   .deck{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
   .deck:empty{display:none}
-  .selbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 14px;margin:0 0 14px;background:#eaf0fa;border:1px solid #c9d8ef;border-radius:12px}
-  .selbar[hidden]{display:none}.selbar .sc{font-weight:700;color:var(--navy);margin-right:6px}.selbar .grow{flex:1}
+  .selbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex:1;min-width:0;padding:4px 8px;background:#eaf0fa;border:1px solid #c9d8ef;border-radius:10px}
+  .selbar .btn{height:30px;padding:0 10px;font-size:12.5px}
+  .selbar[hidden]{display:none}.selbar .sc{font-weight:700;font-size:13px;color:var(--navy);margin:0 6px 0 2px}.selbar .grow{flex:1}
   .pick{all:unset;box-sizing:border-box;flex:none;width:22px;height:22px;border-radius:50%;border:2px solid #b8c6dc;background:#fff;cursor:pointer;display:grid;place-items:center;color:transparent;font-size:13px;font-weight:700;line-height:1}
   .pick:hover{border-color:var(--navy)}.pick:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .picked>.pick,.picked .pick{background:var(--navy);border-color:var(--navy);color:#fff}
@@ -150,7 +151,7 @@
   .split{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start}
   .stagecol{position:sticky;top:0;display:flex;flex-direction:column;gap:12px}
   .stage{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px;box-shadow:0 1px 2px rgba(16,24,40,.06),0 10px 30px rgba(16,24,40,.06)}
-  .stage img{display:block;width:100%;aspect-ratio:16/9;object-fit:contain;background:#fff}
+  .stage img{display:block;width:min(100%,calc((100vh - 400px)*1.7778));margin:0 auto;aspect-ratio:16/9;object-fit:contain;background:#fff}
   .sbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .sbar input{flex:1;min-width:160px;height:36px;border:1px solid var(--line);border-radius:9px;padding:0 12px;font:600 13px/1 inherit;font-family:inherit;color:var(--navy);background:#fff}
   .sbar .pos{font-size:13px;font-weight:700;color:var(--mut);min-width:54px;text-align:center}
@@ -282,8 +283,7 @@
         <span>Start building adds the bubble chart, every appendix page and the puzzle man exactly as they look now. You can also add slides one at a time from the charts page, such as a compare version.</span>
         <button class="btn primary" id="startDeck" type="button">Start building presentation</button>
       </div>
-      <div class="rowbtns" id="deckView" hidden><div class="seg" id="dkView"><button class="btn on" data-v="grid" type="button">Grid</button><button class="btn" data-v="slides" type="button">Slides</button></div><span class="note">Drag slides to reorder them, or use the arrows. In Slides view the arrow keys step through; hold Alt to move the slide.</span></div>
-      <div class="selbar" id="selBar" hidden><span class="sc" id="selCount"></span><button class="btn" data-g="start" type="button" title="Move the selected slides to the beginning">&#8676; To start</button><button class="btn" data-g="up" type="button">&larr; Earlier</button><button class="btn" data-g="dn" type="button">Later &rarr;</button><button class="btn" data-g="end" type="button" title="Move the selected slides to the end">To end &#8677;</button><span class="grow"></span><button class="btn" data-g="all" type="button">Select all</button><button class="btn" data-g="none" type="button">Clear selection</button><button class="btn danger" data-g="rm" type="button">Remove</button></div>
+      <div class="rowbtns" id="deckView" hidden><div class="seg" id="dkView"><button class="btn on" data-v="grid" type="button">Grid</button><button class="btn" data-v="slides" type="button">Slides</button></div><span class="note" id="dkHint">Drag slides to reorder them, or use the arrows. In Slides view the arrow keys step through; hold Alt to move the slide.</span><div class="selbar" id="selBar" hidden><span class="sc" id="selCount"></span><button class="btn" data-g="start" type="button" title="Move the selected slides to the beginning">&#8676; To start</button><button class="btn" data-g="up" type="button">&larr; Earlier</button><button class="btn" data-g="dn" type="button">Later &rarr;</button><button class="btn" data-g="end" type="button" title="Move the selected slides to the end">To end &#8677;</button><span class="grow"></span><button class="btn" data-g="all" type="button">Select all</button><button class="btn" data-g="none" type="button">Clear selection</button><button class="btn danger" data-g="rm" type="button">Remove</button></div></div>
       <div class="deck" id="deckList"></div>
       <div class="split" id="deckSplit" hidden><div class="stagecol" id="stageCol"></div><div class="rail" id="rail"></div></div>
       <div class="rowbtns" id="deckMore" hidden><button class="btn ghost" id="startDeck2" type="button">Add all current slides again</button><button class="btn ghost" id="dkClear" type="button">Clear deck</button><span class="note" id="dkCount"></span></div>
@@ -1676,7 +1676,7 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
         </section>
         </div></div>
         <div class="acc" id="accGrp"><div class="acch" aria-expanded="false"><span class="atx" role="button" tabindex="0"><span class="at">Group pieces on one slide</span><span class="as">Look at a few pieces together, e.g. affluence</span></span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg><button id="gpToggle" class="switch" type="button" role="switch" aria-checked="false" aria-pressed="false" title="Put several pieces on one slide"><span></span></button></div><div class="accb">
-          <div class="hint">Pick the pieces that belong together and they get one slide: each piece&rsquo;s shape and bands side by side. Slides appear where the first piece of the group sits in your list.</div>
+          <div class="hint">Pick the pieces that belong together and they get one slide: each piece&rsquo;s shape and bands side by side. Group slides are added at the end, after the individual piece slides.</div>
           <div class="osec"><label class="lbl" for="gpSize">Piece size <span class="mut" id="gpSizeV">100%</span></label><input type="range" id="gpSize" min="50" max="160" step="5" value="100" style="width:100%;accent-color:var(--navy)"></div>
           <div id="gpList"></div>
           <div class="pcbtns"><button class="btn" id="gpAdd" type="button">+ Add a group</button><button class="btn" id="gpPreset" type="button">+ Affluence example</button></div>
@@ -2527,14 +2527,11 @@ function pmPieceSlide(item,idx,forExport){
 function pmBulletsKey(k){return String(state.pm.bul[k]||'').split('\n').map(x=>x.trim()).filter(Boolean);}
 function pmItems(){
   const vis=pmVis(),P=state.pm,G=P.gOn?P.groups.map(g=>({g,mem:vis.filter(p=>g.uids.includes(p.uid))})).filter(x=>x.mem.length):[];
-  const inG=new Map();G.forEach(x=>x.mem.forEach(p=>inG.set(p.uid,x)));
-  const items=[],emitted=new Set(),done=new Set();
-  vis.forEach(p=>{
-    const gx=inG.get(p.uid);
-    if(!gx){items.push({p,mem:[p],done:new Set(done)});done.add(p);return;}
-    if(P.keep){items.push({p,mem:[p],done:new Set(done)});done.add(p);if(gx.mem[gx.mem.length-1]===p)items.push({g:gx.g,mem:gx.mem,done:new Set(done)});}
-    else if(!emitted.has(gx.g.id)){emitted.add(gx.g.id);gx.mem.forEach(m=>done.add(m));items.push({g:gx.g,mem:gx.mem,done:new Set(done)});}
-  });
+  const inG=new Set();G.forEach(x=>x.mem.forEach(p=>inG.add(p)));
+  const items=[],done=new Set();
+  vis.forEach(p=>{if(inG.has(p)&&!P.keep)return;items.push({p,mem:[p],done:new Set(done)});done.add(p);});
+  vis.forEach(p=>done.add(p));
+  G.forEach(x=>items.push({g:x.g,mem:x.mem,done:new Set(done)}));   // group slides go at the end
   return items;
 }
 const pmTitle=it=>it.g?(it.g.name||'Group'):String(it.p.header||it.p.label);
@@ -3600,7 +3597,7 @@ function pickToggle(i,e){
 }
 function groupHere(i){return S.msel.size>1&&S.msel.has(S.deck[i].id);}
 function selBar(){
-  const n=S.msel.size,b=$('selBar');b.hidden=!n;if(!n)return;
+  const n=S.msel.size,b=$('selBar');b.hidden=!n;$('dkHint').hidden=!!n;if(!n)return;
   $('selCount').textContent=n+' selected';
   const sel=S.deck.map(d=>S.msel.has(d.id)),first=sel.indexOf(true),last=sel.lastIndexOf(true),contiguousTop=sel.slice(0,n).every(Boolean),contiguousBot=sel.slice(sel.length-n).every(Boolean);
   b.querySelector('[data-g=start]').disabled=b.querySelector('[data-g=up]').disabled=contiguousTop;
