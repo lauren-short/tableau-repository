@@ -1466,6 +1466,7 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
   }
   @media (max-width:760px){ .segbar{flex-wrap:wrap} .segpick{width:100%} .segpick .btn{width:100%;justify-content:center} .top{flex-wrap:wrap} .controls,.top,.morelink,.meta{padding-left:14px;padding-right:14px} body.standalone .work{padding:14px} .opt{margin-left:0} }
 
+  .pmbar span{display:block;width:300px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .pmbar{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px;font-size:13px;color:var(--navy);font-weight:600}
   .pmbar button{border:1px solid var(--line);background:#fff;border-radius:8px;width:34px;height:30px;cursor:pointer;color:var(--navy);font-size:16px}
   .pmbar button:disabled{opacity:.35;cursor:default}
@@ -2367,7 +2368,7 @@ function renderSlide(forExport){
 
 
 /* ---- Create puzzle pieces: one slide per piece ---- */
-const PM_MUTED='#6a6690';
+const PM_MUTED='#7C8CA8';
 function pmVis(){return state.pieces.filter(p=>p.visible);}
 function pmSubText(){return state.pm.sub!=null?state.pm.sub:String((state.report&&state.report.client)||'').toUpperCase();}
 function pmBullets(p){return String(state.pm.bul[p.uid]||'').split('\n').map(x=>x.trim()).filter(Boolean);}
@@ -2392,10 +2393,10 @@ function pmSlide(idx,forExport){
   let o=`<rect width="${SW}" height="${SH}" fill="#fff"/>`;
   // title + subtitle
   const title=String(p.header||p.label).toUpperCase();
-  let tSize=56;while(tSize>28&&measure(title,tSize,'bold')>980)tSize--;
-  o+=`<text x="108" y="112" font-size="${tSize}" font-weight="700" fill="${NAVY}">${esc(title)}</text>`;
+  let tSize=66;while(tSize>28&&measure(title,tSize,'bold')>980)tSize--;
+  o+=`<text x="108" y="116" font-size="${tSize}" font-weight="700" fill="${NAVY}">${esc(title)}</text>`;
   const sub=pmSubText();
-  if(sub)o+=`<text x="110" y="146" font-size="22" letter-spacing="2" fill="${NAVY}">${esc(sub)}</text>`;
+  if(sub)o+=`<text x="110" y="152" font-size="26" letter-spacing="2.4" fill="${NAVY}">${esc(sub)}</text>`;
   // isolated piece (its own outline plus the tabs that stick out of it)
   const LX=560;
   if(me){
@@ -2410,14 +2411,14 @@ function pmSlide(idx,forExport){
     const s2=Math.min(380/bb.width,230/bb.height),pw=bb.width*s2,ph=bb.height*s2,px=LX-pw/2,py=180+(230-ph)/2;
     o+=`<g transform="translate(${px.toFixed(1)},${py.toFixed(1)}) scale(${s2.toFixed(4)}) translate(${-bb.x},${-bb.y})">`+ds.map(d=>d.split(/(?=M)/).map(dd=>`<path d="${dd}" fill="${NAVY}" stroke="${NAVY}" stroke-width="0.7" stroke-linejoin="round"/>`).join('')).join('')+`</g>`;
     const [rx,ry,rw,rh]=me.r.rect,vertical=(me.r.z==='arm'||me.r.z==='leg')&&rh>rw*1.25,rot=vertical?(me.r.s==='r'?90:-90):0;
-    const f0=fitLabel(p.label,((vertical?rh:rw)-2)*sc,((vertical?rw:rh)-2)*sc),k=s2/sc,f={size:+(f0.size*k).toFixed(1),lines:f0.lines};
+    const f0=fitLabel(p.label,((vertical?rh:rw)-2)*sc,((vertical?rw:rh)-2)*sc),k=s2/sc*1.15,f={size:+(f0.size*k).toFixed(1),lines:f0.lines};
     const cx=px+(tp.x0+rx+rw/2-bb.x)*s2,cy=py+(tp.y0+ry+rh/2-bb.y)*s2,n=f.lines.length,lh=f.size*1.18;
     o+=`<g transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(${rot})">`+f.lines.map((l,i)=>`<text x="0" y="${((i-(n-1)/2)*lh+f.size*0.35).toFixed(1)}" text-anchor="middle" font-size="${f.size}" font-weight="700" fill="#fff">${esc(l)}</text>`).join('')+`</g>`;
   }
   // table
   const ls=linesOf(p),cmp=C.on&&ls.some(l=>l.prev!=null);
   const bl=pmBullets(p),bw=960;
-  let fs=22,lh=30,tb=null;
+  let fs=26,lh=36,tb=null;
   const colsOf=()=>{
     const w1=Math.max(measure(p.header,fs,'bold'),...ls.map(l=>measure(l.text,fs,'normal')),60);
     const heads=cmp?[String(C.plabel),String(C.clabel)]:['Index'];
@@ -2425,12 +2426,12 @@ function pmSlide(idx,forExport){
     return {w1,heads,cw};
   };
   const bulLines=sz=>bl.map(b=>wrapFn(b,t=>measure(t,sz,'normal'),bw-40));
-  let bsz=20,bL=bulLines(bsz);
+  let bsz=24,bL=bulLines(bsz);
   const tTop=470;
   for(;;){
     const rows=ls.length+1,end=tTop+rows*lh,bh=bL.reduce((a,x)=>a+x.length*(bsz*1.35)+10,0);
     if(end+(bl.length?bh+34:0)<=800||fs<=13) break;
-    fs-=1;lh=Math.round(fs*1.36);if(bsz>15){bsz-=1;bL=bulLines(bsz);}
+    fs-=1;lh=Math.round(fs*1.36);if(bsz>16){bsz-=1;bL=bulLines(bsz);}
   }
   tb=colsOf();
   const gap=26,totW=tb.w1+tb.cw.reduce((a,b)=>a+b+gap,0),tx=LX-totW/2;
@@ -2459,15 +2460,14 @@ function pmSlide(idx,forExport){
   // figure: this piece dark, the others muted
   let shapes='';
   plan.items.forEach(it=>{
-    const on=it===me;
-    shapes+=it.r.d.split(/(?=M)/).map(dd=>`<path d="${dd}" fill="${on?NAVY:PM_MUTED}" stroke="${on?NAVY:PM_MUTED}" stroke-width="0.7" stroke-linejoin="round"/>`).join('');
+    const on=it===me,done=!!(it.p&&vis.indexOf(it.p)<idx),col=on?BLUE:done?NAVY:PM_MUTED;
+    shapes+=it.r.d.split(/(?=M)/).map(dd=>`<path d="${dd}" fill="${col}" stroke="${col}" stroke-width="0.7" stroke-linejoin="round"/>`).join('');
   });
   o+=`<g transform="translate(${X0.toFixed(2)},${Y0}) scale(${sc.toFixed(4)}) translate(${-tp.x0},${-tp.y0})">${shapes}</g>`;
   // footer
   const n0=parseInt(T.slide,10);
   if(!isNaN(n0))o+=`<text x="48" y="790" font-size="13" fill="#222">${n0+idx}</text>`;
   o+=`<rect x="1418" y="712" width="62" height="52" rx="5" fill="#fff" stroke="${NAVY}" stroke-width="2.5"/><text x="1449" y="748" text-anchor="middle" font-size="30" font-weight="700" fill="${NAVY}">blū</text>`;
-  o+=`<text x="1449" y="782" text-anchor="middle" font-size="11" fill="#555">© Reflex Blu ${new Date().getFullYear()}</text>`;
   const dims=forExport?` width="${SW}" height="${SH}"`:'';
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${SH}"${dims} font-family="Arial, Helvetica, sans-serif">${o}</svg>`;
 }
