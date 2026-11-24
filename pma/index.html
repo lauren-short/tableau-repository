@@ -1467,12 +1467,13 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
   @media (max-width:760px){ .segbar{flex-wrap:wrap} .segpick{width:100%} .segpick .btn{width:100%;justify-content:center} .top{flex-wrap:wrap} .controls,.top,.morelink,.meta{padding-left:14px;padding-right:14px} body.standalone .work{padding:14px} .opt{margin-left:0} }
 
   .pmbar span{display:block;width:300px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .pmbar{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px;font-size:13px;color:var(--navy);font-weight:600}
+  .pmbar{margin:0 0 10px!important;display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px;font-size:13px;color:var(--navy);font-weight:600}
   .pmbar button{border:1px solid var(--line);background:#fff;border-radius:8px;width:34px;height:30px;cursor:pointer;color:var(--navy);font-size:16px}
   .pmbar button:disabled{opacity:.35;cursor:default}
   #pmBul .pb{margin-top:8px}#pmBul .pb b{display:block;font-size:12px;color:var(--navy);margin-bottom:3px}
   #pmBul textarea{width:100%;height:54px;box-sizing:border-box;font:inherit;font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;resize:vertical}
   #pmPrint{display:none}
+  #opts .swrow:has(#pmToggle){position:sticky;bottom:0;z-index:3;box-shadow:0 -6px 12px #fff}
   body.pmprinting #stage,body.pmprinting .pmbar{display:none!important}
   body.pmprinting #pmPrint{display:block}
   body.pmprinting #pmPrint svg{display:block;width:16in;height:9in;page-break-after:always;break-after:page}
@@ -1624,7 +1625,7 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
           <div class="pcs" id="pieces"></div>
           <div><button class="btn" id="resetAll" type="button">Reset pieces to default</button></div>
         </div>
-        <div class="osec swrow">
+        <div class="osec swrow" id="pmRow" style="position:sticky;bottom:0;z-index:5;box-shadow:0 -6px 12px rgba(255,255,255,.95)">
           <div><div class="lbl">Create puzzle pieces</div><div class="sub">One slide per puzzle piece, in the order above, using the same bands and splits.</div></div>
           <button id="pmToggle" class="switch" type="button" role="switch" aria-checked="false" aria-pressed="false" title="Make one slide for each puzzle piece"><span></span></button>
         </div>
@@ -1632,6 +1633,12 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
           <div class="osec">
             <label class="lbl" for="pmSub">Line under each title <span class="mut">&ndash; e.g. the client and audience</span></label><input type="text" id="pmSub" class="txt">
             <div class="hint">Slide numbers count up from the Slide number above (leave it blank for none). Titles come from each piece&rsquo;s list heading.</div>
+          </div>
+          <div class="osec">
+            <label class="lbl" for="pmTs">Slide text size <span class="mut" id="pmTsV">100%</span></label>
+            <input type="range" id="pmTs" min="70" max="140" step="5" value="100" style="width:100%;accent-color:var(--navy)">
+            <label class="lbl" for="pmLs">Piece label size <span class="mut" id="pmLsV">100%</span></label>
+            <input type="range" id="pmLs" min="60" max="140" step="5" value="100" style="width:100%;accent-color:var(--navy)">
           </div>
           <div class="osec"><div class="lbl">Commentary for each piece <span class="mut">&ndash; one bullet per line</span></div><div id="pmBul"></div></div>
         </section>
@@ -1906,7 +1913,7 @@ const state={
   pieces:[],
   opts:{thr:120,excl:true,minShare:2,method:'pct'},
   figScale:1,
-  pm:{on:false,page:0,sub:null,bul:{}},
+  pm:{on:false,page:0,sub:null,bul:{},ts:1,ls:1},
   cmp:{on:false,kind:'pm',report:null,pm:null,plabel:String(new Date().getFullYear()-1),clabel:String(new Date().getFullYear()),fname:{pm:'',lal:''}},
   edited:{},
   text:{title:'CUSTOMER TRAITS AT A GLANCE',sub:'NOTE: BRAND PREFERENCE INDEX (BPI) IS DISPLAYED IN BLUE\nPARENTHESIS.',slide:''},
@@ -2393,10 +2400,10 @@ function pmSlide(idx,forExport){
   let o=`<rect width="${SW}" height="${SH}" fill="#fff"/>`;
   // title + subtitle
   const title=String(p.header||p.label).toUpperCase();
-  let tSize=66;while(tSize>28&&measure(title,tSize,'bold')>980)tSize--;
+  const TS=state.pm.ts||1;let tSize=Math.round(66*TS);while(tSize>24&&measure(title,tSize,'bold')>980)tSize--;
   o+=`<text x="108" y="116" font-size="${tSize}" font-weight="700" fill="${NAVY}">${esc(title)}</text>`;
   const sub=pmSubText();
-  if(sub)o+=`<text x="110" y="152" font-size="26" letter-spacing="2.4" fill="${NAVY}">${esc(sub)}</text>`;
+  if(sub)o+=`<text x="110" y="152" font-size="${(26*TS).toFixed(1)}" letter-spacing="2.4" fill="${NAVY}">${esc(sub)}</text>`;
   // isolated piece (its own outline plus the tabs that stick out of it)
   const LX=560;
   if(me){
@@ -2411,14 +2418,14 @@ function pmSlide(idx,forExport){
     const s2=Math.min(380/bb.width,230/bb.height),pw=bb.width*s2,ph=bb.height*s2,px=LX-pw/2,py=180+(230-ph)/2;
     o+=`<g transform="translate(${px.toFixed(1)},${py.toFixed(1)}) scale(${s2.toFixed(4)}) translate(${-bb.x},${-bb.y})">`+ds.map(d=>d.split(/(?=M)/).map(dd=>`<path d="${dd}" fill="${NAVY}" stroke="${NAVY}" stroke-width="0.7" stroke-linejoin="round"/>`).join('')).join('')+`</g>`;
     const [rx,ry,rw,rh]=me.r.rect,vertical=(me.r.z==='arm'||me.r.z==='leg')&&rh>rw*1.25,rot=vertical?(me.r.s==='r'?90:-90):0;
-    const f0=fitLabel(p.label,((vertical?rh:rw)-2)*sc,((vertical?rw:rh)-2)*sc),k=s2/sc*1.15,f={size:+(f0.size*k).toFixed(1),lines:f0.lines};
+    const f0=fitLabel(p.label,((vertical?rh:rw)-2)*sc,((vertical?rw:rh)-2)*sc),k=s2/sc*1.15*(state.pm.ls||1),f={size:+(f0.size*k).toFixed(1),lines:f0.lines};
     const cx=px+(tp.x0+rx+rw/2-bb.x)*s2,cy=py+(tp.y0+ry+rh/2-bb.y)*s2,n=f.lines.length,lh=f.size*1.18;
     o+=`<g transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(${rot})">`+f.lines.map((l,i)=>`<text x="0" y="${((i-(n-1)/2)*lh+f.size*0.35).toFixed(1)}" text-anchor="middle" font-size="${f.size}" font-weight="700" fill="#fff">${esc(l)}</text>`).join('')+`</g>`;
   }
   // table
   const ls=linesOf(p),cmp=C.on&&ls.some(l=>l.prev!=null);
   const bl=pmBullets(p),bw=960;
-  let fs=26,lh=36,tb=null;
+  let fs=Math.round(26*TS),lh=Math.round(36*TS),tb=null;
   const colsOf=()=>{
     const w1=Math.max(measure(p.header,fs,'bold'),...ls.map(l=>measure(l.text,fs,'normal')),60);
     const heads=cmp?[String(C.plabel),String(C.clabel)]:['Index'];
@@ -2426,7 +2433,7 @@ function pmSlide(idx,forExport){
     return {w1,heads,cw};
   };
   const bulLines=sz=>bl.map(b=>wrapFn(b,t=>measure(t,sz,'normal'),bw-40));
-  let bsz=24,bL=bulLines(bsz);
+  let bsz=Math.round(24*TS),bL=bulLines(bsz);
   const tTop=470;
   for(;;){
     const rows=ls.length+1,end=tTop+rows*lh,bh=bL.reduce((a,x)=>a+x.length*(bsz*1.35)+10,0);
@@ -2458,16 +2465,20 @@ function pmSlide(idx,forExport){
     });
   }
   // figure: this piece dark, the others muted
-  let shapes='';
+  let shapes='',flabels='';
   plan.items.forEach(it=>{
-    const on=it===me,done=!!(it.p&&vis.indexOf(it.p)<idx),col=on?BLUE:done?NAVY:PM_MUTED;
+    const on=it===me,done=!!(it.p&&vis.indexOf(it.p)<idx),col=(on||done)?NAVY:PM_MUTED;
     shapes+=it.r.d.split(/(?=M)/).map(dd=>`<path d="${dd}" fill="${col}" stroke="${col}" stroke-width="0.7" stroke-linejoin="round"/>`).join('');
+    if((on||done)&&it.p){
+      const [rx,ry,rw,rh]=it.r.rect,m=1,bw2=(rw-2*m)*sc,bh2=(rh-2*m)*sc,vert=(it.r.z==='arm'||it.r.z==='leg')&&rh>rw*1.25,rot2=vert?(it.r.s==='r'?90:-90):0;
+      const f=fitLabel(it.p.label,vert?bh2:bw2,vert?bw2:bh2),cx=X0+(rx+rw/2)*sc,cy=Y0+(ry+rh/2)*sc,n=f.lines.length,lh2=f.size*1.18;
+      flabels+=`<g transform="translate(${cx.toFixed(1)},${cy.toFixed(1)}) rotate(${rot2})">`+f.lines.map((l,q)=>`<text x="0" y="${((q-(n-1)/2)*lh2+f.size*0.35).toFixed(1)}" text-anchor="middle" font-size="${f.size}" font-weight="700" fill="#fff">${esc(l)}</text>`).join('')+`</g>`;
+    }
   });
-  o+=`<g transform="translate(${X0.toFixed(2)},${Y0}) scale(${sc.toFixed(4)}) translate(${-tp.x0},${-tp.y0})">${shapes}</g>`;
+  o+=`<g transform="translate(${X0.toFixed(2)},${Y0}) scale(${sc.toFixed(4)}) translate(${-tp.x0},${-tp.y0})">${shapes}</g>${flabels}`;
   // footer
   const n0=parseInt(T.slide,10);
   if(!isNaN(n0))o+=`<text x="48" y="790" font-size="13" fill="#222">${n0+idx}</text>`;
-  o+=`<rect x="1418" y="712" width="62" height="52" rx="5" fill="#fff" stroke="${NAVY}" stroke-width="2.5"/><text x="1449" y="748" text-anchor="middle" font-size="30" font-weight="700" fill="${NAVY}">blū</text>`;
   const dims=forExport?` width="${SW}" height="${SH}"`:'';
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${SH}"${dims} font-family="Arial, Helvetica, sans-serif">${o}</svg>`;
 }
@@ -2485,6 +2496,7 @@ function pmSet(on){
   renderStage();
 }
 $('pmToggle').addEventListener('click',()=>pmSet(!state.pm.on));
+[['pmTs','ts'],['pmLs','ls']].forEach(([id,k])=>$(id).addEventListener('input',e=>{state.pm[k]=e.target.value/100;$(id+'V').textContent=e.target.value+'%';renderStage();}));
 $('pmSub').addEventListener('input',e=>{state.pm.sub=e.target.value;renderStage();});
 $('pmBul').addEventListener('input',e=>{const t=e.target.closest('textarea');if(!t)return;state.pm.bul[t.dataset.uid]=t.value;renderStage();});
 
@@ -2496,7 +2508,7 @@ function renderStage(){
   if(!state.report){ stage.innerHTML=EMPTY(); ['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=true); $('segbar').hidden=true; return; }
   if(state.pm.on&&pmVis().length){
     pmClamp();const n=pmVis().length,pg=state.pm.page;
-    stage.innerHTML=`<div style="width:100%"><div class="card">${pmSlide(pg,false)}</div><div class="pmbar"><button type="button" id="pmPrev" ${pg<=0?'disabled':''} aria-label="Previous piece">&lsaquo;</button><span>Piece ${pg+1} of ${n} &ndash; ${esc(pmVis()[pg].header)}</span><button type="button" id="pmNext" ${pg>=n-1?'disabled':''} aria-label="Next piece">&rsaquo;</button></div></div>`;
+    stage.innerHTML=`<div style="width:100%"><div class="pmbar"><button type="button" id="pmPrev" ${pg<=0?'disabled':''} aria-label="Previous piece">&lsaquo;</button><span>Piece ${pg+1} of ${n} &ndash; ${esc(pmVis()[pg].header)}</span><button type="button" id="pmNext" ${pg>=n-1?'disabled':''} aria-label="Next piece">&rsaquo;</button></div><div class="card">${pmSlide(pg,false)}</div></div>`;
     $('pmPrev').onclick=()=>{state.pm.page--;renderStage();};$('pmNext').onclick=()=>{state.pm.page++;renderStage();};
     window.__fit={notes:[]};$('fitnote').textContent='';
     ['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=false);
