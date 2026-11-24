@@ -1639,7 +1639,7 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
             <label class="lbl" for="pmLs">Piece label size <span class="mut" id="pmLsV">100%</span></label>
             <input type="range" id="pmLs" min="60" max="140" step="5" value="100" style="width:100%;accent-color:var(--navy)">
           </div>
-          <div class="osec"><div class="lbl">Commentary for each piece <span class="mut">&ndash; one bullet per line</span></div><div id="pmBul"></div></div>
+          <div class="osec"><div class="lbl">Commentary for this piece <span class="mut">&ndash; one bullet per line</span></div><div id="pmBul"></div></div>
         </section>
       </div>
     </aside>
@@ -2487,7 +2487,7 @@ window.renderPieceSlides=pmPages;
 function pmClamp(){const n=pmVis().length;state.pm.page=Math.max(0,Math.min(state.pm.page,n-1));}
 function pmBuildPanel(){
   $('pmSub').value=pmSubText();
-  $('pmBul').innerHTML=pmVis().map(p=>`<div class="pb"><b>${esc(p.header||p.label)}</b><textarea data-uid="${p.uid}" placeholder="# 1 is unique and above average index for…">${esc(state.pm.bul[p.uid]||'')}</textarea></div>`).join('')||'<div class="hint">No pieces yet.</div>';
+  pmClamp();$('pmBul').innerHTML=pmVis().filter((p,i)=>i===state.pm.page).map(p=>`<div class="pb"><b>${esc(p.header||p.label)}</b><textarea data-uid="${p.uid}" placeholder="# 1 is unique and above average index for…">${esc(state.pm.bul[p.uid]||'')}</textarea></div>`).join('')||'<div class="hint">No pieces yet.</div>';
 }
 function pmSet(on){
   state.pm.on=on;const b=$('pmToggle');b.classList.toggle('on',on);b.setAttribute('aria-checked',on);b.setAttribute('aria-pressed',on);
@@ -2507,7 +2507,7 @@ function renderStage(){
   if(!state.report){ stage.innerHTML=EMPTY(); ['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=true); $('segbar').hidden=true; return; }
   if(state.pm.on&&pmVis().length){
     pmClamp();const n=pmVis().length,pg=state.pm.page;
-    stage.innerHTML=`<div style="width:100%"><div class="card">${pmSlide(pg,false)}</div><div class="pmbar"><button type="button" id="pmPrev" ${pg<=0?'disabled':''} aria-label="Previous piece">&lsaquo;</button><span>Piece ${pg+1} of ${n} &ndash; ${esc(pmVis()[pg].header)}</span><button type="button" id="pmNext" ${pg>=n-1?'disabled':''} aria-label="Next piece">&rsaquo;</button></div></div>`;
+    stage.innerHTML=`<div style="width:100%;display:flex;flex-direction:column;align-items:center"><div class="card">${pmSlide(pg,false)}</div><div class="pmbar"><button type="button" id="pmPrev" ${pg<=0?'disabled':''} aria-label="Previous piece">&lsaquo;</button><span>Piece ${pg+1} of ${n} &ndash; ${esc(pmVis()[pg].header)}</span><button type="button" id="pmNext" ${pg>=n-1?'disabled':''} aria-label="Next piece">&rsaquo;</button></div></div>`;
     $('pmPrev').onclick=()=>{state.pm.page--;renderStage();};$('pmNext').onclick=()=>{state.pm.page++;renderStage();};
     window.__fit={notes:[]};$('fitnote').textContent='';
     ['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=false);
