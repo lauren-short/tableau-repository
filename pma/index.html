@@ -79,6 +79,9 @@
   .nav button:disabled{opacity:.5;cursor:not-allowed}
   .nav button.alt{padding:0 14px;margin-left:6px;border-left:1px solid #d5dde8;border-radius:0 999px 999px 0}
   .deck.hist{grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:20px}
+  .whoami{display:inline-flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;font-weight:600;color:var(--navy)}
+  .whoami input{height:34px;width:260px;max-width:100%;border:1px solid var(--line);border-radius:9px;padding:0 12px;font:inherit;font-size:13px;font-weight:400;color:var(--ink);background:#fff}
+  .hby{font-size:12px;color:rgba(255,255,255,.82);margin:2px 0 0}
   .hclients{margin:0 0 16px}.hct{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:10px}
   .hcrow{display:flex;flex-wrap:wrap;gap:10px}
   .hcchip{border:1px solid var(--line);background:#fff;color:#2b3a55;border-radius:999px;padding:9px 20px;font:inherit;font-size:13px;cursor:pointer;transition:.15s}
@@ -131,6 +134,13 @@
   .okbox{padding:10px 14px;border-radius:9px;background:var(--okbg);color:var(--ok);font-size:13px;font-weight:600}
   .deck{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
   .deck:empty{display:none}
+  .mvto{display:inline-flex;gap:4px;align-items:center}
+  .mvto input{width:58px!important;flex:none!important;min-width:0!important;height:30px;border:1px solid var(--line);border-radius:8px;padding:0 8px;font:600 12.5px/1 inherit;font-family:inherit;color:var(--navy);background:#fff;text-align:center}
+  .sbar .mvto input{height:36px}
+  .dcard.locked,.ritem.locked{border-left:5px solid var(--lk)}
+  .dcard.locked.lk-f,.ritem.locked.lk-f{box-shadow:0 -3px 0 var(--lk)}.dcard.locked.lk-l,.ritem.locked.lk-l{box-shadow:0 3px 0 var(--lk)}
+  .ritem.locked:not(.lk-l){margin-bottom:-6px;border-bottom-left-radius:0;border-bottom-right-radius:0}.ritem.locked:not(.lk-f){border-top-left-radius:0;border-top-right-radius:0}
+  .lki{color:var(--lk,#6b7a90)}
   .selbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex:1;min-width:0;padding:4px 8px;background:#eaf0fa;border:1px solid #c9d8ef;border-radius:10px}
   .selbar .btn{height:30px;padding:0 10px;font-size:12.5px}
   .selbar[hidden]{display:none}.selbar .sc{font-weight:700;font-size:13px;color:var(--navy);margin:0 6px 0 2px}.selbar .grow{flex:1}
@@ -261,9 +271,10 @@
   <section class="page deckpage" id="pgHist" hidden>
     <div class="deckwrap">
       <div class="dhead">
-        <div><h2>History</h2><p>Every project is saved automatically in this browser. Open one to pick up where you left off.</p></div>
+        <div><h2>History</h2><p>Every project is saved automatically in this browser. Open one to pick up where you left off.</p><label class="whoami">Your name <input id="histMe" type="text" maxlength="40" placeholder="Shown as the creator on new projects" autocomplete="name"></label></div>
         <div class="rowbtns"><button class="btn" id="histEdit" type="button" hidden>Edit</button><label class="btn" for="histImport" style="cursor:pointer">Import project file</label><input type="file" id="histImport" accept=".json,.pma" hidden></div>
       </div>
+      <div class="hclients" id="histBy" hidden><div class="hct">Created by</div><div class="hcrow" id="histByRow" role="tablist"></div></div>
       <div class="hclients" id="histClients" hidden><div class="hct">Clients</div><div class="hcrow" id="histClientRow" role="tablist"></div></div>
       <div class="editbar" id="histBar" hidden><span id="histSel">0 selected</span><span class="grow"></span><button class="btn" id="histAll" type="button">Select all</button><button class="btn danger" id="histDel" type="button" disabled>Delete selected</button></div>
       <div id="histMsg"></div>
@@ -283,7 +294,7 @@
         <span>Start building adds the bubble chart, every appendix page and the puzzle man exactly as they look now. You can also add slides one at a time from the charts page, such as a compare version.</span>
         <button class="btn primary" id="startDeck" type="button">Start building presentation</button>
       </div>
-      <div class="rowbtns" id="deckView" hidden><div class="seg" id="dkView"><button class="btn on" data-v="grid" type="button">Grid</button><button class="btn" data-v="slides" type="button">Slides</button></div><span class="note" id="dkHint">Drag slides to reorder them, or use the arrows. In Slides view the arrow keys step through; hold Alt to move the slide.</span><div class="selbar" id="selBar" hidden><span class="sc" id="selCount"></span><button class="btn" data-g="start" type="button" title="Move the selected slides to the beginning">&#8676; To start</button><button class="btn" data-g="up" type="button">&larr; Earlier</button><button class="btn" data-g="dn" type="button">Later &rarr;</button><button class="btn" data-g="end" type="button" title="Move the selected slides to the end">To end &#8677;</button><span class="grow"></span><button class="btn" data-g="all" type="button">Select all</button><button class="btn" data-g="none" type="button">Clear selection</button><button class="btn danger" data-g="rm" type="button">Remove</button></div></div>
+      <div class="rowbtns" id="deckView" hidden><div class="seg" id="dkView"><button class="btn on" data-v="grid" type="button">Grid</button><button class="btn" data-v="slides" type="button">Slides</button></div><span class="note" id="dkHint">Drag slides to reorder them, or use the arrows. In Slides view the arrow keys step through; hold Alt to move the slide.</span><div class="selbar" id="selBar" hidden><span class="sc" id="selCount"></span><button class="btn" data-g="start" type="button" title="Move the selected slides to the beginning">&#8676; To start</button><button class="btn" data-g="up" type="button">&larr; Earlier</button><button class="btn" data-g="dn" type="button">Later &rarr;</button><button class="btn" data-g="end" type="button" title="Move the selected slides to the end">To end &#8677;</button><span class="mvto"><input id="selPos" type="number" min="1" aria-label="Move selected slides to position" placeholder="#"><button class="btn" data-g="mvto" type="button">Move to #</button></span><button class="btn" data-g="lock" type="button" title="Keep the selected slides together as one block">Lock together</button><button class="btn" data-g="unlock" type="button">Unlock</button><span class="grow"></span><button class="btn" data-g="all" type="button">Select all</button><button class="btn" data-g="none" type="button">Clear selection</button><button class="btn danger" data-g="rm" type="button">Remove</button></div></div>
       <div class="deck" id="deckList"></div>
       <div class="split" id="deckSplit" hidden><div class="stagecol" id="stageCol"></div><div class="rail" id="rail"></div></div>
       <div class="rowbtns" id="deckMore" hidden><button class="btn ghost" id="startDeck2" type="button">Add all current slides again</button><button class="btn ghost" id="dkClear" type="button">Clear deck</button><span class="note" id="dkCount"></span></div>
@@ -3571,28 +3582,60 @@ async function grab(kind,an){                    // -> [{title,svg}] for one too
   if(!pg.length)throw new Error('The appendix couldn’t be built from this workbook.');
   return pg.map(p=>({title:pre+'Appendix – '+p.band.name+(p.parts>1?' ('+p.part+' of '+p.parts+')':''),svg:p.svg}));
 }
+const LKPAL=['#3C9AD8','#E8BE56','#58A27C','#B07CC6','#E07A5F','#5B6EE1'];
 function addSlides(list){
-  for(const x of list)S.deck.push({id:uid(),title:x.title,svg:x.svg,url:URL.createObjectURL(new Blob([x.svg],{type:'image/svg+xml'}))});
+  const map={};
+  list.forEach((x,i)=>{
+    let lock;
+    if(x.lock===undefined){   // auto: runs of 2+ puzzle-piece slides stay together
+      const isP=y=>y&&/Puzzle piece – /.test(y.title);
+      if(isP(x)&&(isP(list[i-1])||isP(list[i+1]))){let j=i;while(isP(list[j-1]))j--;map['run'+j]=map['run'+j]||uid();lock=map['run'+j];}
+    }else if(x.lock){lock=map[x.lock]=map[x.lock]||uid();}
+    S.deck.push({id:uid(),title:x.title,svg:x.svg,lock:lock||null,url:URL.createObjectURL(new Blob([x.svg],{type:'image/svg+xml'}))});
+  });
   renderDeck();
 }
 const selIdx=()=>{let i=S.deck.findIndex(d=>d.id===S.selId);if(i<0&&S.deck.length){i=0;S.selId=S.deck[0].id;}return i;};
-const mids=()=>S.deck.filter(d=>S.msel.has(d.id));
+const blocksOf=deck=>{const out=[];for(const d of deck){const l=out[out.length-1];if(d.lock&&l&&l[0].lock===d.lock)l.push(d);else out.push([d]);}return out;};
+const blockIdx=(bl,id)=>bl.findIndex(b=>b.some(d=>d.id===id));
+function edge(i){const bl=blocksOf(S.deck),b=bl[blockIdx(bl,S.deck[i].id)],f=S.deck.indexOf(b[0]);return [f,f+b.length-1];}
+function expandSel(){const bl=blocksOf(S.deck);bl.forEach(b=>{if(b.some(d=>S.msel.has(d.id)))b.forEach(d=>S.msel.add(d.id));});}
 function moveGroup(k){
-  const n=S.deck.length,sel=S.deck.map(d=>S.msel.has(d.id));if(!sel.some(Boolean))return;
-  if(k==='start'||k==='end'){const a=S.deck.filter(d=>S.msel.has(d.id)),b=S.deck.filter(d=>!S.msel.has(d.id));S.deck=k==='start'?a.concat(b):b.concat(a);}
-  else if(k==='up'){for(let i=1;i<n;i++)if(S.msel.has(S.deck[i].id)&&!S.msel.has(S.deck[i-1].id)){[S.deck[i-1],S.deck[i]]=[S.deck[i],S.deck[i-1]];}}
-  else{for(let i=n-2;i>=0;i--)if(S.msel.has(S.deck[i].id)&&!S.msel.has(S.deck[i+1].id)){[S.deck[i+1],S.deck[i]]=[S.deck[i],S.deck[i+1]];}}
-  renderDeck();
+  expandSel();let bl=blocksOf(S.deck),sel=bl.map(b=>S.msel.has(b[0].id));if(!sel.some(Boolean))return;
+  if(k==='start'||k==='end'){const a=bl.filter((b,i)=>sel[i]),c=bl.filter((b,i)=>!sel[i]);bl=k==='start'?a.concat(c):c.concat(a);}
+  else if(k==='up'){for(let i=1;i<bl.length;i++)if(sel[i]&&!sel[i-1]){[bl[i-1],bl[i]]=[bl[i],bl[i-1]];[sel[i-1],sel[i]]=[sel[i],sel[i-1]];}}
+  else{for(let i=bl.length-2;i>=0;i--)if(sel[i]&&!sel[i+1]){[bl[i+1],bl[i]]=[bl[i],bl[i+1]];[sel[i+1],sel[i]]=[sel[i],sel[i+1]];}}
+  S.deck=bl.flat();renderDeck();
 }
 function dropGroup(targetI){
-  const t=S.deck[targetI];if(!t||S.msel.has(t.id))return;
-  const first=S.deck.findIndex(d=>S.msel.has(d.id)),grp=S.deck.filter(d=>S.msel.has(d.id)),rest=S.deck.filter(d=>!S.msel.has(d.id));
-  const ti=rest.indexOf(t),at=targetI>first?ti+1:ti;rest.splice(at,0,...grp);S.deck=rest;renderDeck();
+  expandSel();const t=S.deck[targetI];if(!t||S.msel.has(t.id))return;
+  const first=S.deck.findIndex(d=>S.msel.has(d.id)),grp=S.deck.filter(d=>S.msel.has(d.id));
+  let rest=blocksOf(S.deck.filter(d=>!S.msel.has(d.id)));const ti=blockIdx(rest,t.id);
+  rest.splice(targetI>first?ti+1:ti,0,grp);S.deck=rest.flat();renderDeck();
 }
+function moveSlide(from,to){
+  if(to<0||to>=S.deck.length||from===to)return;
+  const bl=blocksOf(S.deck),mv=S.deck[from],bi=blockIdx(bl,mv.id),ti=blockIdx(bl,S.deck[to].id);if(bi===ti)return;
+  const [m]=bl.splice(bi,1);bl.splice(ti,0,m);S.deck=bl.flat();S.selId=mv.id;renderDeck();
+}
+function stepSlide(i,dir){const [f,l]=edge(i);moveSlide(i,dir<0?f-1:l+1);}
+function moveTo(ids,pos){      // send these slides (and anything locked with them) to a 1-based position
+  const set=new Set(ids);blocksOf(S.deck).forEach(b=>{if(b.some(d=>set.has(d.id)))b.forEach(d=>set.add(d.id));});
+  const mv=S.deck.filter(d=>set.has(d.id));if(!mv.length)return;
+  const rest=blocksOf(S.deck.filter(d=>!set.has(d.id))),k=Math.max(0,Math.min(S.deck.length,Math.round(pos)||1)-1);
+  let acc=0,at=rest.length;for(let j=0;j<rest.length;j++){if(k<=acc){at=j;break;}acc+=rest[j].length;}
+  rest.splice(at,0,mv);S.deck=rest.flat();S.selId=mv[0].id;renderDeck();
+}
+function lockSel(){
+  expandSel();const grp=S.deck.filter(d=>S.msel.has(d.id));if(grp.length<2)return;
+  const first=S.deck.findIndex(d=>S.msel.has(d.id)),before=S.deck.slice(0,first).filter(d=>!S.msel.has(d.id)).length,rest=S.deck.filter(d=>!S.msel.has(d.id)),id=uid();
+  grp.forEach(d=>d.lock=id);rest.splice(before,0,...grp);S.deck=rest;renderDeck();
+}
+function unlockSel(){expandSel();S.deck.forEach(d=>{if(S.msel.has(d.id))d.lock=null;});renderDeck();}
 function pickToggle(i,e){
-  const d=S.deck[i];
-  if(e&&e.shiftKey&&S.anchor!=null){const a=S.deck.findIndex(x=>x.id===S.anchor),[lo,hi]=[Math.min(a,i),Math.max(a,i)];for(let k=lo;k<=hi;k++)S.msel.add(S.deck[k].id);}
-  else{if(S.msel.has(d.id))S.msel.delete(d.id);else S.msel.add(d.id);S.anchor=d.id;}
+  const d=S.deck[i],bl=blocksOf(S.deck),bk=bl[blockIdx(bl,d.id)];
+  if(e&&e.shiftKey&&S.anchor!=null){const a=S.deck.findIndex(x=>x.id===S.anchor),[lo,hi]=[Math.min(a,i),Math.max(a,i)];for(let k=lo;k<=hi;k++)S.msel.add(S.deck[k].id);expandSel();}
+  else{if(S.msel.has(d.id))bk.forEach(x=>S.msel.delete(x.id));else bk.forEach(x=>S.msel.add(x.id));S.anchor=d.id;}
   renderDeck();
 }
 function groupHere(i){return S.msel.size>1&&S.msel.has(S.deck[i].id);}
@@ -3602,15 +3645,21 @@ function selBar(){
   const sel=S.deck.map(d=>S.msel.has(d.id)),first=sel.indexOf(true),last=sel.lastIndexOf(true),contiguousTop=sel.slice(0,n).every(Boolean),contiguousBot=sel.slice(sel.length-n).every(Boolean);
   b.querySelector('[data-g=start]').disabled=b.querySelector('[data-g=up]').disabled=contiguousTop;
   b.querySelector('[data-g=end]').disabled=b.querySelector('[data-g=dn]').disabled=contiguousBot;
+  const blk=blocksOf(S.deck).filter(x=>x.some(d=>S.msel.has(d.id))),anyLock=S.deck.some(d=>S.msel.has(d.id)&&d.lock);
+  b.querySelector('[data-g=lock]').disabled=n<2||(blk.length===1&&blk[0].length>1&&!!blk[0][0].lock);
+  b.querySelector('[data-g=unlock]').disabled=!anyLock;
   b.querySelector('[data-g=all]').textContent=n===S.deck.length?'Select none':'Select all';
 }
 $('selBar').addEventListener('click',e=>{const g=e.target.closest('[data-g]');if(!g)return;const k=g.dataset.g;
   if(k==='all'){S.msel=S.msel.size===S.deck.length?new Set():new Set(S.deck.map(d=>d.id));renderDeck();}
   else if(k==='none'){S.msel=new Set();renderDeck();}
   else if(k==='rm'){const n=S.msel.size;if(!confirm('Remove '+n+' selected slide'+(n>1?'s':'')+' from the presentation?'))return;S.deck=S.deck.filter(d=>{if(S.msel.has(d.id)){URL.revokeObjectURL(d.url);return false;}return true;});S.msel=new Set();if(!S.deck.some(d=>d.id===S.selId))S.selId=(S.deck[0]||{}).id;renderDeck();}
+  else if(k==='lock')lockSel();
+  else if(k==='unlock')unlockSel();
+  else if(k==='mvto'){const v=+$('selPos').value;if(v>0)moveTo([...S.msel],v);}
   else moveGroup(k);
 });
-function moveSlide(from,to){if(to<0||to>=S.deck.length||from===to)return;const [m]=S.deck.splice(from,1);S.deck.splice(to,0,m);S.selId=m.id;renderDeck();}
+$('selPos').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const v=+e.target.value;if(v>0)moveTo([...S.msel],v);}});
 function removeSlide(i){const d=S.deck[i];URL.revokeObjectURL(d.url);S.deck.splice(i,1);if(S.selId===d.id)S.selId=(S.deck[i]||S.deck[i-1]||{}).id;renderDeck();}
 function dnd(el,i){
   el.draggable=true;
@@ -3624,6 +3673,8 @@ function renderDeck(){
   const n=S.deck.length;
   $('deckExport').hidden=!n;$('dkCount').textContent=n?n+' slide'+(n>1?'s':''):'';
   $('deckEmpty').hidden=!!n;$('deckMore').hidden=!n;$('deckView').hidden=!n;
+  {const pos={};S.deck.forEach((d,i)=>{if(d.lock)(pos[d.lock]=pos[d.lock]||[]).push(i);});
+   Object.values(pos).forEach(a=>{if(a.length<2||a[a.length-1]-a[0]!==a.length-1)a.forEach(i=>S.deck[i].lock=null);});}
   S.msel=new Set([...S.msel].filter(id=>S.deck.some(d=>d.id===id)));selBar();
   document.querySelectorAll('.cnt').forEach(c=>c.textContent=n);
   const grid=S.deckView!=='slides';
@@ -3633,15 +3684,22 @@ function renderDeck(){
   if(!n){$('deckList').innerHTML='';$('stageCol').innerHTML='';$('rail').innerHTML='';return;}
   if(grid)renderGrid();else renderSplit();
 }
+function lockStyle(el,d){
+  el.classList.remove('locked','lk-f','lk-l');if(!d.lock)return;
+  const ids=[...new Set(S.deck.filter(x=>x.lock).map(x=>x.lock))],col=LKPAL[ids.indexOf(d.lock)%LKPAL.length],bl=blocksOf(S.deck),b=bl[blockIdx(bl,d.id)];
+  el.classList.add('locked');if(b[0]===d)el.classList.add('lk-f');if(b[b.length-1]===d)el.classList.add('lk-l');
+  el.style.setProperty('--lk',col);el.title='Locked with '+(b.length-1)+' other slide'+(b.length>2?'s':'')+' \u2013 they move as one block';
+  const n=el.querySelector('.n');if(n&&!n.querySelector('.lki'))n.insertAdjacentHTML('beforeend','<svg class="lki" width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>');
+}
 function renderGrid(){
   const L=$('deckList'),n=S.deck.length;L.innerHTML='';
   S.deck.forEach((d,i)=>{
     const c=document.createElement('div');c.className='dcard';
     c.innerHTML='<img alt=""><div class="dmeta"><button class="pick" type="button" data-p="1" aria-label="Select slide" title="Select (Shift-click for a range)">&#10003;</button><span class="n">'+(i+1)+'</span><input aria-label="Slide title"><button class="ib" data-a="up" type="button" title="Move earlier">&larr;</button><button class="ib" data-a="dn" type="button" title="Move later">&rarr;</button><button class="ib" data-a="rm" type="button" title="Remove from deck">&times;</button></div>';
     c.querySelector('img').src=d.url;const inp=c.querySelector('input');inp.value=d.title;inp.oninput=()=>{d.title=inp.value;touch();};
-    c.querySelector('[data-a=up]').disabled=i===0;c.querySelector('[data-a=dn]').disabled=i===n-1;
+    {const [ef,el]=edge(i);c.querySelector('[data-a=up]').disabled=ef===0;c.querySelector('[data-a=dn]').disabled=el===n-1;lockStyle(c,d);}
     c.classList.toggle('picked',S.msel.has(d.id));
-    c.addEventListener('click',e=>{if(e.target.closest('[data-p]')||((e.ctrlKey||e.metaKey||e.shiftKey)&&!e.target.closest('input,button'))){pickToggle(i,e);return;}const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;if(k==='rm')removeSlide(i);else if(groupHere(i)&&k!=='rm')moveGroup(k);else moveSlide(i,k==='up'?i-1:i+1);});
+    c.addEventListener('click',e=>{if(e.target.closest('[data-p]')||((e.ctrlKey||e.metaKey||e.shiftKey)&&!e.target.closest('input,button'))){pickToggle(i,e);return;}const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;if(k==='rm')removeSlide(i);else stepSlide(i,k==='up'?-1:1);});
     c.addEventListener('dblclick',e=>{if(e.target.closest('input,button'))return;S.selId=d.id;S.deckView='slides';renderDeck();});
     dnd(c,i);L.appendChild(c);
   });
@@ -3649,22 +3707,23 @@ function renderGrid(){
 function renderSplit(){
   const n=S.deck.length,si=selIdx(),cur=S.deck[si],rail=$('rail'),keep=rail.scrollTop;
   const sc=$('stageCol');
-  sc.innerHTML='<div class="stage"><img alt=""></div><div class="sbar"><button class="ib" data-a="prev" type="button" title="Previous slide" style="width:36px;height:36px">&#9664;</button><span class="pos"></span><button class="ib" data-a="next" type="button" title="Next slide" style="width:36px;height:36px">&#9654;</button><input aria-label="Slide title"><button class="btn" data-a="up" type="button">&uarr; Move earlier</button><button class="btn" data-a="dn" type="button">Move later &darr;</button><button class="btn ghost" data-a="rm" type="button">Remove</button></div>';
+  sc.innerHTML='<div class="stage"><img alt=""></div><div class="sbar"><button class="ib" data-a="prev" type="button" title="Previous slide" style="width:36px;height:36px">&#9664;</button><span class="pos"></span><button class="ib" data-a="next" type="button" title="Next slide" style="width:36px;height:36px">&#9654;</button><input aria-label="Slide title"><button class="btn" data-a="up" type="button">&uarr; Move earlier</button><button class="btn" data-a="dn" type="button">Move later &darr;</button><span class="mvto"><input class="posin" type="number" min="1" aria-label="Move to position" placeholder="#"><button class="btn" data-a="mvto" type="button">Move to #</button></span><button class="btn ghost" data-a="rm" type="button">Remove</button></div>';
   sc.querySelector('img').src=cur.url;sc.querySelector('.pos').textContent=(si+1)+' / '+n;
   const inp=sc.querySelector('input');inp.value=cur.title;
   inp.oninput=()=>{cur.title=inp.value;touch();const t=rail.querySelector('.ritem.on .rt');if(t)t.textContent=cur.title;};
   sc.querySelector('[data-a=prev]').disabled=si===0;sc.querySelector('[data-a=next]').disabled=si===n-1;
-  sc.querySelector('[data-a=up]').disabled=si===0;sc.querySelector('[data-a=dn]').disabled=si===n-1;
+  {const [ef,el]=edge(si);sc.querySelector('[data-a=up]').disabled=ef===0;sc.querySelector('[data-a=dn]').disabled=el===n-1;}
+  sc.querySelector('.posin').max=n;sc.querySelector('.posin').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const v=+e.target.value;if(v>0)moveTo([cur.id],v);}});
   sc.onclick=e=>{const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;
-    if(k==='prev')selectSlide(si-1);else if(k==='next')selectSlide(si+1);else if(k==='up')moveSlide(si,si-1);else if(k==='dn')moveSlide(si,si+1);else if(k==='rm')removeSlide(si);};
+    if(k==='prev')selectSlide(si-1);else if(k==='next')selectSlide(si+1);else if(k==='up')stepSlide(si,-1);else if(k==='dn')stepSlide(si,1);else if(k==='mvto'){const v=+sc.querySelector('.posin').value;if(v>0)moveTo([cur.id],v);}else if(k==='rm')removeSlide(si);};
   rail.innerHTML='';
   S.deck.forEach((d,i)=>{
     const r=document.createElement('div');r.className='ritem'+(i===si?' on':'');
     r.innerHTML='<span class="n"><button class="pick" type="button" data-p="1" aria-label="Select slide" title="Select (Shift-click for a range)">&#10003;</button>'+(i+1)+'</span><div class="th"><img alt=""><div class="rt"></div></div><div class="ab"><button class="ib" data-a="up" type="button" title="Move earlier">&uarr;</button><button class="ib" data-a="dn" type="button" title="Move later">&darr;</button></div>';
     r.querySelector('img').src=d.url;r.querySelector('.rt').textContent=d.title;
-    r.querySelector('[data-a=up]').disabled=i===0;r.querySelector('[data-a=dn]').disabled=i===n-1;
+    {const [ef,el]=edge(i);r.querySelector('[data-a=up]').disabled=ef===0;r.querySelector('[data-a=dn]').disabled=el===n-1;lockStyle(r,d);}
     r.classList.toggle('picked',S.msel.has(d.id));
-    r.addEventListener('click',e=>{if(e.target.closest('[data-p]')||e.ctrlKey||e.metaKey||e.shiftKey){pickToggle(i,e);return;}const a=e.target.closest('[data-a]');if(a){if(groupHere(i))moveGroup(a.dataset.a);else moveSlide(i,a.dataset.a==='up'?i-1:i+1);return;}selectSlide(i);});
+    r.addEventListener('click',e=>{if(e.target.closest('[data-p]')||e.ctrlKey||e.metaKey||e.shiftKey){pickToggle(i,e);return;}const a=e.target.closest('[data-a]');if(a){stepSlide(i,a.dataset.a==='up'?-1:1);return;}selectSlide(i);});
     dnd(r,i);rail.appendChild(r);
   });
   rail.scrollTop=keep;
@@ -3736,10 +3795,13 @@ const IDB={
 const packFile=f=>f?{name:f.name,column:f.column,bad:f.bad||[],map:[...f.map]}:null;
 const unpackFile=f=>f?{name:f.name,column:f.column,bad:f.bad||[],map:new Map(f.map)}:null;
 const autoTitle=()=>withLal().map(a=>a.name).join(' + ')||'Untitled project';
+const userName=()=>{try{return(localStorage.getItem('pma-user')||'').trim();}catch(e){return'';}};
+function setUserName(v){try{localStorage.setItem('pma-user',v.trim());}catch(e){}}
 function snapshot(){
-  return {format:'pma-project',v:1,id:S.projectId,title:S.title||autoTitle(),updated:Date.now(),
+  if(!S.creator)S.creator=userName();
+  return {format:'pma-project',v:1,id:S.projectId,title:S.title||autoTitle(),creator:S.creator||'',updated:Date.now(),
     analyses:withLal().map(a=>({name:a.name,lal:{rep:a.lal.rep,name:a.lal.name,client:a.lal.client},cust:{src:a.cust.src,file:packFile(a.cust.file)},mkt:{src:a.mkt.src,file:packFile(a.mkt.file)},cmpWith:(S.list.find(x=>x.id===a.cmpWith)||{}).name||''})),
-    deck:S.deck.map(d=>({title:d.title,svg:d.svg}))};
+    deck:S.deck.map(d=>({title:d.title,svg:d.svg,lock:d.lock||null}))};
 }
 let saveTimer=0;
 function touch(){S.skipSave=false;clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,900);}
@@ -3764,6 +3826,12 @@ async function renderHist(){
   $('histClientRow').innerHTML=[null,...allC].map(c=>'<button type="button" role="tab" class="hcchip'+((S.histClient||null)===c?' on':'')+'" data-c="'+(c===null?'':esc(c))+'" aria-selected="'+((S.histClient||null)===c)+'">'+(c===null?'All clients':esc(c))+'</button>').join('');
   $('histClientRow').querySelectorAll('.hcchip').forEach(b=>b.addEventListener('click',()=>{S.histClient=b.dataset.c||null;S.histSel=new Set();renderHist();}));
   if(S.histClient)recs=recs.filter(r=>clientsOf(r).includes(S.histClient));
+  const byOf=r=>(r.creator||'').trim()||'Unknown',allB=[...new Set(recs.map(byOf))].sort((a,b)=>a==='Unknown'?1:b==='Unknown'?-1:a.localeCompare(b));
+  if(S.histBy&&!allB.includes(S.histBy))S.histBy=null;
+  $('histBy').hidden=allB.length<2;if(allB.length<2)S.histBy=null;
+  $('histByRow').innerHTML=[null,...allB].map(c=>'<button type="button" role="tab" class="hcchip'+((S.histBy||null)===c?' on':'')+'" data-c="'+(c===null?'':esc(c))+'" aria-selected="'+((S.histBy||null)===c)+'">'+(c===null?'Everyone':esc(c))+'</button>').join('');
+  $('histByRow').querySelectorAll('.hcchip').forEach(b=>b.addEventListener('click',()=>{S.histBy=b.dataset.c||null;S.histSel=new Set();renderHist();}));
+  if(S.histBy)recs=recs.filter(r=>byOf(r)===S.histBy);
   $('histEmpty').hidden=!!recs.length;S.histIds=recs.map(r=>r.id);S.histSel=new Set([...S.histSel].filter(id=>S.histIds.includes(id)));
   $('histEdit').hidden=!recs.length;if(!recs.length)S.histEdit=false;
   L.classList.toggle('editing',S.histEdit);histBar();
@@ -3776,6 +3844,7 @@ async function renderHist(){
     c.querySelector('.pill').innerHTML=cur?'<i class="dot"></i>Open now':'Saved';c.querySelector('.pill').classList.toggle('live',cur);
     c.querySelector('.hdate').textContent=fmtDate(r.updated);
     c.querySelector('textarea').value=r.title;
+    c.querySelector('textarea').insertAdjacentHTML('afterend','<div class="hby">Created by '+esc((r.creator||'').trim()||'Unknown')+'</div>');
     c.querySelector('.ns').textContent=n;c.querySelector('.nl').textContent=las.length;
     c.querySelector('.lachips').innerHTML=las.length?las.map(a=>'<span>'+esc(a.name)+'</span>').join(''):'<span class="none">No look-alikes</span>';
     c.querySelector('textarea').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.target.blur();}});
@@ -3795,6 +3864,7 @@ function histBar(){
   const n=S.histSel.size;$('histSel').textContent=n?n+' selected':'Select projects to delete';$('histDel').disabled=!n;
   $('histAll').textContent=n&&n===S.histIds.length?'Select none':'Select all';
 }
+{const me=$('histMe');me.value=userName();me.addEventListener('change',()=>{setUserName(me.value);});me.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();me.blur();}});}
 $('histEdit').addEventListener('click',()=>{S.histEdit=!S.histEdit;S.histSel=new Set();renderHist();});
 $('histAll').addEventListener('click',()=>{S.histSel=S.histSel.size===S.histIds.length?new Set():new Set(S.histIds);renderHist();});
 $('histDel').addEventListener('click',async()=>{
@@ -3815,7 +3885,7 @@ async function openProject(rec){
       an.engine=await makeFrame('puzzle',an);S.list.push(an);
     }
     if(!S.list.length)S.list.push(mkAn());
-    S.a=S.list[0];S.projectId=rec.id;S.title=rec.title;S.view='chart';S.selId=null;
+    S.a=S.list[0];S.projectId=rec.id;S.title=rec.title;S.creator=rec.creator||'';S.view='chart';S.selId=null;
     await Promise.all(S.list.filter(a=>a.lal).map(a=>refreshPlan(a)));
     (rec.analyses||[]).forEach((x,i)=>{if(x.cmpWith){const o=S.list.find(a=>a.name===x.cmpWith);if(o&&S.list[i])S.list[i].cmpWith=o.id;}});
     addSlides(rec.deck||[]);
@@ -3853,12 +3923,12 @@ document.addEventListener('keydown',e=>{
   if($('pgDeck').hidden||S.deckView!=='slides'||!S.deck.length)return;
   if(/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName))return;
   const prev=e.key==='ArrowUp'||e.key==='ArrowLeft',next=e.key==='ArrowDown'||e.key==='ArrowRight';if(!prev&&!next)return;
-  e.preventDefault();const i=selIdx();if(e.altKey){if(groupHere(i))moveGroup(prev?'up':'dn');else moveSlide(i,prev?i-1:i+1);}else selectSlide(prev?i-1:i+1);
+  e.preventDefault();const i=selIdx();if(e.altKey)moveSlide(i,prev?i-1:i+1);else selectSlide(prev?i-1:i+1);
 });
 $('dkClear').addEventListener('click',()=>{if(!S.deck.length||!confirm('Remove all slides from the presentation?'))return;S.deck.forEach(d=>URL.revokeObjectURL(d.url));S.deck=[];S.msel=new Set();renderDeck();});
 $('startOver').addEventListener('click',()=>{
   if(!confirm('Start over? The current project stays in History. This clears the screen so you can begin a new one.'))return;
-  saveNow();S.projectId=null;S.title='';$('saveNote').textContent='';
+  saveNow();S.projectId=null;S.title='';S.creator='';$('saveNote').textContent='';
   viewer.innerHTML='';S.deck.forEach(d=>URL.revokeObjectURL(d.url));S.deck=[];S.list.forEach(a=>a.tok++);
   S.list=[mkAn()];S.a=S.list[0];S.view='chart';
   for(const id of ['renderMsg','deckMsg'])$(id).innerHTML='';
