@@ -1622,7 +1622,7 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
     <aside id="opts" hidden aria-label="More options">
       <div class="ohead"><span>More options</span><button class="iconbtn" id="optsClose" type="button" aria-label="Close options">&times;</button></div>
       <div class="obody">
-        <div class="acc open" id="accBuild"><div class="acch" aria-expanded="true"><span class="atx" role="button" tabindex="0"><span class="at">Build your puzzle man</span><span class="as">Rules, wording, pieces</span></span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg></div><div class="accb">
+        <div class="acc" id="accBuild"><div class="acch" aria-expanded="false"><span class="atx" role="button" tabindex="0"><span class="at">Build your puzzle man</span><span class="as">Rules, wording, pieces</span></span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg></div><div class="accb">
         <div class="osec">
           <div class="lbl">Roll-up rules</div>
           <div class="osec two">
@@ -2578,14 +2578,14 @@ function pmGroupSlide(item,idx,forExport){
   const k=mem.length,cols=k<=4?k:Math.ceil(k/2),rows=Math.ceil(k/cols),cw=AW/cols,chh=(bottom-top)/rows;
   mem.forEach((p,i)=>{
     const col=i%cols,row=Math.floor(i/cols),cx0=AX+col*cw,cy0=top+row*chh;
-    const ph=Math.min(chh*0.62,(rows===1?230:120)*(state.pm.gs||1));
-    o+=pmIso(plan,tp,sc,p,cx0+12,cy0,cw-24,ph);
+    const ph=Math.min(chh*0.55,(rows===1?230:120)*(state.pm.gs||1));
+    o+=pmIso(plan,tp,sc,p,cx0+28,cy0,cw-56,ph);
     const ls=linesOf(p),cmp=C.on&&ls.some(l=>l.prev!=null),heads=cmp?[String(C.plabel),String(C.clabel)]:['Index'];
     let fs=Math.round(24*TS),lh;
     const dims=()=>({w1:Math.max(measure(p.header,fs,'bold'),...ls.map(l=>measure(l.text,fs,'normal')),40),cws:heads.map(h=>Math.max(measure(h,fs,'bold'),measure('000',fs,'normal'))+8)});
     let d=dims();const gap=Math.max(10,fs*0.9);
-    for(;;){lh=Math.round(fs*1.38);d=dims();const tw=d.w1+d.cws.reduce((a,b)=>a+b+gap,0);if(((ls.length+1)*lh<=chh-ph-26&&tw<=cw-8)||fs<=11)break;fs--;}
-    const gp=Math.max(10,fs*0.9),tw=d.w1+d.cws.reduce((a,b)=>a+b+gp,0),tx=cx0+cw/2-tw/2;let y=cy0+ph+24;
+    for(;;){lh=Math.round(fs*1.38);d=dims();const tw=d.w1+d.cws.reduce((a,b)=>a+b+gap,0);if(((ls.length+1)*lh<=chh-ph-Math.round(fs*1.9)-16&&tw<=cw-56)||fs<=11)break;fs--;}
+    const gp=Math.max(10,fs*0.9),tw=d.w1+d.cws.reduce((a,b)=>a+b+gp,0),tx=cx0+cw/2-tw/2;let y=cy0+ph+Math.round(fs*1.9);
     o+=`<text x="${(tx+d.w1/2).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" font-size="${fs}" font-weight="700" fill="${NAVY}">${esc(p.header)}</text>`;
     let cp=tx+d.w1+gp;const colX=d.cws.map(w=>{const c=cp+w/2;cp+=w+gp;return c;});
     heads.forEach((h,q)=>{o+=`<text x="${colX[q].toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" font-size="${fs}" font-weight="700" fill="${cmp?(q===0?GOLD:BLUE):NAVY}">${esc(h)}</text>`;});
@@ -2614,7 +2614,7 @@ function pmBuildPanel(){
 function pmSet(on){
   state.pm.on=on;const b=$('pmToggle');b.classList.toggle('on',on);b.setAttribute('aria-checked',on);b.setAttribute('aria-pressed',on);
   $('pmPanel').hidden=!on;if(on){pmBuildPanel();}
-  if(on){$('accPm').classList.add('on');accSet('accPm',true);accSet('accBuild',false);accSet('accCmp',false);}else{$('accPm').classList.remove('on');accSet('accPm',false);if(state.pm.gOn)gpSet(false);accSet('accBuild',true);}
+  if(on){$('accPm').classList.add('on');accSet('accPm',true);accSet('accBuild',false);accSet('accCmp',false);}else{$('accPm').classList.remove('on');accSet('accPm',false);if(state.pm.gOn)gpSet(false);}
   renderStage();
 }
 $('pmToggle').addEventListener('click',()=>pmSet(!state.pm.on));
@@ -2628,26 +2628,28 @@ function gpBuild(){
   $('gpList').innerHTML=P.groups.map(g=>`<div class="gpg" data-id="${g.id}"><div class="gh"><input class="txt gn" value="${esc(g.name)}" placeholder="Group name, e.g. Affluence"><button type="button" class="gx" title="Remove group" aria-label="Remove group">&times;</button></div><div class="gpc">${vis.map(p=>`<button type="button" data-uid="${p.uid}" class="${g.uids.includes(p.uid)?'on':''}">${esc(p.label)}</button>`).join('')}</div></div>`).join('')||'<div class="hint">No groups yet.</div>';
   $('gpKeep').checked=P.keep;
 }
+function gpShow(g){const i=pmItems().findIndex(x=>x.g===g);state.pm.page=i>=0?i:Math.max(0,pmItems().length-1);}
 function gpSet(on,quiet){
   const P=state.pm,b=$('gpToggle');P.gOn=on;b.classList.toggle('on',on);b.setAttribute('aria-checked',on);b.setAttribute('aria-pressed',on);
   $('accGrp').classList.toggle('on',on);
   if(on){if(!P.groups.length)P.groups.push({id:P.gid++,name:'Group 1',uids:[]});gpBuild();if(!P.on&&!quiet)pmSet(true);accSet('accGrp',true);accSet('accPm',false);accSet('accBuild',false);accSet('accCmp',false);}
   else accSet('accGrp',false);
+  if(on)gpShow(P.groups[P.groups.length-1]);
   if(P.on)renderStage();
 }
 $('gpToggle').addEventListener('click',()=>gpSet(!state.pm.gOn));
-$('gpAdd').addEventListener('click',()=>{const P=state.pm;P.groups.push({id:P.gid++,name:'Group '+(P.groups.length+1),uids:[]});gpBuild();renderStage();});
+$('gpAdd').addEventListener('click',()=>{const P=state.pm;const ng={id:P.gid++,name:'Group '+(P.groups.length+1),uids:[]};P.groups.push(ng);gpBuild();gpShow(ng);renderStage();});
 $('gpPreset').addEventListener('click',()=>{const P=state.pm,u=pmVis().filter(p=>/income|net ?worth|home market value/i.test(p.label)).map(p=>p.uid);
-  P.groups.forEach(g=>g.uids=g.uids.filter(x=>!u.includes(x)));P.groups=P.groups.filter(g=>g.uids.length);P.groups.push({id:P.gid++,name:'Affluence',uids:u});gpBuild();renderStage();});
+  P.groups.forEach(g=>g.uids=g.uids.filter(x=>!u.includes(x)));P.groups=P.groups.filter(g=>g.uids.length);const ng={id:P.gid++,name:'Affluence',uids:u};P.groups.push(ng);gpBuild();gpShow(ng);renderStage();});
 $('gpSize').addEventListener('input',e=>{state.pm.gs=e.target.value/100;$('gpSizeV').textContent=e.target.value+'%';renderStage();});
 $('gpKeep').addEventListener('change',e=>{state.pm.keep=e.target.checked;renderStage();});
-$('gpList').addEventListener('input',e=>{const el=e.target.closest('.gpg');if(!el||!e.target.classList.contains('gn'))return;state.pm.groups.find(g=>g.id==el.dataset.id).name=e.target.value;renderStage();});
+$('gpList').addEventListener('input',e=>{const el=e.target.closest('.gpg');if(!el||!e.target.classList.contains('gn'))return;const g=state.pm.groups.find(g=>g.id==el.dataset.id);g.name=e.target.value;gpShow(g);renderStage();});
 $('gpList').addEventListener('click',e=>{
   const el=e.target.closest('.gpg');if(!el)return;const P=state.pm,g=P.groups.find(x=>x.id==el.dataset.id);
   if(e.target.closest('.gx')){P.groups=P.groups.filter(x=>x!==g);gpBuild();renderStage();return;}
   const b=e.target.closest('.gpc button');if(!b)return;const uid=+b.dataset.uid;
   if(g.uids.includes(uid))g.uids=g.uids.filter(x=>x!==uid);else{P.groups.forEach(x=>x.uids=x.uids.filter(y=>y!==uid));g.uids.push(uid);}
-  gpBuild();renderStage();
+  gpBuild();gpShow(g);renderStage();
 });
 
 /* ---- UI (bubble-chart look & feel) ---- */
@@ -3584,8 +3586,9 @@ async function grab(kind,an){                    // -> [{title,svg}] for one too
 }
 const LKPAL=['#3C9AD8','#E8BE56','#58A27C','#B07CC6','#E07A5F','#5B6EE1'];
 function addSlides(list){
-  const map={};
+  const map={},have=new Set(S.deck.map(d=>d.svg));let skipped=0;
   list.forEach((x,i)=>{
+    if(have.has(x.svg)){skipped++;return;}
     let lock;
     if(x.lock===undefined){   // auto: runs of 2+ puzzle-piece slides stay together
       const isP=y=>y&&/Puzzle piece – /.test(y.title);
@@ -3594,6 +3597,7 @@ function addSlides(list){
     S.deck.push({id:uid(),title:x.title,svg:x.svg,lock:lock||null,url:URL.createObjectURL(new Blob([x.svg],{type:'image/svg+xml'}))});
   });
   renderDeck();
+  return {added:list.length-skipped,skipped};
 }
 const selIdx=()=>{let i=S.deck.findIndex(d=>d.id===S.selId);if(i<0&&S.deck.length){i=0;S.selId=S.deck[0].id;}return i;};
 const blocksOf=deck=>{const out=[];for(const d of deck){const l=out[out.length-1];if(d.lock&&l&&l[0].lock===d.lock)l.push(d);else out.push([d]);}return out;};
@@ -3740,12 +3744,14 @@ async function startDeck(){
       try{got.push(...await grab(k,an));}catch(e){miss.push(who+lab+': '+(e.message||e));}
     }
   }
-  addSlides(got);
+  const res=addSlides(got);
   if(miss.length)box(m,'warn','Left out: '+esc(miss.join('; ')));
+  else if(res.skipped)box(m,'ok',res.skipped+' slide'+(res.skipped>1?'s were':' was')+' already in your presentation and not added again.');
   btns.forEach((b,i)=>{b.disabled=false;b.textContent=labels[i];});renderDeck();
 }
 async function addCurrent(){
-  try{const got=await grab(S.view,S.a);addSlides(got);flash(got.length>1?'Added '+got.length+' slides to your presentation.':'Added “'+got[0].title+'” to your presentation.');}
+  try{const got=await grab(S.view,S.a),res=addSlides(got);
+    flash(!res.added?(got.length>1?'Those '+got.length+' slides are already in your presentation – nothing added.':'“'+got[0].title+'” is already in your presentation – nothing added.'):(got.length>1?'Added '+res.added+' slide'+(res.added>1?'s':'')+' to your presentation'+(res.skipped?' ('+res.skipped+' already there).':'.'):'Added “'+got[0].title+'” to your presentation.'));}
   catch(e){box($('renderMsg'),'err',esc(e.message||String(e)));}
 }
 const deckBase=()=>{const L=withLal();return 'Perfect_Match_Analysis'+(L.length?'_'+slug(L.length>1?L.map(a=>a.name).join('_'):(L[0].lal.client||L[0].name)):'');};
