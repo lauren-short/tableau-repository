@@ -432,6 +432,10 @@
   .ohead{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);font-weight:700;color:var(--navy);position:sticky;top:0;background:#fff;z-index:2;border-radius:16px 16px 0 0}
   .iconbtn{width:30px;height:30px;border-radius:8px;border:0;background:none;font-size:22px;line-height:1;color:var(--mut);cursor:pointer} .iconbtn:hover{background:#f0f3f8;color:var(--ink)}
   .obody{padding:16px 18px 20px;display:flex;flex-direction:column;gap:18px}
+  .obody[hidden]{display:none}
+  .otabs{display:flex;gap:4px;padding:8px 18px 0;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:49px;z-index:2}
+  .otabs button{all:unset;box-sizing:border-box;cursor:pointer;padding:9px 16px;font-size:13px;font-weight:700;color:var(--mut);border-bottom:3px solid transparent;margin-bottom:-1px}
+  .otabs button.on{color:var(--navy);border-bottom-color:var(--navy)}.otabs button:focus-visible{outline:2px solid var(--blue,#3C9AD8);outline-offset:-2px;border-radius:6px}
   .osec{display:flex;flex-direction:column;gap:8px} .osec.two{flex-direction:row;gap:12px} .osec.two .field{flex:1;min-width:0}
   .lbl{font-size:12px;font-weight:700;color:var(--navy);letter-spacing:.2px} .sub{font-size:12px;color:var(--mut);margin-top:2px;line-height:1.35} .mut{font-weight:400;color:var(--mut)}
   #opts .field{display:flex;flex-direction:column;align-items:stretch;gap:5px}
@@ -526,11 +530,8 @@
     </div>
     <aside id="opts" hidden aria-label="More options">
       <div class="ohead"><span>More options</span><button class="iconbtn" id="optsClose" type="button" aria-label="Close options">&times;</button></div>
-      <div class="obody">
-        <div class="osec">
-          <label class="lbl" for="subtitle">Subtitle <span class="mut">&ndash; the line under the chart title</span></label>
-          <input type="text" id="subtitle" class="txt" maxlength="40" placeholder="PERSONICX NS">
-        </div>
+      <div class="otabs" role="tablist"><button type="button" role="tab" id="tabContent" class="on" data-tab="content" aria-selected="true">Content</button><button type="button" role="tab" id="tabStyle" data-tab="style" aria-selected="false">Style</button></div>
+      <div class="obody" id="paneContent" role="tabpanel" aria-labelledby="tabContent">
         <div class="osec swrow">
           <div><div class="lbl">Compare</div><div class="sub">Show an earlier year or another look-alike as faded bubbles, with arrows to where each one moved.</div></div>
           <button id="cmpToggle" class="switch" type="button" role="switch" aria-checked="false" aria-pressed="false" title="Compare against a previous year's distribution"><span></span></button>
@@ -547,13 +548,6 @@
             <label class="field"><span>Current label</span><input type="text" id="clabel" class="txt" maxlength="14" placeholder="2026"></label>
           </div>
           <div class="osec">
-            <div class="lbl">View</div>
-            <div class="seg full" id="viewSeg"><button class="btn on" data-view="move" type="button">Increase / decrease</button><button class="btn" data-view="life" type="button">Lifestage</button></div>
-          </div>
-          <div class="osec" id="tblModeWrap" hidden>
-            <label class="field"><span class="lbl">Table shows</span><select id="tblMode"><option value="codes">Personicx codes (grouped by lifestage)</option><option value="life">Lifestage totals</option></select></label>
-          </div>
-          <div class="osec">
             <label class="field"><span class="lbl">Show</span><select id="preset"><option value="changed">Segments that changed band</option><option value="movers">Biggest movers (up or down)</option><option value="up">Biggest increases</option><option value="down">Biggest decreases</option></select></label>
             <label class="field" title="Index 120 is where Brand Receptive begins. Use this to look only at segments that cross it."><span class="lbl">Crossing 120</span><select id="crossSel"><option value="off">Off (any movement)</option><option value="any">Into or out of 120+</option><option value="in">Moved into 120+</option><option value="out">Moved out of 120+</option></select></label>
             <label class="field"><span class="lbl">Max segments shown <span class="mut">(1&ndash;10)</span></span><input type="number" id="maxn" class="txt" style="width:90px" min="1" max="10" value="8"></label>
@@ -564,6 +558,26 @@
             <span class="chips" id="lifeChips" hidden>
               <button class="chip tog on" data-life="Y" type="button"><span class="dot" style="background:#00AEEF"></span>Youth</button><button class="chip tog on" data-life="C" type="button"><span class="dot" style="background:#39B54A"></span>Career Building</button><button class="chip tog on" data-life="E" type="button"><span class="dot" style="background:#662D91"></span>Earning Years</button><button class="chip tog on" data-life="R" type="button"><span class="dot" style="background:#EC008C"></span>Retirement</button>
             </span>
+          </div>
+        </section>
+        <div class="osec">
+          <label class="lbl" for="paste">Or paste a table <span class="mut">&ndash; rows copied from Excel, with the header row</span></label>
+          <textarea id="paste" spellcheck="false" placeholder="Segment Number&#9;Segment Name&#9;Count&#9;% Comp&#9;Count&#9;% Comp&#9;Index"></textarea>
+        </div>
+      </div>
+      <div class="obody" id="paneStyle" role="tabpanel" aria-labelledby="tabStyle" hidden>
+        <div class="osec">
+          <label class="lbl" for="subtitle">Subtitle <span class="mut">&ndash; the line under the chart title</span></label>
+          <input type="text" id="subtitle" class="txt" maxlength="40" placeholder="PERSONICX NS">
+        </div>
+        <section class="compare" id="cmpStyle" hidden>
+          <div class="hint" style="font-weight:700;color:var(--navy)">Comparison display</div>
+          <div class="osec">
+            <div class="lbl">View</div>
+            <div class="seg full" id="viewSeg"><button class="btn on" data-view="move" type="button">Increase / decrease</button><button class="btn" data-view="life" type="button">Lifestage</button></div>
+          </div>
+          <div class="osec" id="tblModeWrap" hidden>
+            <label class="field"><span class="lbl">Table shows</span><select id="tblMode"><option value="codes">Personicx codes (grouped by lifestage)</option><option value="life">Lifestage totals</option></select></label>
           </div>
           <div class="osec">
             <label class="field"><span class="lbl">Sort table by</span><select id="sortKey"><option value="seg">Personicx code (default)</option><option value="p">Previous BPI</option><option value="c">Current BPI</option><option value="pct">% of change</option></select></label>
@@ -579,14 +593,11 @@
             <div class="hint">Click any header on the chart to rename it. The labels above fill in &ldquo;2024 BPI&rdquo; automatically.</div>
             <div><button class="btn" id="hdrReset" type="button">Reset headers</button></div>
           </div>
+        
         </section>
         <div class="osec">
           <label class="field"><span class="lbl">Appendix: starting page number <span class="mut">(optional)</span></span><input type="number" id="appStart" class="txt" min="1" max="999" placeholder="none" style="width:120px"></label>
           <div class="hint">Adds a page number at the bottom left of each appendix page, like your deck. Leave it empty for none.</div>
-        </div>
-        <div class="osec">
-          <label class="lbl" for="paste">Or paste a table <span class="mut">&ndash; rows copied from Excel, with the header row</span></label>
-          <textarea id="paste" spellcheck="false" placeholder="Segment Number&#9;Segment Name&#9;Count&#9;% Comp&#9;Count&#9;% Comp&#9;Index"></textarea>
         </div>
       </div>
     </aside>
@@ -1284,8 +1295,10 @@ function runStandalone(){
 
   /* ----- compare controls ----- */
   const optsEl=$("opts"), moreBtn=$("moreBtn"); const setOpts=o=>{ optsEl.hidden=!o; moreBtn.setAttribute("aria-expanded",o); };
+  const setOptTab=t=>{document.querySelectorAll(".otabs button").forEach(b=>{const on=b.dataset.tab===t;b.classList.toggle("on",on);b.setAttribute("aria-selected",on);});$("paneContent").hidden=t!=="content";$("paneStyle").hidden=t!=="style";};
+  document.querySelector(".otabs").onclick=e=>{const b=e.target.closest("button");if(b)setOptTab(b.dataset.tab);};
   moreBtn.onclick=()=>setOpts(optsEl.hidden); $("optsClose").onclick=()=>setOpts(false);
-  cmpBtn.onclick=()=>{ S.compare=!S.compare; cmpBtn.setAttribute("aria-checked",S.compare); $("cmpBadge").hidden=!S.compare; cmpBtn.classList.toggle("on",S.compare); cmpBtn.setAttribute("aria-pressed",S.compare); panel.hidden=!S.compare; refresh(); };
+  cmpBtn.onclick=()=>{ S.compare=!S.compare; cmpBtn.setAttribute("aria-checked",S.compare); $("cmpBadge").hidden=!S.compare; cmpBtn.classList.toggle("on",S.compare); cmpBtn.setAttribute("aria-pressed",S.compare); panel.hidden=!S.compare; $("cmpStyle").hidden=!S.compare; refresh(); };
   pfile.onchange=async()=>{
     const f=pfile.files[0]; if(!f) return;
     try{
@@ -1358,7 +1371,7 @@ function runStandalone(){
     sel.innerHTML=""; wrap.hidden=true; psel.innerHTML=""; pwrap.hidden=true; status.textContent=""; adjEl.textContent=""; chipC.hidden=chipM.hidden=true; msg.style.display="none";
     fname_.textContent=DEFAULT_FILE; pname.textContent=DEFAULT_PREV; plabel.value=""; clabel.value="";
     Object.assign(S,{dec:0,sortKey:"seg",sortDir:"desc",tableMode:"codes",segScope:"shown",cross:"off",hdr:{move:[null,null,null,null],life:[null,null,null,null],lifeTot:[null,null,null,null]},compare:false,view:"move",preset:"changed",max:8,prev:null,all:[],shown:[],excl:new Set(),incl:new Set(),autoSet:new Set(),dirty:{p:false,c:false},dirs:{up:true,down:true},lifes:new Set(LIFE_ORDER)});
-    cmpBtn.classList.remove("on"); cmpBtn.setAttribute("aria-pressed","false"); cmpBtn.setAttribute("aria-checked","false"); $("cmpBadge").hidden=true; panel.hidden=true; segbar.hidden=true; segMenu.hidden=true; chipsEl.innerHTML="";
+    cmpBtn.classList.remove("on"); cmpBtn.setAttribute("aria-pressed","false"); cmpBtn.setAttribute("aria-checked","false"); $("cmpBadge").hidden=true; panel.hidden=true; $("cmpStyle").hidden=true; segbar.hidden=true; segMenu.hidden=true; chipsEl.innerHTML="";
     qa("#viewSeg button").forEach(x=>x.classList.toggle("on",x.dataset.view==="move")); dirChips.hidden=false; lifeChips.hidden=true; presetEl.value="changed"; maxEl.value=8; PCT_DEC=0; $("decSel").value="0"; $("sortKey").value="seg"; $("tblMode").value="codes"; $("tblModeWrap").hidden=true; qa("#sortDir button").forEach(x=>{ x.disabled=true; x.classList.toggle("on",x.dataset.dir==="desc"); }); $("crossSel").value="off";
     qa("#dirChips .tog,#lifeChips .tog").forEach(x=>x.classList.add("on"));
     S.appOn=false; S.appPages=[]; appEl.innerHTML=""; tabsEl.hidden=true; appBtn.hidden=true; $("appStart").value=""; setTab("chart");
@@ -1448,7 +1461,7 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
   .otabs{display:flex;gap:4px;padding:8px 18px 0;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:49px;z-index:2}
   .otabs button{all:unset;box-sizing:border-box;cursor:pointer;padding:9px 16px;font-size:13px;font-weight:700;color:var(--mut);border-bottom:3px solid transparent;margin-bottom:-1px}
   .otabs button.on{color:var(--navy);border-bottom-color:var(--navy)}.otabs button:focus-visible{outline:2px solid var(--blue,#3C9AD8);outline-offset:-2px;border-radius:6px}
-  .obody[hidden]{display:none}
+  .obody[hidden]{display:none}[data-for][hidden]{display:none!important}#styleFor{font-weight:700;color:var(--navy);font-size:13px}
   .gtag{flex:none;font-size:10.5px;font-weight:700;color:#fff;background:var(--navy);border-radius:999px;padding:2px 8px;max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .gpkeep{margin-top:8px;font-size:12.5px}
   .morelink{display:inline-flex;align-items:center;gap:7px;padding:10px 24px;background:none;border:0;color:var(--accent);font:600 12.5px inherit;font-family:inherit;cursor:pointer}
@@ -1702,26 +1715,28 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
         <section id="pmComment" hidden><div class="osec"><div class="lbl">Commentary for this slide <span class="mut">&ndash; one bullet per line</span></div><div id="pmBul"></div></div></section>
       </div>
       <div class="obody" id="paneStyle" role="tabpanel" aria-labelledby="tabStyle" hidden>
-        <div class="osec">
+        <div class="hint" id="styleFor"></div>
+        <div class="osec" data-for="fig">
           <label class="lbl" for="tTitle">Slide title</label><input type="text" id="tTitle" class="txt">
           <label class="lbl" for="tSub">Note <span class="mut">&ndash; BLUE, GOLD and the year labels are colored</span></label><textarea id="tSub" spellcheck="false" style="height:56px"></textarea>
+          </div>
+        <div class="osec" data-for="fig pieces groups">
           <label class="lbl" for="tSlide">Slide number <span class="mut">(optional)</span></label><input type="text" id="tSlide" class="txt" style="width:100px">
         </div>
-        <div class="osec">
+        <div class="osec" data-for="fig">
           <label class="lbl" for="figScale">Figure size <span class="mut" id="figScaleV">100%</span></label>
           <input type="range" id="figScale" min="60" max="100" step="5" value="100" style="width:100%;accent-color:var(--navy)">
           <div class="hint">Wording automatically wraps and shrinks so it never runs into the puzzle man. Make the figure smaller if you want more room for text.</div>
         </div>
         
-        <div class="osec">
-          <div class="lbl">Piece &amp; group slides</div>
+        <div class="osec" data-for="pieces groups">
           <label class="lbl" for="pmSub">Line under each title <span class="mut">&ndash; e.g. the client and audience</span></label><input type="text" id="pmSub" class="txt">
           <label class="lbl" for="pmTs">Slide text size <span class="mut" id="pmTsV">100%</span></label>
           <input type="range" id="pmTs" min="70" max="140" step="5" value="100" style="width:100%;accent-color:var(--navy)">
           <label class="lbl" for="pmLs">Piece label size <span class="mut" id="pmLsV">100%</span></label>
           <input type="range" id="pmLs" min="60" max="140" step="5" value="100" style="width:100%;accent-color:var(--navy)">
-          <label class="lbl" for="gpSize">Piece size on group slides <span class="mut" id="gpSizeV">100%</span></label>
-          <input type="range" id="gpSize" min="50" max="160" step="5" value="100" style="width:100%;accent-color:var(--navy)">
+          <label class="lbl" data-for="groups" for="gpSize">Piece size on group slides <span class="mut" id="gpSizeV">100%</span></label>
+          <input data-for="groups" type="range" id="gpSize" min="50" max="160" step="5" value="100" style="width:100%;accent-color:var(--navy)">
           <div class="hint">Slide numbers count up from the Slide number above (leave it blank for none). Titles come from each piece&rsquo;s list heading.</div>
         </div>
       </div>
@@ -2609,13 +2624,13 @@ function pmGroupSlide(item,idx,forExport){
   const k=mem.length,cols=k<=4?k:Math.ceil(k/2),rows=Math.ceil(k/cols),cw=AW/cols,chh=(bottom-top)/rows;
   mem.forEach((p,i)=>{
     const col=i%cols,row=Math.floor(i/cols),cx0=AX+col*cw,cy0=top+row*chh;
-    const ph=Math.min(chh*0.55,(rows===1?180:100)*(state.pm.gs||1));
-    o+=pmIso(plan,tp,sc,p,cx0+28,cy0,cw-56,ph);
+    let ph=Math.min(chh*0.55,(rows===1?180:100)*(state.pm.gs||1));const ph0=ph;
     const ls=linesOf(p),cmp=C.on&&ls.some(l=>l.prev!=null),heads=cmp?[String(C.plabel),String(C.clabel)]:['Index'];
     let fs=Math.round(24*TS),lh;
     const dims=()=>({w1:Math.max(measure(p.header,fs,'bold'),...ls.map(l=>measure(l.text,fs,'normal')),40),cws:heads.map(h=>Math.max(measure(h,fs,'bold'),measure('000',fs,'normal'))+8)});
     let d=dims();const gap=Math.max(10,fs*0.9);
-    for(;;){lh=Math.round(fs*1.38);d=dims();const tw=d.w1+d.cws.reduce((a,b)=>a+b+gap,0);if(((ls.length+1)*lh<=chh-ph-Math.round(fs*1.9)-16&&tw<=cw-56)||fs<=11)break;fs--;}
+    for(;;){lh=Math.round(fs*1.38);d=dims();const tw=d.w1+d.cws.reduce((a,b)=>a+b+gap,0),room=(ls.length+1)*lh<=chh-ph-Math.round(fs*1.9)-16;if((room&&tw<=cw-56)||fs<=11)break;if(!room&&tw<=cw-56&&ph>ph0*0.55){ph-=ph0*0.05;continue;}fs--;}
+    o+=pmIso(plan,tp,sc,p,cx0+28,cy0,cw-56,ph);
     const gp=Math.max(10,fs*0.9),tw=d.w1+d.cws.reduce((a,b)=>a+b+gp,0),tx=cx0+cw/2-tw/2;let y=cy0+ph+Math.round(fs*1.9);
     o+=`<text x="${(tx+d.w1/2).toFixed(1)}" y="${y.toFixed(1)}" text-anchor="middle" font-size="${fs}" font-weight="700" fill="${NAVY}">${esc(p.header)}</text>`;
     let cp=tx+d.w1+gp;const colX=d.cws.map(w=>{const c=cp+w/2;cp+=w+gp;return c;});
@@ -2649,7 +2664,7 @@ function pmBuildPanel(){
   const on=state.pm.view!=='fig';$('pmComment').hidden=!on;
   pmClamp();$('pmBul').innerHTML=pmItems().filter((it,i)=>i===state.pm.page).map(it=>{const key=it.g?'g'+it.g.id:it.p.uid;return `<div class="pb"><b>${esc(pmTitle(it))}${it.g?' (group)':''}</b><textarea data-uid="${key}" placeholder="# 1 is unique and above average index for…">${esc(state.pm.bul[key]||'')}</textarea></div>`;}).join('')||'<div class="hint">'+(state.pm.view==='groups'?'Pick pieces for a group to see its slide.':'No pieces yet.')+'</div>';
 }
-function pvSync(){const P=state.pm;$('pvWrap').hidden=!state.report;document.querySelectorAll('#pvSeg .btn').forEach(b=>b.classList.toggle('on',b.dataset.v===P.view));}
+function pvSync(){const P=state.pm;document.querySelectorAll('#paneStyle [data-for]').forEach(el=>{el.hidden=!el.dataset.for.split(' ').includes(P.view);});$('styleFor').textContent='Styling: '+({fig:'the puzzle man slide',pieces:'piece slides',groups:'group slides'}[P.view])+' – switch the preview above to style another.';$('pvWrap').hidden=!state.report;document.querySelectorAll('#pvSeg .btn').forEach(b=>b.classList.toggle('on',b.dataset.v===P.view));}
 function setTab(t){document.querySelectorAll('.otabs button').forEach(b=>{const on=b.dataset.tab===t;b.classList.toggle('on',on);b.setAttribute('aria-selected',on);});$('paneContent').hidden=t!=='content';$('paneStyle').hidden=t!=='style';}
 document.querySelector('.otabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setTab(b.dataset.tab);});
 function pmView(v){
