@@ -141,6 +141,23 @@
   .dcard.locked.lk-f,.ritem.locked.lk-f{box-shadow:0 -3px 0 var(--lk)}.dcard.locked.lk-l,.ritem.locked.lk-l{box-shadow:0 3px 0 var(--lk)}
   .ritem.locked:not(.lk-l){margin-bottom:-6px;border-bottom-left-radius:0;border-bottom-right-radius:0}.ritem.locked:not(.lk-f){border-top-left-radius:0;border-top-right-radius:0}
   .lki{color:var(--lk,#6b7a90)}
+  .dlgback{position:fixed;inset:0;background:rgba(16,24,40,.45);display:grid;place-items:center;z-index:50;padding:16px}.dlgback[hidden]{display:none}
+  .dlg{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(16,24,40,.3);width:min(560px,100%);padding:22px 24px;display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 32px);overflow:auto}
+  .dlg h3{margin:0;font-size:18px;color:var(--navy)}.dlg .dsub{font-size:13px;color:var(--mut);margin-top:-6px}
+  #addList{display:flex;flex-direction:column;gap:8px}
+  .arow{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:12px;padding:11px 14px;cursor:pointer;background:#fff}.arow.on{border-color:var(--navy);background:#f4f7fc}
+  .arow input{width:18px;height:18px;accent-color:var(--navy);flex:none}.arow .at{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.arow b{color:var(--navy);font-size:14px}.arow .an{font-size:12px;color:var(--mut)}
+  .arow .chips{display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex:none}.arow .chip{font-size:11px;font-weight:700;border-radius:999px;padding:2px 9px;white-space:nowrap}
+  .chip.nw{background:var(--okbg);color:var(--ok)}.chip.up{background:var(--warnbg);color:var(--warn)}.chip.sm{background:#eef1f6;color:var(--mut)}
+  .dlg .asum{font-size:13px;color:var(--navy);min-height:18px}.dlg .dbtn{display:flex;justify-content:flex-end;gap:8px}
+  .sech{grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:6px 4px 2px;border-bottom:2px solid #d7e0ee;margin-top:6px}.sech:first-child{margin-top:0}
+  .sech .fold{all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;flex:1;min-width:0;font-size:13.5px;font-weight:700;color:var(--navy)}
+  .sech .fold svg{transition:transform .15s;flex:none}.sech.closed .fold svg{transform:rotate(-90deg)}.sech .cn{font-weight:500;color:var(--mut);font-size:12px}.sech .sw{font-weight:500;color:var(--mut);font-size:12px}
+  .sech .ib{opacity:.55}.sech:hover .ib,.sech:focus-within .ib{opacity:1}
+  .rsec{font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.6px;padding:8px 2px 0}.rsec:first-child{padding-top:0}
+  .deck:not(.sel) .dcard:not(:hover):not(:focus-within) .pick{opacity:0}
+  @media (hover:hover){.dcard:not(:hover):not(:focus-within) .dmeta .ib{opacity:0}}
+  .selbar .btn[hidden]{display:none}.selbar .more[hidden]{display:none}.selbar .more{display:contents}
   .selbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex:1;min-width:0;padding:4px 8px;background:#eaf0fa;border:1px solid #c9d8ef;border-radius:10px}
   .selbar .btn{height:30px;padding:0 10px;font-size:12.5px}
   .selbar[hidden]{display:none}.selbar .sc{font-weight:700;font-size:13px;color:var(--navy);margin:0 6px 0 2px}.selbar .grow{flex:1}
@@ -294,7 +311,7 @@
         <span>Start building adds the bubble chart, every appendix page and the puzzle man exactly as they look now. You can also add slides one at a time from the charts page, such as a compare version.</span>
         <button class="btn primary" id="startDeck" type="button">Start building presentation</button>
       </div>
-      <div class="rowbtns" id="deckView" hidden><div class="seg" id="dkView"><button class="btn on" data-v="grid" type="button">Grid</button><button class="btn" data-v="slides" type="button">Slides</button></div><span class="note" id="dkHint">Drag slides to reorder them, or use the arrows. In Slides view the arrow keys step through; hold Alt to move the slide.</span><div class="selbar" id="selBar" hidden><span class="sc" id="selCount"></span><button class="btn" data-g="start" type="button" title="Move the selected slides to the beginning">&#8676; To start</button><button class="btn" data-g="up" type="button">&larr; Earlier</button><button class="btn" data-g="dn" type="button">Later &rarr;</button><button class="btn" data-g="end" type="button" title="Move the selected slides to the end">To end &#8677;</button><span class="mvto"><input id="selPos" type="number" min="1" aria-label="Move selected slides to position" placeholder="#"><button class="btn" data-g="mvto" type="button">Move to #</button></span><button class="btn" data-g="lock" type="button" title="Keep the selected slides together as one block">Lock together</button><button class="btn" data-g="unlock" type="button">Unlock</button><span class="grow"></span><button class="btn" data-g="all" type="button">Select all</button><button class="btn" data-g="none" type="button">Clear selection</button><button class="btn danger" data-g="rm" type="button">Remove</button></div></div>
+      <div class="rowbtns" id="deckView" hidden><div class="seg" id="dkView"><button class="btn on" data-v="grid" type="button">Grid</button><button class="btn" data-v="slides" type="button">Slides</button></div><span class="note" id="dkHint">Drag slides to reorder, or tick several to move them together. Section headings move a whole group of slides at once.</span><div class="selbar" id="selBar" hidden><span class="sc" id="selCount"></span><button class="btn" data-g="up" type="button">&larr; Earlier</button><button class="btn" data-g="dn" type="button">Later &rarr;</button><button class="btn" data-g="lock" type="button" title="Keep the selected slides together as one block">Lock together</button><button class="btn" data-g="unlock" type="button">Unlock</button><button class="btn" data-g="more" id="selMoreBtn" type="button" aria-expanded="false">More &#9662;</button><span class="more" id="selMore" hidden><button class="btn" data-g="start" type="button" title="Move the selected slides to the beginning">&#8676; To start</button><button class="btn" data-g="end" type="button" title="Move the selected slides to the end">To end &#8677;</button><span class="mvto"><input id="selPos" type="number" min="1" aria-label="Move selected slides to position" placeholder="#"><button class="btn" data-g="mvto" type="button">Move to #</button></span><button class="btn" data-g="all" type="button">Select all</button></span><span class="grow"></span><button class="btn danger" data-g="rm" type="button">Remove</button><button class="btn" data-g="none" type="button" title="Clear the selection">Clear</button></div></div>
       <div class="deck" id="deckList"></div>
       <div class="split" id="deckSplit" hidden><div class="stagecol" id="stageCol"></div><div class="rail" id="rail"></div></div>
       <div class="rowbtns" id="deckMore" hidden><button class="btn ghost" id="startDeck2" type="button">Add all current slides again</button><button class="btn ghost" id="dkClear" type="button">Clear deck</button><span class="note" id="dkCount"></span></div>
@@ -303,6 +320,13 @@
   </section>
 </div>
 <div id="deckPrint"></div>
+<div class="dlgback" id="addDlg" hidden><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="addTitle">
+  <h3 id="addTitle">What should be added?</h3>
+  <div class="dsub">Anything already in the presentation is updated in place, never duplicated.</div>
+  <div id="addList"></div>
+  <div class="asum" id="addSum"></div>
+  <div class="dbtn"><button class="btn" id="addCancel" type="button">Cancel</button><button class="btn primary" id="addGo" type="button">Add</button></div>
+</div></div>
 
 <script type="text/plain" id="tpl-bubble"><!DOCTYPE html>
 <html lang="en">
@@ -1419,7 +1443,14 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
   .chip .dot,.seglist .dot,.schip .dot{width:9px;height:9px;border-radius:50%;margin-right:6px;display:inline-block;flex:none}
   .opt{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--mut);cursor:pointer;margin-left:auto}
   .opt input{accent-color:var(--navy);width:15px;height:15px}
-  .subbar{background:#fff;border-bottom:1px solid var(--line)}
+  .subbar{background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .pvwrap{display:flex;align-items:center;gap:8px;padding:6px 24px}.pvl{font-size:12px;color:var(--mut);font-weight:600}.pvwrap .seg .btn{height:30px;font-size:12.5px;padding:0 12px}
+  .otabs{display:flex;gap:4px;padding:8px 18px 0;border-bottom:1px solid var(--line);background:#fff;position:sticky;top:49px;z-index:2}
+  .otabs button{all:unset;box-sizing:border-box;cursor:pointer;padding:9px 16px;font-size:13px;font-weight:700;color:var(--mut);border-bottom:3px solid transparent;margin-bottom:-1px}
+  .otabs button.on{color:var(--navy);border-bottom-color:var(--navy)}.otabs button:focus-visible{outline:2px solid var(--blue,#3C9AD8);outline-offset:-2px;border-radius:6px}
+  .obody[hidden]{display:none}
+  .gtag{flex:none;font-size:10.5px;font-weight:700;color:#fff;background:var(--navy);border-radius:999px;padding:2px 8px;max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .gpkeep{margin-top:8px;font-size:12.5px}
   .morelink{display:inline-flex;align-items:center;gap:7px;padding:10px 24px;background:none;border:0;color:var(--accent);font:600 12.5px inherit;font-family:inherit;cursor:pointer}
   .morelink svg{transition:transform .15s} .morelink[aria-expanded=true] svg{transform:rotate(90deg)}
   .badge{display:inline-block;margin-left:4px;padding:2px 9px;border-radius:999px;background:#eaf0fa;color:var(--navy);font-size:11px;font-weight:700}
@@ -1490,7 +1521,7 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
   .acch{cursor:pointer}.acc.sw:not(.on) .acch{cursor:default}
   .acch .atx{flex:1;min-width:0;display:flex;flex-direction:column;cursor:pointer;outline-offset:2px}
   .acch .chev{grid-row:auto;grid-column:auto;flex:none;visibility:hidden}
-  .acc.on .chev,#accBuild .chev{visibility:visible}
+  .acc.on .chev,#accBuild .chev,#accGrp .chev{visibility:visible}
   .acc.sw:not(.on) .atx{cursor:default}
   .acch.__old{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:1fr auto;column-gap:10px;padding:13px 16px;cursor:pointer;background:#f8fafd}
   .acch:focus-visible{outline:2px solid var(--blue,#3C9AD8);outline-offset:-2px}
@@ -1603,6 +1634,7 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
     </section>
     <div class="subbar">
       <button class="morelink" id="moreBtn" type="button" aria-expanded="false" aria-controls="opts"><svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M2 1l6 4-6 4z"/></svg>More options</button>
+      <div class="pvwrap" id="pvWrap" hidden><span class="pvl">Preview</span><div class="seg" id="pvSeg" role="group" aria-label="What to preview"><button class="btn on" data-v="fig" type="button">Puzzle man</button><button class="btn" data-v="pieces" type="button">Piece slides</button><button class="btn" data-v="groups" type="button">Group slides</button></div></div>
     </div>
     <div class="meta"><div id="status"></div><div id="fitnote" class="adj"></div></div>
   </div>
@@ -1621,8 +1653,9 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
     </div>
     <aside id="opts" hidden aria-label="More options">
       <div class="ohead"><span>More options</span><button class="iconbtn" id="optsClose" type="button" aria-label="Close options">&times;</button></div>
-      <div class="obody">
-        <div class="acc" id="accBuild"><div class="acch" aria-expanded="false"><span class="atx" role="button" tabindex="0"><span class="at">Build your puzzle man</span><span class="as">Rules, wording, pieces</span></span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg></div><div class="accb">
+      <div class="otabs" role="tablist"><button type="button" role="tab" id="tabContent" class="on" data-tab="content" aria-selected="true">Content</button><button type="button" role="tab" id="tabStyle" data-tab="style" aria-selected="false">Style</button></div>
+      <div class="obody" id="paneContent" role="tabpanel" aria-labelledby="tabContent">
+        <div class="acc" id="accBuild"><div class="acch" aria-expanded="false"><span class="atx" role="button" tabindex="0"><span class="at">Rules &amp; pieces</span><span class="as">What goes in each puzzle piece</span></span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg></div><div class="accb">
         <div class="osec">
           <div class="lbl">Roll-up rules</div>
           <div class="osec two">
@@ -1630,16 +1663,6 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
             <label class="field"><span>Index math</span><select id="method"><option value="pct" selected>Sum of report %</option><option value="counts">Exact counts</option></select></label>
           </div>
           <div class="hint">A range of neighboring values is rolled into one line (Age 34-53). Ranges smaller than the minimum share are skipped. &ldquo;Sum of report %&rdquo; matches how current decks are built.</div>
-        </div>
-        <div class="osec">
-          <label class="lbl" for="tTitle">Slide title</label><input type="text" id="tTitle" class="txt">
-          <label class="lbl" for="tSub">Note <span class="mut">&ndash; BLUE, GOLD and the year labels are colored</span></label><textarea id="tSub" spellcheck="false" style="height:56px"></textarea>
-          <label class="lbl" for="tSlide">Slide number <span class="mut">(optional)</span></label><input type="text" id="tSlide" class="txt" style="width:100px">
-        </div>
-        <div class="osec">
-          <label class="lbl" for="figScale">Figure size <span class="mut" id="figScaleV">100%</span></label>
-          <input type="range" id="figScale" min="60" max="100" step="5" value="100" style="width:100%;accent-color:var(--navy)">
-          <div class="hint">Wording automatically wraps and shrinks so it never runs into the puzzle man. Make the figure smaller if you want more room for text.</div>
         </div>
         <div class="osec">
           <div class="lbl">Puzzle pieces</div>
@@ -1671,29 +1694,36 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
           <div class="hint">Last year&rsquo;s bands stay exactly as they were. This year&rsquo;s index is recalculated for those same bands from this year&rsquo;s report, so last year&rsquo;s Age 24-36 is re-scored with this year&rsquo;s ages 24-36.</div>
         </section>
         </div></div>
-        <div class="acc" id="accPm"><div class="acch" aria-expanded="false"><span class="atx" role="button" tabindex="0"><span class="at">Create puzzle pieces</span><span class="as">One slide per piece, using the same bands and splits</span></span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg><button id="pmToggle" class="switch" type="button" role="switch" aria-checked="false" aria-pressed="false" title="Make one slide for each puzzle piece"><span></span></button></div><div class="accb">
-        <section class="compare" id="pmPanel" hidden>
-          <div class="osec">
-            <label class="lbl" for="pmSub">Line under each title <span class="mut">&ndash; e.g. the client and audience</span></label><input type="text" id="pmSub" class="txt">
-            <div class="hint">Slide numbers count up from the Slide number above (leave it blank for none). Titles come from each piece&rsquo;s list heading.</div>
-          </div>
-          <div class="osec">
-            <label class="lbl" for="pmTs">Slide text size <span class="mut" id="pmTsV">100%</span></label>
-            <input type="range" id="pmTs" min="70" max="140" step="5" value="100" style="width:100%;accent-color:var(--navy)">
-            <label class="lbl" for="pmLs">Piece label size <span class="mut" id="pmLsV">100%</span></label>
-            <input type="range" id="pmLs" min="60" max="140" step="5" value="100" style="width:100%;accent-color:var(--navy)">
-          </div>
-          <div class="osec"><div class="lbl">Commentary for this piece <span class="mut">&ndash; one bullet per line</span></div><div id="pmBul"></div></div>
-        </section>
-        </div></div>
-        <div class="acc" id="accGrp"><div class="acch" aria-expanded="false"><span class="atx" role="button" tabindex="0"><span class="at">Group pieces on one slide</span><span class="as">Look at a few pieces together, e.g. affluence</span></span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg><button id="gpToggle" class="switch" type="button" role="switch" aria-checked="false" aria-pressed="false" title="Put several pieces on one slide"><span></span></button></div><div class="accb">
-          <div class="hint">Pick the pieces that belong together and they get one slide: each piece&rsquo;s shape and bands side by side. Group slides are added at the end, after the individual piece slides.</div>
-          <div class="osec"><label class="lbl" for="gpSize">Piece size <span class="mut" id="gpSizeV">100%</span></label><input type="range" id="gpSize" min="50" max="160" step="5" value="100" style="width:100%;accent-color:var(--navy)"></div>
+        <div class="acc" id="accGrp"><div class="acch" aria-expanded="false"><span class="atx" role="button" tabindex="0"><span class="at">Groups</span><span class="as">Look at a few pieces together on one slide, e.g. affluence</span></span><svg class="chev" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg></div><div class="accb">
+          <div class="hint">Pick the pieces that belong together and they get one slide: each piece&rsquo;s shape and bands side by side. You can also choose a group from a piece&rsquo;s details (&hellip;) in the list above.</div>
           <div id="gpList"></div>
           <div class="pcbtns"><button class="btn" id="gpAdd" type="button">+ Add a group</button><button class="btn" id="gpPreset" type="button">+ Affluence example</button></div>
-          <label class="gpkeep"><input type="checkbox" id="gpKeep" checked> Also keep each piece&rsquo;s own slide</label>
-          <div class="hint">Commentary for a group slide is typed in the box under Create puzzle pieces while that slide is showing.</div>
         </div></div>
+        <section id="pmComment" hidden><div class="osec"><div class="lbl">Commentary for this slide <span class="mut">&ndash; one bullet per line</span></div><div id="pmBul"></div></div></section>
+      </div>
+      <div class="obody" id="paneStyle" role="tabpanel" aria-labelledby="tabStyle" hidden>
+        <div class="osec">
+          <label class="lbl" for="tTitle">Slide title</label><input type="text" id="tTitle" class="txt">
+          <label class="lbl" for="tSub">Note <span class="mut">&ndash; BLUE, GOLD and the year labels are colored</span></label><textarea id="tSub" spellcheck="false" style="height:56px"></textarea>
+          <label class="lbl" for="tSlide">Slide number <span class="mut">(optional)</span></label><input type="text" id="tSlide" class="txt" style="width:100px">
+        </div>
+        <div class="osec">
+          <label class="lbl" for="figScale">Figure size <span class="mut" id="figScaleV">100%</span></label>
+          <input type="range" id="figScale" min="60" max="100" step="5" value="100" style="width:100%;accent-color:var(--navy)">
+          <div class="hint">Wording automatically wraps and shrinks so it never runs into the puzzle man. Make the figure smaller if you want more room for text.</div>
+        </div>
+        
+        <div class="osec">
+          <div class="lbl">Piece &amp; group slides</div>
+          <label class="lbl" for="pmSub">Line under each title <span class="mut">&ndash; e.g. the client and audience</span></label><input type="text" id="pmSub" class="txt">
+          <label class="lbl" for="pmTs">Slide text size <span class="mut" id="pmTsV">100%</span></label>
+          <input type="range" id="pmTs" min="70" max="140" step="5" value="100" style="width:100%;accent-color:var(--navy)">
+          <label class="lbl" for="pmLs">Piece label size <span class="mut" id="pmLsV">100%</span></label>
+          <input type="range" id="pmLs" min="60" max="140" step="5" value="100" style="width:100%;accent-color:var(--navy)">
+          <label class="lbl" for="gpSize">Piece size on group slides <span class="mut" id="gpSizeV">100%</span></label>
+          <input type="range" id="gpSize" min="50" max="160" step="5" value="100" style="width:100%;accent-color:var(--navy)">
+          <div class="hint">Slide numbers count up from the Slide number above (leave it blank for none). Titles come from each piece&rsquo;s list heading.</div>
+        </div>
       </div>
     </aside>
   </div>
@@ -1965,7 +1995,7 @@ const state={
   pieces:[],
   opts:{thr:120,excl:true,minShare:2,method:'pct'},
   figScale:1,
-  pm:{on:false,page:0,sub:null,bul:{},ts:1,ls:1,groups:[],gOn:false,keepUser:null,gid:1,gs:1},
+  pm:{view:'fig',page:0,sub:null,bul:{},ts:1,ls:1,groups:[],gid:1,gs:1},
   cmp:{on:false,kind:'pm',report:null,pm:null,plabel:String(new Date().getFullYear()-1),clabel:String(new Date().getFullYear()),fname:{pm:'',lal:''}},
   edited:{},
   text:{title:'CUSTOMER TRAITS AT A GLANCE',sub:'NOTE: BRAND PREFERENCE INDEX (BPI) IS DISPLAYED IN BLUE\nPARENTHESIS.',slide:''},
@@ -2536,18 +2566,16 @@ function pmPieceSlide(item,idx,forExport){
 }
 
 function pmBulletsKey(k){return String(state.pm.bul[k]||'').split('\n').map(x=>x.trim()).filter(Boolean);}
-function pmKeep(){const P=state.pm;return P.keepUser!=null?P.keepUser:!!P.on;}   // default: keep piece slides only when pieces are also switched on
-function pmActive(){const P=state.pm;return !!(P.on||P.gOn)&&pmVis().length>0&&pmItems().length>0;}
-function pmItems(){
-  const vis=pmVis(),P=state.pm,G=P.gOn?P.groups.map(g=>({g,mem:vis.filter(p=>g.uids.includes(p.uid))})).filter(x=>x.mem.length):[];
-  const inG=new Set();G.forEach(x=>x.mem.forEach(p=>inG.add(p)));
+function pmActive(){const P=state.pm;return P.view!=='fig'&&pmVis().length>0&&pmItems().length>0;}
+function pmPieceItems(){   // one slide per visible piece; a group can say it replaces its pieces' own slides
+  const vis=pmVis(),skip=new Set();
+  state.pm.groups.filter(g=>g.keep===false).forEach(g=>vis.forEach(p=>{if(g.uids.includes(p.uid))skip.add(p);}));
   const items=[],done=new Set();
-  const keep=pmKeep(),showPieces=P.on||(P.gOn&&keep);
-  vis.forEach(p=>{if(!showPieces||(inG.has(p)&&!keep))return;items.push({p,mem:[p],done:new Set(done)});done.add(p);});
-  vis.forEach(p=>done.add(p));
-  G.forEach(x=>items.push({g:x.g,mem:x.mem,done:new Set(done)}));   // group slides go at the end
+  vis.forEach(p=>{if(skip.has(p))return;items.push({p,mem:[p],done:new Set(done)});done.add(p);});
   return items;
 }
+function pmGroupItems(){const vis=pmVis();return state.pm.groups.map(g=>({g,mem:vis.filter(p=>g.uids.includes(p.uid)),done:new Set(vis)})).filter(x=>x.mem.length);}
+function pmItems(){const v=state.pm.view;return v==='pieces'?pmPieceItems():v==='groups'?pmGroupItems():[];}
 const pmTitle=it=>it.g?(it.g.name||'Group'):String(it.p.header||it.p.label);
 function pmIso(plan,tp,sc,p,bx,by,bw,bh){
   const me=plan.items.find(it=>it.p===p);if(!me)return '';
@@ -2605,66 +2633,98 @@ function pmGroupSlide(item,idx,forExport){
   const dm=forExport?` width="${SW}" height="${SH}"`:'';
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${SH}"${dm} font-family="Arial, Helvetica, sans-serif">${o}</svg>`;
 }
-function pmSlide(i,forExport){const it=pmItems()[i];return it.g?pmGroupSlide(it,i,forExport):pmPieceSlide(it,i,forExport);}
-function pmPages(){return pmItems().map((it,i)=>({title:pmTitle(it),key:it.g?'g:'+it.g.name:'p:'+it.p.label,svg:pmSlide(i,true)}));}
+function pmRender(it,i,forExport){return it.g?pmGroupSlide(it,pmPieceItems().length+i,forExport):pmPieceSlide(it,i,forExport);}   // group slides number on after the piece slides
+function pmSlide(i,forExport){return pmRender(pmItems()[i],i,forExport);}
+const pmKey=it=>it.g?'g:'+it.g.id:'p:'+it.p.label;
+function pmPages(){return pmItems().map((it,i)=>({title:pmTitle(it),key:pmKey(it),svg:pmSlide(i,true)}));}
 window.__pmOn=()=>pmActive();
 window.renderPieceSlides=pmPages;
+window.__pmPlan=()=>{const pi=pmPieceItems(),gi=pmGroupItems();   // everything that could be added to a presentation, so the shell can offer a checklist
+  return {cmp:!!state.cmp.on,
+    pieces:pi.map((it,i)=>({title:pmTitle(it),key:pmKey(it),svg:pmPieceSlide(it,i,true)})),
+    groups:gi.map((it,i)=>({title:pmTitle(it),key:pmKey(it),svg:pmGroupSlide(it,pi.length+i,true)}))};};
 function pmClamp(){const n=pmItems().length;state.pm.page=Math.max(0,Math.min(state.pm.page,n-1));}
 function pmBuildPanel(){
   $('pmSub').value=pmSubText();
-  pmClamp();$('pmBul').innerHTML=pmItems().filter((it,i)=>i===state.pm.page).map(it=>{const key=it.g?'g'+it.g.id:it.p.uid;return `<div class="pb"><b>${esc(pmTitle(it))}${it.g?' (group)':''}</b><textarea data-uid="${key}" placeholder="# 1 is unique and above average index for…">${esc(state.pm.bul[key]||'')}</textarea></div>`;}).join('')||'<div class="hint">No pieces yet.</div>';
+  const on=state.pm.view!=='fig';$('pmComment').hidden=!on;
+  pmClamp();$('pmBul').innerHTML=pmItems().filter((it,i)=>i===state.pm.page).map(it=>{const key=it.g?'g'+it.g.id:it.p.uid;return `<div class="pb"><b>${esc(pmTitle(it))}${it.g?' (group)':''}</b><textarea data-uid="${key}" placeholder="# 1 is unique and above average index for…">${esc(state.pm.bul[key]||'')}</textarea></div>`;}).join('')||'<div class="hint">'+(state.pm.view==='groups'?'Pick pieces for a group to see its slide.':'No pieces yet.')+'</div>';
 }
-function pmDock(){   // the shared slide controls (line under title, sizes, commentary) live in whichever section is switched on
-  const P=state.pm,pn=$('pmPanel');pn.hidden=!(P.on||P.gOn);
-  const host=(P.on?$('accPm'):P.gOn?$('accGrp'):$('accPm')).querySelector('.accb');if(pn.parentNode!==host)host.appendChild(pn);
+function pvSync(){const P=state.pm;$('pvWrap').hidden=!state.report;document.querySelectorAll('#pvSeg .btn').forEach(b=>b.classList.toggle('on',b.dataset.v===P.view));}
+function setTab(t){document.querySelectorAll('.otabs button').forEach(b=>{const on=b.dataset.tab===t;b.classList.toggle('on',on);b.setAttribute('aria-selected',on);});$('paneContent').hidden=t!=='content';$('paneStyle').hidden=t!=='style';}
+document.querySelector('.otabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setTab(b.dataset.tab);});
+function pmView(v){
+  const P=state.pm;if(!state.report)return;
+  if(v==='groups'&&!P.groups.length)P.groups.push({id:P.gid++,name:'Group 1',uids:[],keep:true});
+  P.view=v;pvSync();
+  if(v==='groups'){gpBuild();setTab('content');accSet('accGrp',true);accSet('accBuild',false);accSet('accCmp',false);const gi=pmGroupItems();P.page=Math.max(0,gi.length-1);}
+  else P.page=0;
+  pmBuildPanel();renderStage();
 }
-function pmSet(on){
-  state.pm.on=on;const b=$('pmToggle');b.classList.toggle('on',on);b.setAttribute('aria-checked',on);b.setAttribute('aria-pressed',on);
-  pmDock();if(on||state.pm.gOn)pmBuildPanel();if(state.pm.gOn)gpBuild();
-  if(on){$('accPm').classList.add('on');accSet('accPm',true);accSet('accBuild',false);accSet('accCmp',false);}else{$('accPm').classList.remove('on');accSet('accPm',false);}
-  renderStage();
-}
-$('pmToggle').addEventListener('click',()=>pmSet(!state.pm.on));
+$('pvSeg').addEventListener('click',e=>{const b=e.target.closest('.btn');if(b)pmView(b.dataset.v);});
 [['pmTs','ts'],['pmLs','ls']].forEach(([id,k])=>$(id).addEventListener('input',e=>{state.pm[k]=e.target.value/100;$(id+'V').textContent=e.target.value+'%';renderStage();}));
 $('pmSub').addEventListener('input',e=>{state.pm.sub=e.target.value;renderStage();});
 $('pmBul').addEventListener('input',e=>{const t=e.target.closest('textarea');if(!t)return;state.pm.bul[t.dataset.uid]=t.value;renderStage();});
 
-/* ---- group pieces on one slide ---- */
+/* ---- groups: several pieces on one slide ---- */
 function gpBuild(){
   const P=state.pm,vis=pmVis();
-  $('gpList').innerHTML=P.groups.map(g=>`<div class="gpg" data-id="${g.id}"><div class="gh"><input class="txt gn" value="${esc(g.name)}" placeholder="Group name, e.g. Affluence"><button type="button" class="gx" title="Remove group" aria-label="Remove group">&times;</button></div><div class="gpc">${vis.map(p=>`<button type="button" data-uid="${p.uid}" class="${g.uids.includes(p.uid)?'on':''}">${esc(p.label)}</button>`).join('')}</div></div>`).join('')||'<div class="hint">No groups yet.</div>';
-  $('gpKeep').checked=pmKeep();
+  $('gpList').innerHTML=P.groups.map(g=>`<div class="gpg" data-id="${g.id}"><div class="gh"><input class="txt gn" value="${esc(g.name)}" placeholder="Group name, e.g. Affluence"><button type="button" class="gx" title="Remove group" aria-label="Remove group">&times;</button></div><div class="gpc">${vis.map(p=>`<button type="button" data-uid="${p.uid}" class="${g.uids.includes(p.uid)?'on':''}">${esc(p.label)}</button>`).join('')}</div><label class="gpkeep"><input type="checkbox" class="gk" ${g.keep!==false?'checked':''}> Also keep each piece&rsquo;s own slide</label></div>`).join('')||'<div class="hint">No groups yet.</div>';
+  pmTags();
 }
-function gpShow(g){const i=pmItems().findIndex(x=>x.g===g);state.pm.page=i>=0?i:Math.max(0,pmItems().length-1);}
-function gpSet(on,quiet){
-  const P=state.pm,b=$('gpToggle');P.gOn=on;b.classList.toggle('on',on);b.setAttribute('aria-checked',on);b.setAttribute('aria-pressed',on);
-  $('accGrp').classList.toggle('on',on);
-  if(on){if(!P.groups.length)P.groups.push({id:P.gid++,name:'Group 1',uids:[]});gpBuild();pmDock();pmBuildPanel();accSet('accGrp',true);accSet('accPm',false);accSet('accBuild',false);accSet('accCmp',false);}
-  else{accSet('accGrp',false);pmDock();}
-  if(on)gpShow(P.groups[P.groups.length-1]);
-  renderStage();
+function pmTags(){   // little group tags and the "on a group slide" menu in the piece list
+  const P=state.pm;
+  document.querySelectorAll('#pieces .pc').forEach(el=>{const uid=+el.dataset.uid,g=P.groups.find(x=>x.uids.includes(uid));
+    const t=el.querySelector('.gtag');if(t){t.hidden=!g;t.textContent=g?(g.name||'Group'):'';}
+    const sel=el.querySelector('select.grp');if(sel)sel.innerHTML='<option value="">Not in a group</option>'+P.groups.map(x=>`<option value="${x.id}"${g===x?' selected':''}>${esc(x.name||'Group')}</option>`).join('')+'<option value="new">+ New group with this piece</option>';});
 }
-$('gpToggle').addEventListener('click',()=>gpSet(!state.pm.gOn));
-$('gpAdd').addEventListener('click',()=>{const P=state.pm;const ng={id:P.gid++,name:'Group '+(P.groups.length+1),uids:[]};P.groups.push(ng);gpBuild();gpShow(ng);renderStage();});
+function gpShow(g){if(state.pm.view!=='groups'){state.pm.view='groups';pvSync();}const i=pmItems().findIndex(x=>x.g===g);state.pm.page=i>=0?i:Math.max(0,pmItems().length-1);pmBuildPanel();}
+$('gpAdd').addEventListener('click',()=>{const P=state.pm;const ng={id:P.gid++,name:'Group '+(P.groups.length+1),uids:[],keep:true};P.groups.push(ng);gpBuild();gpShow(ng);renderStage();});
 $('gpPreset').addEventListener('click',()=>{const P=state.pm,u=pmVis().filter(p=>/income|net ?worth|home market value/i.test(p.label)).map(p=>p.uid);
-  P.groups.forEach(g=>g.uids=g.uids.filter(x=>!u.includes(x)));P.groups=P.groups.filter(g=>g.uids.length);const ng={id:P.gid++,name:'Affluence',uids:u};P.groups.push(ng);gpBuild();gpShow(ng);renderStage();});
+  P.groups.forEach(g=>g.uids=g.uids.filter(x=>!u.includes(x)));P.groups=P.groups.filter(g=>g.uids.length);const ng={id:P.gid++,name:'Affluence',uids:u,keep:true};P.groups.push(ng);gpBuild();gpShow(ng);renderStage();});
 $('gpSize').addEventListener('input',e=>{state.pm.gs=e.target.value/100;$('gpSizeV').textContent=e.target.value+'%';renderStage();});
-$('gpKeep').addEventListener('change',e=>{state.pm.keepUser=e.target.checked;gpBuild();renderStage();});
-$('gpList').addEventListener('input',e=>{const el=e.target.closest('.gpg');if(!el||!e.target.classList.contains('gn'))return;const g=state.pm.groups.find(g=>g.id==el.dataset.id);g.name=e.target.value;gpShow(g);renderStage();});
+$('gpList').addEventListener('input',e=>{const el=e.target.closest('.gpg');if(!el||!e.target.classList.contains('gn'))return;const g=state.pm.groups.find(g=>g.id==el.dataset.id);g.name=e.target.value;gpShow(g);pmTags();renderStage();});
+$('gpList').addEventListener('change',e=>{const el=e.target.closest('.gpg');if(!el||!e.target.classList.contains('gk'))return;const g=state.pm.groups.find(g=>g.id==el.dataset.id);g.keep=e.target.checked;renderStage();});
 $('gpList').addEventListener('click',e=>{
   const el=e.target.closest('.gpg');if(!el)return;const P=state.pm,g=P.groups.find(x=>x.id==el.dataset.id);
-  if(e.target.closest('.gx')){P.groups=P.groups.filter(x=>x!==g);gpBuild();renderStage();return;}
+  if(e.target.closest('.gx')){P.groups=P.groups.filter(x=>x!==g);gpBuild();if(P.view==='groups'&&!pmGroupItems().length)P.page=0;pmBuildPanel();renderStage();return;}
   const b=e.target.closest('.gpc button');if(!b)return;const uid=+b.dataset.uid;
   if(g.uids.includes(uid))g.uids=g.uids.filter(x=>x!==uid);else{P.groups.forEach(x=>x.uids=x.uids.filter(y=>y!==uid));g.uids.push(uid);}
   gpBuild();gpShow(g);renderStage();
 });
+// a piece's own "on a group slide" menu
+$('pieces').addEventListener('change',e=>{
+  if(!e.target.matches('select.grp'))return;const el=e.target.closest('.pc');if(!el)return;const P=state.pm,uid=+el.dataset.uid,v=e.target.value;
+  P.groups.forEach(g=>g.uids=g.uids.filter(x=>x!==uid));let g=null;
+  if(v==='new'){g={id:P.gid++,name:'Group '+(P.groups.length+1),uids:[uid],keep:true};P.groups.push(g);}
+  else if(v){g=P.groups.find(x=>x.id==v);if(g)g.uids.push(uid);}
+  gpBuild();if(g)gpShow(g);else{pmBuildPanel();}renderStage();
+});
+
+/* ---- remember this puzzle man's slide settings with the project ---- */
+window.__pmGet=()=>{const P=state.pm,lab=u=>{const p=state.pieces.find(x=>x.uid==u);return p?p.label:null;},bul={};
+  Object.keys(P.bul).forEach(k=>{const v=P.bul[k];if(!v)return;if(k[0]==='g')bul[k]=v;else{const l=lab(k);if(l)bul['p:'+l]=v;}});
+  return {pm:{sub:P.sub,ts:P.ts,ls:P.ls,gs:P.gs,gid:P.gid,bul,groups:P.groups.map(g=>({id:g.id,name:g.name,keep:g.keep!==false,labels:g.uids.map(lab).filter(Boolean)}))},text:Object.assign({},state.text),edited:Object.assign({},state.edited),figScale:state.figScale};};
+window.__pmSet=x=>{if(!x||!state.report)return;const P=state.pm,m=x.pm||{},uid=l=>{const p=state.pieces.find(q=>q.label===l);return p?p.uid:null;};
+  if(m.sub!=null)P.sub=m.sub;['ts','ls','gs'].forEach(k=>{if(m[k]!=null)P[k]=m[k];});
+  $('pmTs').value=Math.round(P.ts*100);$('pmTsV').textContent=Math.round(P.ts*100)+'%';$('pmLs').value=Math.round(P.ls*100);$('pmLsV').textContent=Math.round(P.ls*100)+'%';$('gpSize').value=Math.round(P.gs*100);$('gpSizeV').textContent=Math.round(P.gs*100)+'%';
+  P.groups=(m.groups||[]).map(g=>({id:g.id,name:g.name,keep:g.keep!==false,uids:(g.labels||[]).map(uid).filter(v=>v!=null)}));P.gid=Math.max(m.gid||1,...P.groups.map(g=>g.id+1),1);
+  P.bul={};Object.keys(m.bul||{}).forEach(k=>{if(k[0]==='g')P.bul[k]=m.bul[k];else{const u=uid(k.slice(2));if(u!=null)P.bul[u]=m.bul[k];}});
+  if(x.text){Object.assign(state.text,x.text);Object.assign(state.edited,x.edited||{});$('tTitle').value=state.text.title||'';$('tSub').value=state.text.sub||'';$('tSlide').value=state.text.slide||'';}
+  if(x.figScale){state.figScale=x.figScale;$('figScale').value=Math.round(x.figScale*100);$('figScaleV').textContent=Math.round(x.figScale*100)+'%';}
+  gpBuild();pmBuildPanel();renderStage();};
 
 /* ---- UI (bubble-chart look & feel) ---- */
 document.body.classList.add('standalone');
 const stage=$('stage');
 const EMPTY=()=>`<label for="file" class="drop"><div class="ic"><svg width="30" height="30" viewBox="0 0 16 16" fill="none" stroke="#002855" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V2M4.5 5.5L8 2l3.5 3.5M2 10v3.5h12V10"/></svg></div><h2>Upload your look-alike report</h2><p>Drag &amp; drop the Acxiom Enhanced Look Alike Report (.pdf) here, or <u>browse</u>. The puzzle man builds itself from the highly receptive elements.</p></label>`;
 function renderStage(){
+  pvSync();if(document.activeElement!==$('pmSub'))$('pmSub').value=pmSubText();
   if(!state.report){ stage.innerHTML=EMPTY(); ['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=true); $('segbar').hidden=true; return; }
+  if(state.pm.view!=='fig'&&!pmActive()){
+    stage.innerHTML=`<div class="drop" style="cursor:default"><h2>${state.pm.view==='groups'?'No group slide yet':'No pieces to show'}</h2><p>${state.pm.view==='groups'?'Open More options &rarr; Groups and pick the pieces that belong together.':'Tick at least one piece in More options.'}</p></div>`;
+    window.__fit={notes:[]};$('fitnote').textContent='';['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=true);
+    return;
+  }
   if(pmActive()){
     pmClamp();const items=pmItems(),n=items.length,pg=state.pm.page;
     stage.innerHTML=`<div style="width:100%;display:flex;flex-direction:column;align-items:center"><div class="card">${pmSlide(pg,false)}</div><div class="pmbar"><button type="button" id="pmPrev" ${pg<=0?'disabled':''} aria-label="Previous piece">&lsaquo;</button><span>Slide ${pg+1} of ${n} &ndash; ${esc(pmTitle(items[pg]))}</span><button type="button" id="pmNext" ${pg>=n-1?'disabled':''} aria-label="Next piece">&rsaquo;</button></div></div>`;
@@ -2672,7 +2732,7 @@ function renderStage(){
     window.__fit={notes:[]};$('fitnote').textContent='';
     ['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=false);
     document.querySelectorAll('.pc').forEach(el=>{const q=state.pieces.find(x=>x.uid==el.dataset.uid);if(!q)return;const l2=linesOf(q);el.querySelector('.pc-sub').textContent=l2.length?l2.map(lineStr).join(' \u00b7 '):'Nothing above the receptive cutoff';});
-    if((state.pm.on||state.pm.gOn)&&!stage.contains(document.activeElement)&&!$('pmPanel').contains(document.activeElement)) pmBuildPanel();
+    if(state.pm.view!=='fig'&&!stage.contains(document.activeElement)&&!$('pmComment').contains(document.activeElement)) pmBuildPanel();
     return;
   }
   stage.innerHTML=`<div class="card">${renderSlide(false)}</div>`;
@@ -2727,11 +2787,13 @@ function buildPieceList(){
       <span class="grip" title="Drag to reorder" aria-label="Drag to reorder"><svg width="12" height="18" viewBox="0 0 12 18" fill="currentColor"><circle cx="3" cy="3" r="1.6"/><circle cx="9" cy="3" r="1.6"/><circle cx="3" cy="9" r="1.6"/><circle cx="9" cy="9" r="1.6"/><circle cx="3" cy="15" r="1.6"/><circle cx="9" cy="15" r="1.6"/></svg></span>
       <input type="checkbox" class="vis" ${p.visible?'checked':''} title="Show on the figure">
       <input class="txt lbl" value="${esc(p.label)}" title="Text on the puzzle piece">
+      <span class="gtag" hidden></span>
       <button class="iconbtn tg" type="button" title="Details">&hellip;</button>
     </div>
     <div class="pc-sub"></div>
     <div class="pc-more"${state.open.has(p.uid)?'':' hidden'}>
       <label class="field"><span class="lbl2">List heading</span><input class="txt hdr" value="${esc(p.header)}"></label>
+      <label class="field"><span class="lbl2">On a group slide</span><select class="grp"></select></label>
       <label class="field"><span class="lbl2">Source element</span><select class="src">${optSel(srcOpts,p.src)}</select></label>
       <div class="row2">
         <label class="field"><span class="lbl2">Method</span><select class="mode">${optSel([['range','Roll up ranges'],['items','List top items']],p.mode)}</select></label>
@@ -2748,7 +2810,7 @@ function buildPieceList(){
       <div class="pcbtns"><button class="btn rb" type="button">Auto bands</button><button class="btn reset" type="button">Reset lines to auto</button>${state.cmp.on?'<button class="btn preset" type="button">Reset prior-year lines</button>':''}<button class="btn rm" type="button">Remove piece</button></div>
     </div>
   </div>`).join('');
-  buildSegbar(); if(state.pm.gOn)gpBuild(); renderStage();
+  buildSegbar(); gpBuild(); renderStage();
   if(state.cmp.on&&$('manualBox')&&!$('manualBox').hidden) buildManual();
 }
 function updateChips(){
@@ -2857,10 +2919,10 @@ $('resetAll').addEventListener('click',()=>{ if(state.report){initPieces();build
 /* options panel */
 
 function accSet(id,on){const a=$(id);if(!a)return;a.classList.toggle('open',on);a.querySelector('.acch').setAttribute('aria-expanded',on?'true':'false');}
-$('accCmp').classList.add('sw');$('accPm').classList.add('sw');$('accGrp').classList.add('sw');
-function accSync(){[['accCmp','cmpToggle'],['accPm','pmToggle'],['accGrp','gpToggle']].forEach(([a,t])=>{const on=$(t).classList.contains('on');$(a).classList.toggle('on',on);if(!on)accSet(a,false);});}
+$('accCmp').classList.add('sw');
+function accSync(){[['accCmp','cmpToggle']].forEach(([a,t])=>{const on=$(t).classList.contains('on');$(a).classList.toggle('on',on);if(!on)accSet(a,false);});}
 document.querySelectorAll('.acch').forEach(h=>{const b=h.querySelector('.atx');const f=e=>{if(e&&e.target.closest&&e.target.closest('.switch'))return;const a=b.closest('.acc');if(a.classList.contains('sw')&&!a.classList.contains('on'))return;accSet(a.id,!a.classList.contains('open'));};h.addEventListener('click',f);b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();f();}});});
-['cmpToggle','pmToggle','gpToggle'].forEach(t=>$(t).addEventListener('click',()=>setTimeout(accSync,0)));
+['cmpToggle'].forEach(t=>$(t).addEventListener('click',()=>setTimeout(accSync,0)));
 function openOpts(on){ $('opts').hidden=!on; $('moreBtn').setAttribute('aria-expanded',on?'true':'false'); }
 $('moreBtn').addEventListener('click',()=>openOpts($('opts').hidden));
 $('optsClose').addEventListener('click',()=>openOpts(false));
@@ -3243,7 +3305,7 @@ function extractPersonicx(rep){
 /* ============================== app state: one "analysis" per look-alike report ============================== */
 const uid=()=>Math.random().toString(36).slice(2);
 const mkAn=()=>({id:uid(),name:'',lal:null,loading:'',progress:'',lalErr:'',cust:{src:'lal',file:null},mkt:{src:'lal',file:null},cerr:{cust:'',mkt:''},wb:null,plan:null,frames:{},engine:null,opened:false,cmpWith:'',peerIn:{},tok:0});
-const S={view:'chart',deck:[],list:[],a:null,dragI:null,deckView:'grid',selId:null,projectId:null,title:'',restoring:false,histUrls:[],histEdit:false,histSel:new Set(),histIds:[],msel:new Set(),anchor:null,dragGroup:false};
+const S={fold:new Set(),view:'chart',deck:[],list:[],a:null,dragI:null,deckView:'grid',selId:null,projectId:null,title:'',restoring:false,histUrls:[],histEdit:false,histSel:new Set(),histIds:[],msel:new Set(),anchor:null,dragGroup:false};
 S.list.push(S.a=mkAn());
 ['lal','cust','mkt','wb','plan','frames','engine','opened'].forEach(k=>Object.defineProperty(S,k,{get(){return S.a[k];},set(v){S.a[k]=v;}}));
 const viewer=$('viewer'),picker=$('picker');
@@ -3529,6 +3591,7 @@ async function ensureBubble(an){
 async function ensurePuzzle(an){
   if(!an.frames.puzzle){
     an.engine.contentWindow.setReport(an.lal.rep,an.lal.name);an.frames.puzzle=an.engine;
+    if(an.pmSaved){try{an.engine.contentWindow.__pmSet(an.pmSaved);}catch(e){}}
     if(an.cmpWith)await applyPuzzleCompare(an);
   }
   return an.engine;
@@ -3536,7 +3599,7 @@ async function ensurePuzzle(an){
 let viewTok=0;
 async function showTab(v){
   const an=S.a,tok=++viewTok;if(v!=='puzzle'&&!an.wb)v='puzzle';
-  S.view=v;box($('renderMsg'),'err','');$('addSlide').textContent=v==='app'?'+ Add all appendix pages':'+ Add to presentation';
+  S.view=v;box($('renderMsg'),'err','');$('addSlide').textContent=v==='app'?'+ Add all appendix pages':v==='puzzle'?'+ Add to presentation…':'+ Add to presentation';
   document.querySelectorAll('#vtabs .btn').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   renderChartBar();
   try{
@@ -3582,8 +3645,7 @@ async function grab(kind,an){                    // -> [{title,svg}] for one too
   if(kind==='puzzle'){
     const f=await ensurePuzzle(an),w=f.contentWindow;
     if(!w.eval('!!(state.report&&state.pieces.some(p=>p.visible))'))throw new Error('The puzzle man has no pieces yet.');
-    if(w.__pmOn&&w.__pmOn())return w.renderPieceSlides().map(x=>({title:pre+'Puzzle piece – '+x.title,svg:x.svg,key:'pm:'+an.name+':'+x.key+(cmpOn(w)?':cmp':'')}));
-    const c=cmpTxt(w);return [{title:(c&&other?'':pre)+'Puzzle man'+c,svg:w.renderSlide(true),key:'pm:'+an.name+':summary'+(cmpOn(w)?':cmp':'')}];
+    return (await puzzlePlan(an))[0].items;      // the plain puzzle man; pieces and groups are chosen in the checklist
   }
   const f=await ensureBubble(an),w=f.contentWindow;
   if(kind==='chart'){if(!w.__lastSVG)throw new Error('The bubble chart isn’t ready yet.');const c=cmpTxt(w);return [{title:(c&&other?'':pre)+'Bubble chart'+c,svg:w.__lastSVG,key:'chart:'+an.name+(cmpOn(w)?':cmp':'')}];}
@@ -3591,6 +3653,39 @@ async function grab(kind,an){                    // -> [{title,svg}] for one too
   if(!pg.length)throw new Error('The appendix couldn’t be built from this workbook.');
   return pg.map(p=>({title:pre+'Appendix – '+p.band.name+(p.parts>1?' ('+p.part+' of '+p.parts+')':''),svg:p.svg,key:'app:'+an.name+':'+p.band.name+':'+p.part}));
 }
+async function puzzlePlan(an){      // every puzzle slide that could be added, in groups: the figure, one per piece, one per group
+  an=an||S.a;const multi=withLal().length>1,pre=multi?an.name+' – ':'',other=S.list.find(x=>x.id===an.cmpWith);
+  const f=await ensurePuzzle(an),w=f.contentWindow;
+  if(!w.eval('!!(state.report&&state.pieces.some(p=>p.visible))'))throw new Error('The puzzle man has no pieces yet.');
+  const P=w.__pmPlan(),cmp=P.cmp,sfx=cmp?':cmp':'',c=cmp?(other?' – '+other.name+' vs '+an.name:' – compare years'):'';
+  const rows=[
+    {id:'summary',label:'Puzzle man'+(cmp?' (comparison)':''),note:'The whole figure with its wording',items:[{title:(c&&other?'':pre)+'Puzzle man'+c,svg:w.renderSlide(true),key:'pm:'+an.name+':summary'+sfx}]},
+    {id:'pieces',label:'One slide per piece',note:'Builds up piece by piece, kept together as a block',items:P.pieces.map(x=>({title:pre+'Puzzle piece – '+x.title,svg:x.svg,key:'pm:'+an.name+':'+x.key+sfx}))},
+    {id:'groups',label:'Grouped pieces',note:'Several pieces side by side, e.g. affluence',items:P.groups.map(x=>({title:pre+'Puzzle group – '+x.title,svg:x.svg,key:'pm:'+an.name+':'+x.key+sfx,lock:null}))}];
+  return rows.filter(r=>r.items.length);
+}
+const itemStatus=x=>{const same=x.key&&S.deck.find(d=>d.key===x.key);if(same)return same.svg===x.svg?'same':'update';return S.deck.some(d=>d.svg===x.svg)?'same':'new';};
+let addRows=[];
+function addDlgSync(){
+  let nw=0,up=0,sm=0;addRows.forEach(r=>{if(r.on){nw+=r.st.new;up+=r.st.update;sm+=r.st.same;}});
+  const go=nw+up;
+  $('addSum').textContent=!addRows.some(r=>r.on)?'Tick what you want to add.':go?('Adds '+nw+' new'+(up?', updates '+up+' already in the presentation':'')+(sm?', skips '+sm+' that are unchanged':'')+'.'):'Everything ticked is already in the presentation, unchanged.';
+  $('addGo').disabled=!go;$('addGo').textContent=go?'Add '+go+' slide'+(go>1?'s':''):'Add';
+  document.querySelectorAll('#addList .arow').forEach((el,i)=>el.classList.toggle('on',addRows[i].on));
+}
+function openAddDlg(rows){
+  addRows=rows;rows.forEach(r=>{r.st={new:0,update:0,same:0};r.items.forEach(x=>r.st[itemStatus(x)]++);r.on=r.st.new+r.st.update>0;});
+  if(!rows.some(r=>r.on))rows[0].on=false;
+  $('addList').innerHTML=rows.map((r,i)=>{const n=r.items.length,chips=[r.st.new?'<span class="chip nw">'+r.st.new+' new</span>':'',r.st.update?'<span class="chip up">'+r.st.update+' will update</span>':'',r.st.same?'<span class="chip sm">'+(r.st.same===n?(n>1?'all ':'')+'already added':r.st.same+' unchanged')+'</span>':''].join('');
+    return '<label class="arow"><input type="checkbox" data-i="'+i+'"'+(r.on?' checked':'')+'><span class="at"><b>'+esc(r.label)+'</b><span class="an">'+(n>1?n+' slides · ':'')+esc(r.note)+'</span></span><span class="chips">'+chips+'</span></label>';}).join('');
+  $('addDlg').hidden=false;addDlgSync();$('addGo').focus();
+}
+function closeAddDlg(){$('addDlg').hidden=true;addRows=[];}
+$('addList').addEventListener('change',e=>{const i=e.target.dataset.i;if(i==null)return;addRows[+i].on=e.target.checked;addDlgSync();});
+$('addCancel').addEventListener('click',closeAddDlg);
+$('addDlg').addEventListener('click',e=>{if(e.target===$('addDlg'))closeAddDlg();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('addDlg').hidden)closeAddDlg();});
+$('addGo').addEventListener('click',()=>{const list=addRows.filter(r=>r.on).flatMap(r=>r.items);closeAddDlg();if(!list.length)return;const res=addSlides(list);flash(addMsg(res,list));});
 const LKPAL=['#3C9AD8','#E8BE56','#58A27C','#B07CC6','#E07A5F','#5B6EE1'];
 function addSlides(list){
   const map={},have=new Set(S.deck.map(d=>d.svg));let skipped=0,updated=0,added=0;
@@ -3611,6 +3706,13 @@ function addSlides(list){
   renderDeck();
   return {added,updated,skipped};
 }
+const SECS=[[/^chart:/,'Bubble chart'],[/^app:/,'Appendix'],[/^pm:[^:]*:summary/,'Puzzle man'],[/^pm:[^:]*:p:/,'Piece slides'],[/^pm:[^:]*:g:/,'Group slides']];
+function secOf(d){const k=d.key||'';for(const [re,label] of SECS)if(re.test(k))return {label,an:k.split(':')[1]||''};
+  const t=d.title||'';return /Appendix/.test(t)?{label:'Appendix',an:''}:/Bubble chart/.test(t)?{label:'Bubble chart',an:''}:/Puzzle piece/.test(t)?{label:'Piece slides',an:''}:/Puzzle group/.test(t)?{label:'Group slides',an:''}:/Puzzle man/.test(t)?{label:'Puzzle man',an:''}:{label:'Other slides',an:''};}
+function sectionRuns(){const runs=[];S.deck.forEach((d,i)=>{const s=secOf(d),l=runs[runs.length-1];if(l&&l.label===s.label&&l.an===s.an)l.idx.push(i);else runs.push({label:s.label,an:s.an,idx:[i]});});
+  const many=new Set(runs.map(r=>r.an)).size>1;runs.forEach(r=>{r.show=many&&r.an?r.label+' · '+r.an:r.label;r.fold=r.label+'|'+r.an;});return runs;}
+function moveSection(k,dir){const runs=sectionRuns(),j=k+dir;if(j<0||j>=runs.length)return;const g=runs.map(r=>r.idx.map(i=>S.deck[i]));[g[k],g[j]]=[g[j],g[k]];S.deck=g.flat();renderDeck();}
+function pickSection(k){const r=sectionRuns()[k],ids=r.idx.map(i=>S.deck[i].id),all=ids.every(id=>S.msel.has(id));ids.forEach(id=>all?S.msel.delete(id):S.msel.add(id));S.anchor=ids[0];expandSel();renderDeck();}
 const selIdx=()=>{let i=S.deck.findIndex(d=>d.id===S.selId);if(i<0&&S.deck.length){i=0;S.selId=S.deck[0].id;}return i;};
 const blocksOf=deck=>{const out=[];for(const d of deck){const l=out[out.length-1];if(d.lock&&l&&l[0].lock===d.lock)l.push(d);else out.push([d]);}return out;};
 const blockIdx=(bl,id)=>bl.findIndex(b=>b.some(d=>d.id===id));
@@ -3656,14 +3758,14 @@ function pickToggle(i,e){
 }
 function groupHere(i){return S.msel.size>1&&S.msel.has(S.deck[i].id);}
 function selBar(){
-  const n=S.msel.size,b=$('selBar');b.hidden=!n;$('dkHint').hidden=!!n;if(!n)return;
+  const n=S.msel.size,b=$('selBar');b.hidden=!n;$('dkHint').hidden=!!n;if(!n){$('selMore').hidden=true;$('selMoreBtn').setAttribute('aria-expanded','false');return;}
   $('selCount').textContent=n+' selected';
   const sel=S.deck.map(d=>S.msel.has(d.id)),first=sel.indexOf(true),last=sel.lastIndexOf(true),contiguousTop=sel.slice(0,n).every(Boolean),contiguousBot=sel.slice(sel.length-n).every(Boolean);
   b.querySelector('[data-g=start]').disabled=b.querySelector('[data-g=up]').disabled=contiguousTop;
   b.querySelector('[data-g=end]').disabled=b.querySelector('[data-g=dn]').disabled=contiguousBot;
   const blk=blocksOf(S.deck).filter(x=>x.some(d=>S.msel.has(d.id))),anyLock=S.deck.some(d=>S.msel.has(d.id)&&d.lock);
-  b.querySelector('[data-g=lock]').disabled=n<2||(blk.length===1&&blk[0].length>1&&!!blk[0][0].lock);
-  b.querySelector('[data-g=unlock]').disabled=!anyLock;
+  b.querySelector('[data-g=lock]').hidden=n<2||(blk.length===1&&blk[0].length>1&&!!blk[0][0].lock);
+  b.querySelector('[data-g=unlock]').hidden=!anyLock;
   b.querySelector('[data-g=all]').textContent=n===S.deck.length?'Select none':'Select all';
 }
 $('selBar').addEventListener('click',e=>{const g=e.target.closest('[data-g]');if(!g)return;const k=g.dataset.g;
@@ -3672,6 +3774,7 @@ $('selBar').addEventListener('click',e=>{const g=e.target.closest('[data-g]');if
   else if(k==='rm'){const n=S.msel.size;if(!confirm('Remove '+n+' selected slide'+(n>1?'s':'')+' from the presentation?'))return;S.deck=S.deck.filter(d=>{if(S.msel.has(d.id)){URL.revokeObjectURL(d.url);return false;}return true;});S.msel=new Set();if(!S.deck.some(d=>d.id===S.selId))S.selId=(S.deck[0]||{}).id;renderDeck();}
   else if(k==='lock')lockSel();
   else if(k==='unlock')unlockSel();
+  else if(k==='more'){const m=$('selMore');m.hidden=!m.hidden;$('selMoreBtn').setAttribute('aria-expanded',!m.hidden);}
   else if(k==='mvto'){const v=+$('selPos').value;if(v>0)moveTo([...S.msel],v);}
   else moveGroup(k);
 });
@@ -3708,8 +3811,20 @@ function lockStyle(el,d){
   const n=el.querySelector('.n');if(n&&!n.querySelector('.lki'))n.insertAdjacentHTML('beforeend','<svg class="lki" width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>');
 }
 function renderGrid(){
-  const L=$('deckList'),n=S.deck.length;L.innerHTML='';
+  const L=$('deckList'),n=S.deck.length;L.innerHTML='';L.classList.toggle('sel',S.msel.size>0);
+  const runs=sectionRuns(),head=new Map(),hidden=new Set();
+  if(runs.length>1)runs.forEach((r,k)=>{head.set(r.idx[0],k);if(S.fold.has(r.fold))r.idx.forEach(j=>hidden.add(j));});
   S.deck.forEach((d,i)=>{
+    if(head.has(i)){
+      const k=head.get(i),r=runs[k],folded=S.fold.has(r.fold),allSel=r.idx.every(j=>S.msel.has(S.deck[j].id)),h=document.createElement('div');
+      h.className='sech'+(folded?' closed':'');
+      h.innerHTML='<button class="fold" type="button" aria-expanded="'+!folded+'"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg><span>'+esc(r.show)+'</span><span class="cn">'+r.idx.length+' slide'+(r.idx.length>1?'s':'')+'</span></button><button class="ib" data-s="pick" type="button" title="'+(allSel?'Unselect':'Select')+' this whole section">&#10003;</button><button class="ib" data-s="up" type="button" title="Move this whole section earlier"'+(k===0?' disabled':'')+'>&uarr;</button><button class="ib" data-s="dn" type="button" title="Move this whole section later"'+(k===runs.length-1?' disabled':'')+'>&darr;</button>';
+      h.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+        if(b.classList.contains('fold')){S.fold.has(r.fold)?S.fold.delete(r.fold):S.fold.add(r.fold);renderDeck();return;}
+        if(b.dataset.s==='pick')pickSection(k);else moveSection(k,b.dataset.s==='up'?-1:1);});
+      L.appendChild(h);
+    }
+    if(hidden.has(i))return;
     const c=document.createElement('div');c.className='dcard';
     c.innerHTML='<img alt=""><div class="dmeta"><button class="pick" type="button" data-p="1" aria-label="Select slide" title="Select (Shift-click for a range)">&#10003;</button><span class="n">'+(i+1)+'</span><input aria-label="Slide title"><button class="ib" data-a="up" type="button" title="Move earlier">&larr;</button><button class="ib" data-a="dn" type="button" title="Move later">&rarr;</button><button class="ib" data-a="rm" type="button" title="Remove from deck">&times;</button></div>';
     c.querySelector('img').src=d.url;const inp=c.querySelector('input');inp.value=d.title;inp.oninput=()=>{d.title=inp.value;touch();};
@@ -3733,7 +3848,9 @@ function renderSplit(){
   sc.onclick=e=>{const a=e.target.closest('[data-a]');if(!a)return;const k=a.dataset.a;
     if(k==='prev')selectSlide(si-1);else if(k==='next')selectSlide(si+1);else if(k==='up')stepSlide(si,-1);else if(k==='dn')stepSlide(si,1);else if(k==='mvto'){const v=+sc.querySelector('.posin').value;if(v>0)moveTo([cur.id],v);}else if(k==='rm')removeSlide(si);};
   rail.innerHTML='';
+  const rruns=sectionRuns(),starts=new Map();if(rruns.length>1)rruns.forEach(q=>starts.set(q.idx[0],q));
   S.deck.forEach((d,i)=>{
+    if(starts.has(i)){const q=starts.get(i),h=document.createElement('div');h.className='rsec';h.textContent=q.show+' · '+q.idx.length;rail.appendChild(h);}
     const r=document.createElement('div');r.className='ritem'+(i===si?' on':'');
     r.innerHTML='<span class="n"><button class="pick" type="button" data-p="1" aria-label="Select slide" title="Select (Shift-click for a range)">&#10003;</button>'+(i+1)+'</span><div class="th"><img alt=""><div class="rt"></div></div><div class="ab"><button class="ib" data-a="up" type="button" title="Move earlier">&uarr;</button><button class="ib" data-a="dn" type="button" title="Move later">&darr;</button></div>';
     r.querySelector('img').src=d.url;r.querySelector('.rt').textContent=d.title;
@@ -3767,7 +3884,9 @@ const addMsg=(res,got)=>{
   return (bits.join(', ')+'.').replace(/^./,c=>c.toUpperCase());
 };
 async function addCurrent(){
-  try{const got=await grab(S.view,S.a),res=addSlides(got);flash(addMsg(res,got));}
+  try{
+    if(S.view==='puzzle'){openAddDlg(await puzzlePlan(S.a));return;}
+    const got=await grab(S.view,S.a),res=addSlides(got);flash(addMsg(res,got));}
   catch(e){box($('renderMsg'),'err',esc(e.message||String(e)));}
 }
 const deckBase=()=>{const L=withLal();return 'Perfect_Match_Analysis'+(L.length?'_'+slug(L.length>1?L.map(a=>a.name).join('_'):(L[0].lal.client||L[0].name)):'');};
@@ -3819,10 +3938,11 @@ const unpackFile=f=>f?{name:f.name,column:f.column,bad:f.bad||[],map:new Map(f.m
 const autoTitle=()=>withLal().map(a=>a.name).join(' + ')||'Untitled project';
 const userName=()=>{try{return(localStorage.getItem('pma-user')||'').trim();}catch(e){return'';}};
 function setUserName(v){try{localStorage.setItem('pma-user',v.trim());}catch(e){}}
+const pmOf=a=>{try{if(a.frames&&a.frames.puzzle&&a.engine&&a.engine.contentWindow.__pmGet)return a.engine.contentWindow.__pmGet();}catch(e){}return a.pmSaved||null;};
 function snapshot(){
   if(!S.creator)S.creator=userName();
   return {format:'pma-project',v:1,id:S.projectId,title:S.title||autoTitle(),creator:S.creator||'',updated:Date.now(),
-    analyses:withLal().map(a=>({name:a.name,lal:{rep:a.lal.rep,name:a.lal.name,client:a.lal.client},cust:{src:a.cust.src,file:packFile(a.cust.file)},mkt:{src:a.mkt.src,file:packFile(a.mkt.file)},cmpWith:(S.list.find(x=>x.id===a.cmpWith)||{}).name||''})),
+    analyses:withLal().map(a=>({name:a.name,lal:{rep:a.lal.rep,name:a.lal.name,client:a.lal.client},cust:{src:a.cust.src,file:packFile(a.cust.file)},mkt:{src:a.mkt.src,file:packFile(a.mkt.file)},cmpWith:(S.list.find(x=>x.id===a.cmpWith)||{}).name||'',pm:pmOf(a)})),
     deck:S.deck.map(d=>({title:d.title,svg:d.svg,key:d.key||null,lock:d.lock||null}))};
 }
 let saveTimer=0;
@@ -3903,7 +4023,7 @@ async function openProject(rec){
     for(const x of rec.analyses||[]){
       const an=mkAn();an.name=x.name;const rep=x.lal.rep;
       an.lal={rep,px:extractPersonicx(rep),name:x.lal.name,client:x.lal.client};
-      an.cust={src:x.cust.src,file:unpackFile(x.cust.file)};an.mkt={src:x.mkt.src,file:unpackFile(x.mkt.file)};
+      an.cust={src:x.cust.src,file:unpackFile(x.cust.file)};an.mkt={src:x.mkt.src,file:unpackFile(x.mkt.file)};an.pmSaved=x.pm||null;
       an.engine=await makeFrame('puzzle',an);S.list.push(an);
     }
     if(!S.list.length)S.list.push(mkAn());
