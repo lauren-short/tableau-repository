@@ -1965,7 +1965,7 @@ const state={
   pieces:[],
   opts:{thr:120,excl:true,minShare:2,method:'pct'},
   figScale:1,
-  pm:{on:false,page:0,sub:null,bul:{},ts:1,ls:1,groups:[],gOn:false,keep:true,gid:1,gs:1},
+  pm:{on:false,page:0,sub:null,bul:{},ts:1,ls:1,groups:[],gOn:false,keepUser:null,gid:1,gs:1},
   cmp:{on:false,kind:'pm',report:null,pm:null,plabel:String(new Date().getFullYear()-1),clabel:String(new Date().getFullYear()),fname:{pm:'',lal:''}},
   edited:{},
   text:{title:'CUSTOMER TRAITS AT A GLANCE',sub:'NOTE: BRAND PREFERENCE INDEX (BPI) IS DISPLAYED IN BLUE\nPARENTHESIS.',slide:''},
@@ -2536,11 +2536,14 @@ function pmPieceSlide(item,idx,forExport){
 }
 
 function pmBulletsKey(k){return String(state.pm.bul[k]||'').split('\n').map(x=>x.trim()).filter(Boolean);}
+function pmKeep(){const P=state.pm;return P.keepUser!=null?P.keepUser:!!P.on;}   // default: keep piece slides only when pieces are also switched on
+function pmActive(){const P=state.pm;return !!(P.on||P.gOn)&&pmVis().length>0&&pmItems().length>0;}
 function pmItems(){
   const vis=pmVis(),P=state.pm,G=P.gOn?P.groups.map(g=>({g,mem:vis.filter(p=>g.uids.includes(p.uid))})).filter(x=>x.mem.length):[];
   const inG=new Set();G.forEach(x=>x.mem.forEach(p=>inG.add(p)));
   const items=[],done=new Set();
-  vis.forEach(p=>{if(inG.has(p)&&!P.keep)return;items.push({p,mem:[p],done:new Set(done)});done.add(p);});
+  const keep=pmKeep(),showPieces=P.on||(P.gOn&&keep);
+  vis.forEach(p=>{if(!showPieces||(inG.has(p)&&!keep))return;items.push({p,mem:[p],done:new Set(done)});done.add(p);});
   vis.forEach(p=>done.add(p));
   G.forEach(x=>items.push({g:x.g,mem:x.mem,done:new Set(done)}));   // group slides go at the end
   return items;
@@ -2603,18 +2606,22 @@ function pmGroupSlide(item,idx,forExport){
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SW} ${SH}"${dm} font-family="Arial, Helvetica, sans-serif">${o}</svg>`;
 }
 function pmSlide(i,forExport){const it=pmItems()[i];return it.g?pmGroupSlide(it,i,forExport):pmPieceSlide(it,i,forExport);}
-function pmPages(){return pmItems().map((it,i)=>({title:pmTitle(it),svg:pmSlide(i,true)}));}
-window.__pmOn=()=>!!state.pm.on;
+function pmPages(){return pmItems().map((it,i)=>({title:pmTitle(it),key:it.g?'g:'+it.g.name:'p:'+it.p.label,svg:pmSlide(i,true)}));}
+window.__pmOn=()=>pmActive();
 window.renderPieceSlides=pmPages;
 function pmClamp(){const n=pmItems().length;state.pm.page=Math.max(0,Math.min(state.pm.page,n-1));}
 function pmBuildPanel(){
   $('pmSub').value=pmSubText();
   pmClamp();$('pmBul').innerHTML=pmItems().filter((it,i)=>i===state.pm.page).map(it=>{const key=it.g?'g'+it.g.id:it.p.uid;return `<div class="pb"><b>${esc(pmTitle(it))}${it.g?' (group)':''}</b><textarea data-uid="${key}" placeholder="# 1 is unique and above average index for…">${esc(state.pm.bul[key]||'')}</textarea></div>`;}).join('')||'<div class="hint">No pieces yet.</div>';
 }
+function pmDock(){   // the shared slide controls (line under title, sizes, commentary) live in whichever section is switched on
+  const P=state.pm,pn=$('pmPanel');pn.hidden=!(P.on||P.gOn);
+  const host=(P.on?$('accPm'):P.gOn?$('accGrp'):$('accPm')).querySelector('.accb');if(pn.parentNode!==host)host.appendChild(pn);
+}
 function pmSet(on){
   state.pm.on=on;const b=$('pmToggle');b.classList.toggle('on',on);b.setAttribute('aria-checked',on);b.setAttribute('aria-pressed',on);
-  $('pmPanel').hidden=!on;if(on){pmBuildPanel();}
-  if(on){$('accPm').classList.add('on');accSet('accPm',true);accSet('accBuild',false);accSet('accCmp',false);}else{$('accPm').classList.remove('on');accSet('accPm',false);if(state.pm.gOn)gpSet(false);}
+  pmDock();if(on||state.pm.gOn)pmBuildPanel();if(state.pm.gOn)gpBuild();
+  if(on){$('accPm').classList.add('on');accSet('accPm',true);accSet('accBuild',false);accSet('accCmp',false);}else{$('accPm').classList.remove('on');accSet('accPm',false);}
   renderStage();
 }
 $('pmToggle').addEventListener('click',()=>pmSet(!state.pm.on));
@@ -2626,23 +2633,23 @@ $('pmBul').addEventListener('input',e=>{const t=e.target.closest('textarea');if(
 function gpBuild(){
   const P=state.pm,vis=pmVis();
   $('gpList').innerHTML=P.groups.map(g=>`<div class="gpg" data-id="${g.id}"><div class="gh"><input class="txt gn" value="${esc(g.name)}" placeholder="Group name, e.g. Affluence"><button type="button" class="gx" title="Remove group" aria-label="Remove group">&times;</button></div><div class="gpc">${vis.map(p=>`<button type="button" data-uid="${p.uid}" class="${g.uids.includes(p.uid)?'on':''}">${esc(p.label)}</button>`).join('')}</div></div>`).join('')||'<div class="hint">No groups yet.</div>';
-  $('gpKeep').checked=P.keep;
+  $('gpKeep').checked=pmKeep();
 }
 function gpShow(g){const i=pmItems().findIndex(x=>x.g===g);state.pm.page=i>=0?i:Math.max(0,pmItems().length-1);}
 function gpSet(on,quiet){
   const P=state.pm,b=$('gpToggle');P.gOn=on;b.classList.toggle('on',on);b.setAttribute('aria-checked',on);b.setAttribute('aria-pressed',on);
   $('accGrp').classList.toggle('on',on);
-  if(on){if(!P.groups.length)P.groups.push({id:P.gid++,name:'Group 1',uids:[]});gpBuild();if(!P.on&&!quiet)pmSet(true);accSet('accGrp',true);accSet('accPm',false);accSet('accBuild',false);accSet('accCmp',false);}
-  else accSet('accGrp',false);
+  if(on){if(!P.groups.length)P.groups.push({id:P.gid++,name:'Group 1',uids:[]});gpBuild();pmDock();pmBuildPanel();accSet('accGrp',true);accSet('accPm',false);accSet('accBuild',false);accSet('accCmp',false);}
+  else{accSet('accGrp',false);pmDock();}
   if(on)gpShow(P.groups[P.groups.length-1]);
-  if(P.on)renderStage();
+  renderStage();
 }
 $('gpToggle').addEventListener('click',()=>gpSet(!state.pm.gOn));
 $('gpAdd').addEventListener('click',()=>{const P=state.pm;const ng={id:P.gid++,name:'Group '+(P.groups.length+1),uids:[]};P.groups.push(ng);gpBuild();gpShow(ng);renderStage();});
 $('gpPreset').addEventListener('click',()=>{const P=state.pm,u=pmVis().filter(p=>/income|net ?worth|home market value/i.test(p.label)).map(p=>p.uid);
   P.groups.forEach(g=>g.uids=g.uids.filter(x=>!u.includes(x)));P.groups=P.groups.filter(g=>g.uids.length);const ng={id:P.gid++,name:'Affluence',uids:u};P.groups.push(ng);gpBuild();gpShow(ng);renderStage();});
 $('gpSize').addEventListener('input',e=>{state.pm.gs=e.target.value/100;$('gpSizeV').textContent=e.target.value+'%';renderStage();});
-$('gpKeep').addEventListener('change',e=>{state.pm.keep=e.target.checked;renderStage();});
+$('gpKeep').addEventListener('change',e=>{state.pm.keepUser=e.target.checked;gpBuild();renderStage();});
 $('gpList').addEventListener('input',e=>{const el=e.target.closest('.gpg');if(!el||!e.target.classList.contains('gn'))return;const g=state.pm.groups.find(g=>g.id==el.dataset.id);g.name=e.target.value;gpShow(g);renderStage();});
 $('gpList').addEventListener('click',e=>{
   const el=e.target.closest('.gpg');if(!el)return;const P=state.pm,g=P.groups.find(x=>x.id==el.dataset.id);
@@ -2658,14 +2665,14 @@ const stage=$('stage');
 const EMPTY=()=>`<label for="file" class="drop"><div class="ic"><svg width="30" height="30" viewBox="0 0 16 16" fill="none" stroke="#002855" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V2M4.5 5.5L8 2l3.5 3.5M2 10v3.5h12V10"/></svg></div><h2>Upload your look-alike report</h2><p>Drag &amp; drop the Acxiom Enhanced Look Alike Report (.pdf) here, or <u>browse</u>. The puzzle man builds itself from the highly receptive elements.</p></label>`;
 function renderStage(){
   if(!state.report){ stage.innerHTML=EMPTY(); ['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=true); $('segbar').hidden=true; return; }
-  if(state.pm.on&&pmVis().length){
+  if(pmActive()){
     pmClamp();const items=pmItems(),n=items.length,pg=state.pm.page;
     stage.innerHTML=`<div style="width:100%;display:flex;flex-direction:column;align-items:center"><div class="card">${pmSlide(pg,false)}</div><div class="pmbar"><button type="button" id="pmPrev" ${pg<=0?'disabled':''} aria-label="Previous piece">&lsaquo;</button><span>Slide ${pg+1} of ${n} &ndash; ${esc(pmTitle(items[pg]))}</span><button type="button" id="pmNext" ${pg>=n-1?'disabled':''} aria-label="Next piece">&rsaquo;</button></div></div>`;
     $('pmPrev').onclick=()=>{state.pm.page--;renderStage();};$('pmNext').onclick=()=>{state.pm.page++;renderStage();};
     window.__fit={notes:[]};$('fitnote').textContent='';
     ['dlpng','dlsvg','dlpdf'].forEach(i=>$(i).disabled=false);
     document.querySelectorAll('.pc').forEach(el=>{const q=state.pieces.find(x=>x.uid==el.dataset.uid);if(!q)return;const l2=linesOf(q);el.querySelector('.pc-sub').textContent=l2.length?l2.map(lineStr).join(' \u00b7 '):'Nothing above the receptive cutoff';});
-    if(!$('pmPanel').hidden&&!stage.contains(document.activeElement)&&!$('pmPanel').contains(document.activeElement)) pmBuildPanel();
+    if((state.pm.on||state.pm.gOn)&&!stage.contains(document.activeElement)&&!$('pmPanel').contains(document.activeElement)) pmBuildPanel();
     return;
   }
   stage.innerHTML=`<div class="card">${renderSlide(false)}</div>`;
@@ -3020,12 +3027,12 @@ function svgToCanvas(scale){
     img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(curSVG());
   });
 }
-function curSVG(){return state.pm.on&&pmVis().length?pmSlide(state.pm.page,true):renderSlide(true);}
-function curName(ext){return state.pm.on&&pmVis().length?fname(ext).replace('_puzzle_man.','_slide'+(state.pm.page+1)+'_'+String(pmTitle(pmItems()[state.pm.page])).replace(/[^\w]+/g,'_')+'.'):fname(ext);}
+function curSVG(){return pmActive()?pmSlide(state.pm.page,true):renderSlide(true);}
+function curName(ext){return pmActive()?fname(ext).replace('_puzzle_man.','_slide'+(state.pm.page+1)+'_'+String(pmTitle(pmItems()[state.pm.page])).replace(/[^\w]+/g,'_')+'.'):fname(ext);}
 $('dlsvg').addEventListener('click',()=>download(new Blob([curSVG()],{type:'image/svg+xml'}),curName('svg')));
 $('dlpng').addEventListener('click',async()=>{try{const c=await svgToCanvas(2);c.toBlob(b=>download(b,curName('png')),'image/png');}catch(e){showMsg(e.message);}});
 $('dlpdf').addEventListener('click',()=>{
-  if(state.pm.on&&pmVis().length){
+  if(pmActive()){
     let d=$('pmPrint');if(!d){d=document.createElement('div');d.id='pmPrint';document.body.appendChild(d);}
     d.innerHTML=pmPages().map(p=>p.svg).join('');document.body.classList.add('pmprinting');
     const done=()=>{document.body.classList.remove('pmprinting');d.innerHTML='';window.removeEventListener('afterprint',done);};
@@ -3575,29 +3582,34 @@ async function grab(kind,an){                    // -> [{title,svg}] for one too
   if(kind==='puzzle'){
     const f=await ensurePuzzle(an),w=f.contentWindow;
     if(!w.eval('!!(state.report&&state.pieces.some(p=>p.visible))'))throw new Error('The puzzle man has no pieces yet.');
-    if(w.__pmOn&&w.__pmOn())return w.renderPieceSlides().map(x=>({title:pre+'Puzzle piece – '+x.title,svg:x.svg}));
-    const c=cmpTxt(w);return [{title:(c&&other?'':pre)+'Puzzle man'+c,svg:w.renderSlide(true)}];
+    if(w.__pmOn&&w.__pmOn())return w.renderPieceSlides().map(x=>({title:pre+'Puzzle piece – '+x.title,svg:x.svg,key:'pm:'+an.name+':'+x.key+(cmpOn(w)?':cmp':'')}));
+    const c=cmpTxt(w);return [{title:(c&&other?'':pre)+'Puzzle man'+c,svg:w.renderSlide(true),key:'pm:'+an.name+':summary'+(cmpOn(w)?':cmp':'')}];
   }
   const f=await ensureBubble(an),w=f.contentWindow;
-  if(kind==='chart'){if(!w.__lastSVG)throw new Error('The bubble chart isn’t ready yet.');const c=cmpTxt(w);return [{title:(c&&other?'':pre)+'Bubble chart'+c,svg:w.__lastSVG}];}
+  if(kind==='chart'){if(!w.__lastSVG)throw new Error('The bubble chart isn’t ready yet.');const c=cmpTxt(w);return [{title:(c&&other?'':pre)+'Bubble chart'+c,svg:w.__lastSVG,key:'chart:'+an.name+(cmpOn(w)?':cmp':'')}];}
   let pg=w.__getAppPages();if(!pg.length){w.__buildAppendix(false);pg=w.__getAppPages();}
   if(!pg.length)throw new Error('The appendix couldn’t be built from this workbook.');
-  return pg.map(p=>({title:pre+'Appendix – '+p.band.name+(p.parts>1?' ('+p.part+' of '+p.parts+')':''),svg:p.svg}));
+  return pg.map(p=>({title:pre+'Appendix – '+p.band.name+(p.parts>1?' ('+p.part+' of '+p.parts+')':''),svg:p.svg,key:'app:'+an.name+':'+p.band.name+':'+p.part}));
 }
 const LKPAL=['#3C9AD8','#E8BE56','#58A27C','#B07CC6','#E07A5F','#5B6EE1'];
 function addSlides(list){
-  const map={},have=new Set(S.deck.map(d=>d.svg));let skipped=0;
+  const map={},have=new Set(S.deck.map(d=>d.svg));let skipped=0,updated=0,added=0;
   list.forEach((x,i)=>{
+    const same=x.key&&S.deck.find(d=>d.key===x.key);
+    if(same){                       // already in the deck: refresh it in place, keeping its position and lock
+      if(same.svg===x.svg){skipped++;return;}
+      URL.revokeObjectURL(same.url);same.svg=x.svg;same.title=x.title;same.url=URL.createObjectURL(new Blob([x.svg],{type:'image/svg+xml'}));updated++;return;
+    }
     if(have.has(x.svg)){skipped++;return;}
     let lock;
     if(x.lock===undefined){   // auto: runs of 2+ puzzle-piece slides stay together
       const isP=y=>y&&/Puzzle piece – /.test(y.title);
       if(isP(x)&&(isP(list[i-1])||isP(list[i+1]))){let j=i;while(isP(list[j-1]))j--;map['run'+j]=map['run'+j]||uid();lock=map['run'+j];}
     }else if(x.lock){lock=map[x.lock]=map[x.lock]||uid();}
-    S.deck.push({id:uid(),title:x.title,svg:x.svg,lock:lock||null,url:URL.createObjectURL(new Blob([x.svg],{type:'image/svg+xml'}))});
+    S.deck.push({id:uid(),title:x.title,svg:x.svg,key:x.key||null,lock:lock||null,url:URL.createObjectURL(new Blob([x.svg],{type:'image/svg+xml'}))});added++;
   });
   renderDeck();
-  return {added:list.length-skipped,skipped};
+  return {added,updated,skipped};
 }
 const selIdx=()=>{let i=S.deck.findIndex(d=>d.id===S.selId);if(i<0&&S.deck.length){i=0;S.selId=S.deck[0].id;}return i;};
 const blocksOf=deck=>{const out=[];for(const d of deck){const l=out[out.length-1];if(d.lock&&l&&l[0].lock===d.lock)l.push(d);else out.push([d]);}return out;};
@@ -3746,12 +3758,16 @@ async function startDeck(){
   }
   const res=addSlides(got);
   if(miss.length)box(m,'warn','Left out: '+esc(miss.join('; ')));
-  else if(res.skipped)box(m,'ok',res.skipped+' slide'+(res.skipped>1?'s were':' was')+' already in your presentation and not added again.');
+  else if(res.skipped||res.updated)box(m,'ok',addMsg(res,got));
   btns.forEach((b,i)=>{b.disabled=false;b.textContent=labels[i];});renderDeck();
 }
+const addMsg=(res,got)=>{
+  const bits=[];if(res.added)bits.push('added '+res.added);if(res.updated)bits.push('updated '+res.updated+' that '+(res.updated>1?'were':'was')+' already in the deck');if(res.skipped)bits.push(res.skipped+' unchanged');
+  if(!res.added&&!res.updated)return got.length>1?'Those '+got.length+' slides are already in your presentation – nothing changed.':'“'+got[0].title+'” is already in your presentation – nothing changed.';
+  return (bits.join(', ')+'.').replace(/^./,c=>c.toUpperCase());
+};
 async function addCurrent(){
-  try{const got=await grab(S.view,S.a),res=addSlides(got);
-    flash(!res.added?(got.length>1?'Those '+got.length+' slides are already in your presentation – nothing added.':'“'+got[0].title+'” is already in your presentation – nothing added.'):(got.length>1?'Added '+res.added+' slide'+(res.added>1?'s':'')+' to your presentation'+(res.skipped?' ('+res.skipped+' already there).':'.'):'Added “'+got[0].title+'” to your presentation.'));}
+  try{const got=await grab(S.view,S.a),res=addSlides(got);flash(addMsg(res,got));}
   catch(e){box($('renderMsg'),'err',esc(e.message||String(e)));}
 }
 const deckBase=()=>{const L=withLal();return 'Perfect_Match_Analysis'+(L.length?'_'+slug(L.length>1?L.map(a=>a.name).join('_'):(L[0].lal.client||L[0].name)):'');};
@@ -3807,7 +3823,7 @@ function snapshot(){
   if(!S.creator)S.creator=userName();
   return {format:'pma-project',v:1,id:S.projectId,title:S.title||autoTitle(),creator:S.creator||'',updated:Date.now(),
     analyses:withLal().map(a=>({name:a.name,lal:{rep:a.lal.rep,name:a.lal.name,client:a.lal.client},cust:{src:a.cust.src,file:packFile(a.cust.file)},mkt:{src:a.mkt.src,file:packFile(a.mkt.file)},cmpWith:(S.list.find(x=>x.id===a.cmpWith)||{}).name||''})),
-    deck:S.deck.map(d=>({title:d.title,svg:d.svg,lock:d.lock||null}))};
+    deck:S.deck.map(d=>({title:d.title,svg:d.svg,key:d.key||null,lock:d.lock||null}))};
 }
 let saveTimer=0;
 function touch(){S.skipSave=false;clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,900);}
