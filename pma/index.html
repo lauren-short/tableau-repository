@@ -1691,7 +1691,7 @@ function loadScript(src){return new Promise(res=>{const s=document.createElement
           <div class="osec"><label class="lbl" for="gpSize">Piece size <span class="mut" id="gpSizeV">100%</span></label><input type="range" id="gpSize" min="50" max="160" step="5" value="100" style="width:100%;accent-color:var(--navy)"></div>
           <div id="gpList"></div>
           <div class="pcbtns"><button class="btn" id="gpAdd" type="button">+ Add a group</button><button class="btn" id="gpPreset" type="button">+ Affluence example</button></div>
-          <label class="gpkeep"><input type="checkbox" id="gpKeep"> Also keep each piece&rsquo;s own slide</label>
+          <label class="gpkeep"><input type="checkbox" id="gpKeep" checked> Also keep each piece&rsquo;s own slide</label>
           <div class="hint">Commentary for a group slide is typed in the box under Create puzzle pieces while that slide is showing.</div>
         </div></div>
       </div>
@@ -1965,7 +1965,7 @@ const state={
   pieces:[],
   opts:{thr:120,excl:true,minShare:2,method:'pct'},
   figScale:1,
-  pm:{on:false,page:0,sub:null,bul:{},ts:1,ls:1,groups:[],gOn:false,keep:false,gid:1,gs:1},
+  pm:{on:false,page:0,sub:null,bul:{},ts:1,ls:1,groups:[],gOn:false,keep:true,gid:1,gs:1},
   cmp:{on:false,kind:'pm',report:null,pm:null,plabel:String(new Date().getFullYear()-1),clabel:String(new Date().getFullYear()),fname:{pm:'',lal:''}},
   edited:{},
   text:{title:'CUSTOMER TRAITS AT A GLANCE',sub:'NOTE: BRAND PREFERENCE INDEX (BPI) IS DISPLAYED IN BLUE\nPARENTHESIS.',slide:''},
@@ -2467,7 +2467,7 @@ function pmPieceSlide(item,idx,forExport){
       if(hit&&!inside){ds.push(it2.r.d);u={x0:Math.min(u.x0,kb.x),y0:Math.min(u.y0,kb.y),x1:Math.max(u.x1,kb.x+kb.width),y1:Math.max(u.y1,kb.y+kb.height)};}
     });
     const bb={x:u.x0,y:u.y0,width:u.x1-u.x0,height:u.y1-u.y0};
-    const s2=Math.min(380/bb.width,230/bb.height),pw=bb.width*s2,ph=bb.height*s2,px=LX-pw/2,py=180+(230-ph)/2;
+    const s2=Math.min(300/bb.width,185/bb.height),pw=bb.width*s2,ph=bb.height*s2,px=LX-pw/2,py=235+(185-ph)/2;
     o+=`<g transform="translate(${px.toFixed(1)},${py.toFixed(1)}) scale(${s2.toFixed(4)}) translate(${-bb.x},${-bb.y})">`+ds.map(d=>d.split(/(?=M)/).map(dd=>`<path d="${dd}" fill="${NAVY}" stroke="${NAVY}" stroke-width="0.7" stroke-linejoin="round"/>`).join('')).join('')+`</g>`;
     const [rx,ry,rw,rh]=me.r.rect,vertical=(me.r.z==='arm'||me.r.z==='leg')&&rh>rw*1.25,rot=vertical?(me.r.s==='r'?90:-90):0;
     const f0=fitLabel(p.label,((vertical?rh:rw)-2)*sc,((vertical?rw:rh)-2)*sc),k=s2/sc*1.15*(state.pm.ls||1),f={size:+(f0.size*k).toFixed(1),lines:f0.lines};
@@ -2486,7 +2486,7 @@ function pmPieceSlide(item,idx,forExport){
   };
   const bulLines=sz=>bl.map(b=>wrapFn(b,t=>measure(t,sz,'normal'),bw-40));
   let bsz=Math.round(24*TS),bL=bulLines(bsz);
-  const tTop=470;
+  const tTop=500;
   for(;;){
     const rows=ls.length+1,end=tTop+rows*lh,bh=bL.reduce((a,x)=>a+x.length*(bsz*1.35)+10,0);
     if(end+(bl.length?bh+34:0)<=800||fs<=13) break;
@@ -2571,14 +2571,14 @@ function pmGroupSlide(item,idx,forExport){
   let tSize=Math.round(66*TS);while(tSize>24&&measure(title,tSize,'bold')>980)tSize--;
   o+=`<text x="108" y="116" font-size="${tSize}" font-weight="700" fill="${NAVY}">${esc(title)}</text>`;
   const sub=pmSubText();if(sub)o+=`<text x="110" y="152" font-size="${(26*TS).toFixed(1)}" letter-spacing="2.4" fill="${NAVY}">${esc(sub)}</text>`;
-  const AX=108,AW=1288,top=190;
+  const AX=108,AW=1288,top=235;
   // commentary
   const bl=pmBulletsKey('g'+g.id);let bsz=Math.round(22*TS),bL=bl.map(b=>wrapFn(b,t=>measure(t,bsz,'normal'),AW-40));
   const bh=bL.reduce((a,x)=>a+x.length*bsz*1.35+10,0),bottom=bl.length?Math.min(790-bh-16,800):800;
   const k=mem.length,cols=k<=4?k:Math.ceil(k/2),rows=Math.ceil(k/cols),cw=AW/cols,chh=(bottom-top)/rows;
   mem.forEach((p,i)=>{
     const col=i%cols,row=Math.floor(i/cols),cx0=AX+col*cw,cy0=top+row*chh;
-    const ph=Math.min(chh*0.55,(rows===1?230:120)*(state.pm.gs||1));
+    const ph=Math.min(chh*0.55,(rows===1?180:100)*(state.pm.gs||1));
     o+=pmIso(plan,tp,sc,p,cx0+28,cy0,cw-56,ph);
     const ls=linesOf(p),cmp=C.on&&ls.some(l=>l.prev!=null),heads=cmp?[String(C.plabel),String(C.clabel)]:['Index'];
     let fs=Math.round(24*TS),lh;
